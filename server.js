@@ -71,6 +71,9 @@ function initializeDatabase() {
       claim_date TEXT NOT NULL,
       expected_return_date TEXT NOT NULL,
       data_wiped_confirmed INTEGER DEFAULT 0,
+      data_wiped_by TEXT,
+      data_wiped_at TEXT,
+      sanitization_note TEXT,
       status TEXT DEFAULT 'Initiated'
     )`);
 
@@ -80,6 +83,7 @@ function initializeDatabase() {
         // Seed Users
         db.run(`INSERT INTO users (username, password, role, name, department) VALUES 
           ('admin', 'admin123', 'admin', 'IT Support Head', 'IT Department'),
+          ('itstaff', 'itstaff123', 'it_staff', 'IT Technician', 'IT Department'),
           ('nurse', 'nurse123', 'nurse', 'Nurse Joy', 'Ward 20')`);
 
         // Seed Assets (mains)
@@ -137,7 +141,7 @@ app.get('/api/assets', (req, res) => {
 // 3. Lookup Asset by Tag/Serial
 app.get('/api/assets/:tag', (req, res) => {
   const tag = req.params.tag;
-  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag WHERE m.asset_tag = ? OR m.serial_no = ?", [tag, tag], (err, row) => {
+  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag WHERE m.asset_tag = ? OR m.serial_no = ?", [tag, tag], (err, row) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -194,14 +198,20 @@ app.post('/api/assets/update-status', (req, res) => {
 
 // 5. Confirm Data Sanitization (PDPA Safeguard)
 app.post('/api/assets/sanitize', (req, res) => {
-  const { asset_tag, action_by_username } = req.body;
+  const { asset_tag, action_by_username, sanitization_note } = req.body;
   if (!asset_tag || !action_by_username) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  const wipedAt = new Date().toISOString();
+
   db.serialize(() => {
-    db.run("INSERT OR IGNORE INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, status) VALUES (?, '', '', '', '', 1, 'Sanitized')", [asset_tag], function(err) {
-      db.run("UPDATE rma_claims SET data_wiped_confirmed = 1 WHERE asset_tag = ?", [asset_tag], function(err) {
+    db.run("INSERT OR IGNORE INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, data_wiped_by, data_wiped_at, sanitization_note, status) VALUES (?, '', '', '', '', 1, ?, ?, ?, 'Sanitized')", 
+      [asset_tag, action_by_username, wipedAt, sanitization_note || ''], 
+      function(err) {
+      db.run("UPDATE rma_claims SET data_wiped_confirmed = 1, data_wiped_by = ?, data_wiped_at = ?, sanitization_note = ? WHERE asset_tag = ?", 
+        [action_by_username, wipedAt, sanitization_note || '', asset_tag], 
+        function(err) {
         if (err) {
           return res.status(500).json({ error: 'Failed to confirm sanitization' });
         }
@@ -220,49 +230,65 @@ app.post('/api/assets/sanitize', (req, res) => {
 
 // 6. Initiate RMA / Warranty Claim
 app.post('/api/assets/claim', (req, res) => {
-  const { asset_tag, vendor_name, vendor_rma_number, expected_return_date, data_wiped_confirmed, action_by_username } = req.body;
+  const { asset_tag, vendor_name, vendor_rma_number, expected_return_date, data_wiped_confirmed, sanitization_note, action_by_username } = req.body;
   
   if (!asset_tag || !vendor_name || !vendor_rma_number || !action_by_username) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const claimDate = new Date().toISOString().split('T')[0];
-  const wiped = data_wiped_confirmed ? 1 : 0;
+  db.get("SELECT sanitization_required FROM mains WHERE asset_tag = ?", [asset_tag], (err, asset) => {
+    if (err || !asset) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
 
-  db.serialize(() => {
-    // Insert or update RMA claims table
-    db.run(`INSERT INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'Out to Vendor')
-            ON CONFLICT(asset_tag) DO UPDATE SET 
-              vendor_name = excluded.vendor_name,
-              vendor_rma_number = excluded.vendor_rma_number,
-              claim_date = excluded.claim_date,
-              expected_return_date = excluded.expected_return_date,
-              data_wiped_confirmed = excluded.data_wiped_confirmed,
-              status = 'Out to Vendor'`, 
-      [asset_tag, vendor_name, vendor_rma_number, claimDate, expected_return_date, wiped], 
-      function(err) {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
+    // Enforce data sanitization requirement
+    if (asset.sanitization_required === 1 && !data_wiped_confirmed) {
+      return res.status(400).json({ error: 'Data Wiped / Data Removed confirmation is mandatory for this device type.' });
+    }
 
-        // Update asset status to 'At Vendor' in mains
-        db.run("UPDATE mains SET status = 'At Vendor' WHERE asset_tag = ?", [asset_tag], function(err) {
+    const claimDate = new Date().toISOString().split('T')[0];
+    const wiped = data_wiped_confirmed ? 1 : 0;
+    const wipedBy = wiped ? action_by_username : null;
+    const wipedAt = wiped ? new Date().toISOString() : null;
+
+    db.serialize(() => {
+      // Insert or update RMA claims table
+      db.run(`INSERT INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, data_wiped_by, data_wiped_at, sanitization_note, status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Out to Vendor')
+              ON CONFLICT(asset_tag) DO UPDATE SET 
+                vendor_name = excluded.vendor_name,
+                vendor_rma_number = excluded.vendor_rma_number,
+                claim_date = excluded.claim_date,
+                expected_return_date = excluded.expected_return_date,
+                data_wiped_confirmed = excluded.data_wiped_confirmed,
+                data_wiped_by = excluded.data_wiped_by,
+                data_wiped_at = excluded.data_wiped_at,
+                sanitization_note = excluded.sanitization_note,
+                status = 'Out to Vendor'`, 
+        [asset_tag, vendor_name, vendor_rma_number, claimDate, expected_return_date, wiped, wipedBy, wipedAt, sanitization_note || ''], 
+        function(err) {
           if (err) {
-            return res.status(500).json({ error: 'Failed to update asset status' });
+            return res.status(500).json({ error: err.message });
           }
 
-          // Insert audit log
-          db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
-                  VALUES (?, ?, 'External', 'At Vendor', 'OUT', ?)`, 
-            [asset_tag, vendor_name, action_by_username], 
-            function(err) {
-              res.json({ message: 'ส่งเคลมไปที่ศูนย์บริการ (RMA Claim initiated)', asset_tag, status: 'At Vendor' });
+          // Update asset status to 'At Vendor' in mains
+          db.run("UPDATE mains SET status = 'At Vendor' WHERE asset_tag = ?", [asset_tag], function(err) {
+            if (err) {
+              return res.status(500).json({ error: 'Failed to update asset status' });
             }
-          );
-        });
-      }
-    );
+
+            // Insert audit log
+            db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
+                    VALUES (?, ?, 'External', 'At Vendor', 'OUT', ?)`, 
+              [asset_tag, vendor_name, action_by_username], 
+              function(err) {
+                res.json({ message: 'ส่งเคลมไปที่ศูนย์บริการ (RMA Claim initiated)', asset_tag, status: 'At Vendor' });
+              }
+            );
+          });
+        }
+      );
+    });
   });
 });
 
