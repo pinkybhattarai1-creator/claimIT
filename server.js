@@ -34,6 +34,26 @@ function initializeDatabase() {
       department TEXT NOT NULL
     )`);
 
+    // 5. Departments Table
+    db.run(`CREATE TABLE IF NOT EXISTS departments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      department_name TEXT NOT NULL,
+      floor TEXT NOT NULL,
+      location_detail TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // 6. Vendors Table
+    db.run(`CREATE TABLE IF NOT EXISTS vendors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vendor_name TEXT NOT NULL,
+      contact_name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT NOT NULL,
+      address TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // 2. Mains Table (Core IT Assets)
     db.run(`CREATE TABLE IF NOT EXISTS mains (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,6 +64,7 @@ function initializeDatabase() {
       serial_no TEXT UNIQUE NOT NULL,
       device_name TEXT NOT NULL,
       location TEXT NOT NULL,
+      department_id INTEGER,
       warranty_start TEXT NOT NULL,
       warranty_end TEXT NOT NULL,
       sanitization_required INTEGER DEFAULT 1,
@@ -67,6 +88,7 @@ function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       asset_tag TEXT UNIQUE NOT NULL,
       vendor_name TEXT NOT NULL,
+      vendor_id INTEGER,
       vendor_rma_number TEXT NOT NULL,
       claim_date TEXT NOT NULL,
       expected_return_date TEXT NOT NULL,
@@ -86,13 +108,29 @@ function initializeDatabase() {
           ('itstaff', 'itstaff123', 'it_staff', 'IT Technician', 'IT Department'),
           ('nurse', 'nurse123', 'nurse', 'Nurse Joy', 'Ward 20')`);
 
+        // Seed Departments
+        db.run(`INSERT INTO departments (department_name, floor, location_detail) VALUES 
+          ('IT Department', 'Fl 1', 'Main IT Room'),
+          ('Ward 20', 'Fl 2', 'Nurse Station'),
+          ('ต้อนรับ หน้า รพ.', 'Fl 1', 'Reception Desk'),
+          ('ICU', 'Fl 3', 'Intensive Care Unit'),
+          ('Ward 15', 'Fl 2', 'Secondary Nurse Station'),
+          ('Emergency Dept', 'Fl 1', 'ER')`);
+
+        // Seed Vendors
+        db.run(`INSERT INTO vendors (vendor_name, contact_name, phone, email, address) VALUES 
+          ('HP', 'HP Support', '12345678', 'support@hp.com', 'HP HQ'),
+          ('Apple', 'Apple Care', '87654321', 'care@apple.com', 'Apple Store'),
+          ('Zebra', 'Zebra Tech', '11122233', 'info@zebra.com', 'Zebra HQ'),
+          ('Dell', 'Dell Support', '44455566', 'support@dell.com', 'Dell HQ')`);
+
         // Seed Assets (mains)
-        db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status) VALUES 
-          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working'),
-          ('CIT-2024-AIO-02', 'AIO PC', 'HP', 'ProOne 440', 'HP889977', 'HP ProOne Reception PC', 'ต้อนรับ หน้า รพ.', '2024-05-10', '2027-05-10', 1, 'Working'),
-          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IP998877', 'Nurse Tablet ICU', 'ICU', '2022-03-20', '2025-03-20', 1, 'Broken'),
-          ('CIT-2023-SCN-02', 'Scanner', 'Zebra', 'DS2208', 'ZB654321', 'Barcode Scanner W15', 'Ward 15', '2023-06-18', '2026-06-18', 0, 'Working'),
-          ('CIT-2021-AIO-01', 'AIO PC', 'Dell', 'OptiPlex 7490', 'DL445566', 'Dell OptiPlex Emergency', 'Emergency Dept', '2021-08-12', '2024-08-12', 1, 'Working')`);
+        db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, department_id, warranty_start, warranty_end, sanitization_required, status) VALUES 
+          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', 2, '2023-01-15', '2026-01-15', 0, 'Working'),
+          ('CIT-2024-AIO-02', 'AIO PC', 'HP', 'ProOne 440', 'HP889977', 'HP ProOne Reception PC', 'ต้อนรับ หน้า รพ.', 3, '2024-05-10', '2027-05-10', 1, 'Working'),
+          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IP998877', 'Nurse Tablet ICU', 'ICU', 4, '2022-03-20', '2025-03-20', 1, 'Broken'),
+          ('CIT-2023-SCN-02', 'Scanner', 'Zebra', 'DS2208', 'ZB654321', 'Barcode Scanner W15', 'Ward 15', 5, '2023-06-18', '2026-06-18', 0, 'Working'),
+          ('CIT-2021-AIO-01', 'AIO PC', 'Dell', 'OptiPlex 7490', 'DL445566', 'Dell OptiPlex Emergency', 'Emergency Dept', 6, '2021-08-12', '2024-08-12', 1, 'Working')`);
 
         // Seed Audit Logs (move_log)
         db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
@@ -170,27 +208,31 @@ app.post('/api/assets/update-status', (req, res) => {
 
       const newLocation = location || asset.location;
       
-      // Update status and location
-      db.run("UPDATE mains SET status = ?, location = ? WHERE asset_tag = ?", [status, newLocation, asset_tag], function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to update asset status' });
-        }
+      db.get("SELECT id FROM departments WHERE department_name = ?", [newLocation], (err, deptRow) => {
+        const department_id = deptRow ? deptRow.id : (asset.department_id || null);
 
-        // Insert audit trail log
-        const movedDirection = status === 'Working' ? 'IN' : 'OUT';
-        const logDept = department_name || newLocation;
-        const logFloor = floor || 'Fl 1';
-
-        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
-                VALUES (?, ?, ?, ?, ?, ?)`, 
-          [asset_tag, logDept, logFloor, status, movedDirection, action_by_username], 
-          function(err) {
-            if (err) {
-              console.error('Audit log insertion failed:', err.message);
-            }
-            res.json({ message: 'Asset status updated successfully', status, location: newLocation });
+        // Update status and location
+        db.run("UPDATE mains SET status = ?, location = ?, department_id = ? WHERE asset_tag = ?", [status, newLocation, department_id, asset_tag], function(err) {
+          if (err) {
+            return res.status(500).json({ error: 'Failed to update asset status' });
           }
-        );
+
+          // Insert audit trail log
+          const movedDirection = status === 'Working' ? 'IN' : 'OUT';
+          const logDept = department_name || newLocation;
+          const logFloor = floor || 'Fl 1';
+
+          db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
+                  VALUES (?, ?, ?, ?, ?, ?)`, 
+            [asset_tag, logDept, logFloor, status, movedDirection, action_by_username], 
+            function(err) {
+              if (err) {
+                console.error('Audit log insertion failed:', err.message);
+              }
+              res.json({ message: 'Asset status updated successfully', status, location: newLocation, department_id });
+            }
+          );
+        });
       });
     });
   });
@@ -251,43 +293,48 @@ app.post('/api/assets/claim', (req, res) => {
     const wipedBy = wiped ? action_by_username : null;
     const wipedAt = wiped ? new Date().toISOString() : null;
 
-    db.serialize(() => {
-      // Insert or update RMA claims table
-      db.run(`INSERT INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, data_wiped_by, data_wiped_at, sanitization_note, status)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Out to Vendor')
-              ON CONFLICT(asset_tag) DO UPDATE SET 
-                vendor_name = excluded.vendor_name,
-                vendor_rma_number = excluded.vendor_rma_number,
-                claim_date = excluded.claim_date,
-                expected_return_date = excluded.expected_return_date,
-                data_wiped_confirmed = excluded.data_wiped_confirmed,
-                data_wiped_by = excluded.data_wiped_by,
-                data_wiped_at = excluded.data_wiped_at,
-                sanitization_note = excluded.sanitization_note,
-                status = 'Out to Vendor'`, 
-        [asset_tag, vendor_name, vendor_rma_number, claimDate, expected_return_date, wiped, wipedBy, wipedAt, sanitization_note || ''], 
-        function(err) {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
+    db.get("SELECT id FROM vendors WHERE vendor_name = ?", [vendor_name], (err, vendorRow) => {
+      const vendor_id = vendorRow ? vendorRow.id : null;
 
-          // Update asset status to 'At Vendor' in mains
-          db.run("UPDATE mains SET status = 'At Vendor' WHERE asset_tag = ?", [asset_tag], function(err) {
+      db.serialize(() => {
+        // Insert or update RMA claims table
+        db.run(`INSERT INTO rma_claims (asset_tag, vendor_name, vendor_id, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, data_wiped_by, data_wiped_at, sanitization_note, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Out to Vendor')
+                ON CONFLICT(asset_tag) DO UPDATE SET 
+                  vendor_name = excluded.vendor_name,
+                  vendor_id = excluded.vendor_id,
+                  vendor_rma_number = excluded.vendor_rma_number,
+                  claim_date = excluded.claim_date,
+                  expected_return_date = excluded.expected_return_date,
+                  data_wiped_confirmed = excluded.data_wiped_confirmed,
+                  data_wiped_by = excluded.data_wiped_by,
+                  data_wiped_at = excluded.data_wiped_at,
+                  sanitization_note = excluded.sanitization_note,
+                  status = 'Out to Vendor'`, 
+          [asset_tag, vendor_name, vendor_id, vendor_rma_number, claimDate, expected_return_date, wiped, wipedBy, wipedAt, sanitization_note || ''], 
+          function(err) {
             if (err) {
-              return res.status(500).json({ error: 'Failed to update asset status' });
+              return res.status(500).json({ error: err.message });
             }
 
-            // Insert audit log
-            db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
-                    VALUES (?, ?, 'External', 'At Vendor', 'OUT', ?)`, 
-              [asset_tag, vendor_name, action_by_username], 
-              function(err) {
-                res.json({ message: 'ส่งเคลมไปที่ศูนย์บริการ (RMA Claim initiated)', asset_tag, status: 'At Vendor' });
+            // Update asset status to 'At Vendor' in mains
+            db.run("UPDATE mains SET status = 'At Vendor' WHERE asset_tag = ?", [asset_tag], function(err) {
+              if (err) {
+                return res.status(500).json({ error: 'Failed to update asset status' });
               }
-            );
-          });
-        }
-      );
+
+              // Insert audit log
+              db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) 
+                      VALUES (?, ?, 'External', 'At Vendor', 'OUT', ?)`, 
+                [asset_tag, vendor_name, action_by_username], 
+                function(err) {
+                  res.json({ message: 'ส่งเคลมไปที่ศูนย์บริการ (RMA Claim initiated)', asset_tag, status: 'At Vendor' });
+                }
+              );
+            });
+          }
+        );
+      });
     });
   });
 });
