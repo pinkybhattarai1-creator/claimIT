@@ -3,8 +3,7 @@ const state = {
   user: null,
   activeView: 'auth', // 'auth', 'ward', 'it'
   selectedAsset: null,
-  sanitizationChecked: false,
-  webcamStream: null
+  sanitizationChecked: false
 };
 
 // DOM Elements
@@ -93,12 +92,12 @@ function setupEventListeners() {
 
   document.getElementById('btn-confirm-sanitize').addEventListener('click', confirmSanitization);
   
-  // Claim Submit
+  // Claim Submit & Vendor Change
   document.getElementById('rma-form').addEventListener('submit', handleClaimInitiate);
-  
-  // Camera trigger
-  document.getElementById('btn-start-camera-ward').addEventListener('click', () => startCamera('ward-video'));
-  document.getElementById('btn-start-camera-it').addEventListener('click', () => startCamera('it-video'));
+  const vendorSelect = document.getElementById('claim-vendor');
+  if (vendorSelect) {
+    vendorSelect.addEventListener('change', handleVendorChange);
+  }
 }
 
 // Routing & View Switcher
@@ -109,9 +108,6 @@ function switchView(viewName) {
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
-  
-  // Stop camera stream when leaving view
-  stopCamera();
   
   if (viewName === 'auth') {
     authSection.classList.add('active');
@@ -124,6 +120,7 @@ function switchView(viewName) {
     document.getElementById('btn-to-ward').classList.add('active');
     document.getElementById('btn-to-it').classList.remove('active');
     refreshData();
+    setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
     itSection.classList.add('active');
     navTabs.style.display = 'flex';
@@ -131,6 +128,7 @@ function switchView(viewName) {
     document.getElementById('btn-to-it').classList.add('active');
     document.getElementById('btn-to-ward').classList.remove('active');
     refreshData();
+    setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
   }
 }
 
@@ -493,6 +491,73 @@ async function confirmSanitization() {
   }
 }
 
+const vendorProcedures = {
+  'IDA': `
+    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ IDA</h5>
+    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
+      <li>ติดต่อผ่านเมล <a href="mailto:vorakan.t@planetbarcode.co.th" style="color: var(--info);">vorakan.t@planetbarcode.co.th</a></li>
+      <li>แจ้งรุ่น S/N อาการเสียและที่อยู่เบอร์โทร (ตัวอย่างรุ่น: IDA-52P1)</li>
+      <li>ทางบริษัทจะตอบเมลมาและรอนัดวันเข้ามารับอุปกรณ์</li>
+    </ol>
+  `,
+  'Dell': `
+    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Dell</h5>
+    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
+      <li>ตรวจสอบประกัน: <a href="https://Dell.com/support/contractservice/en-th" target="_blank" style="color: var(--info);">Dell.com/support/contractservice/en-th</a></li>
+      <li>เทสอุปกรณ์และถ่ายรูปอุปกรณ์ที่เสีย 2-3 รูปพร้อม ServiceTag</li>
+      <li>โทรไปที่เบอร์ 02-855-7085 ต่อ 3 และแจ้ง Service Code 10-11 หลัก (เวลาทำการ 9:00 - 16:00 น.)</li>
+      <li>ติดต่อพนักงาน Dell แจ้งอาการและรอตอบเมลด้วยรูปที่ถ่ายมาและที่อยู่</li>
+      <li>ยืนยันที่อยู่กับพนักงานส่งของและรอรับของ</li>
+      <li>นำ Tag ที่ติดกับอุปกรณ์เก่าออกมาเพื่อไปติดที่เครื่องใหม่</li>
+      <li>Test อุปกรณ์ให้เรียบร้อยและนำเข้าสตอก</li>
+    </ol>
+  `,
+  'Lenovo': `
+    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Lenovo</h5>
+    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
+      <li>เข้าไปที่เว็บไซต์ <a href="https://pcsupport.lenovo.com/th/th/warranty-lookup#/" target="_blank" style="color: var(--info);">https://pcsupport.lenovo.com/th/th/warranty-lookup#/</a></li>
+      <li>กรอก S/N ในช่องและกดติดต่อฝ่ายสนับสนุน</li>
+      <li>เลือกช่องทางการติดต่อหลังจากนั้นทางบริษัทจะโทรมานัดวันเพื่อเข้ามาซ่อม</li>
+    </ol>
+  `,
+  'TSC': `
+    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ TSC</h5>
+    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
+      <li>ติดต่อเบอร์ 081-467-3307 และติดต่อผ่าน Line</li>
+      <li>แจ้ง รุ่น S/N และอาการเสียที่เจอพร้อมส่งรูปหรือวีดีโอ</li>
+      <li>แจ้งที่อยู่ ชื่อเบอร์โทรและนัดวันรับของ</li>
+      <li>พนักงานมารับของไปซ่อมข้างนอกให้นำใบ นำอุปกรณ์ออกนอกสถานที่ให้เซ็น</li>
+      <li>รอนัดวันรับของหลังแก้ไขเสร็จ</li>
+      <li>รับของและเทสให้เรียบร้อย หลังจากนั้นขอ สำเนาบัตร ปชช คนส่งเพื่อมาแนบกับใบนำอุปกรณ์ออกนอกสถานที่</li>
+      <li>แจ้งผู้ดูแล สตอกและนำเข้า</li>
+    </ol>
+    <div style="font-size: 12px; color: var(--warning); margin-top: 8px; padding: 6px; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">
+      <strong>ประกัน:</strong> (เครื่อง 1 ปี / หัว 6 เดือน) หลังปี 2569 จะเป็น 1 ปีทั้ง 2 อย่าง
+    </div>
+  `,
+  'Acer': `
+    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Acer</h5>
+    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
+      <li>ตรวจสอบประกัน: <a href="https://Register.acer.co.th/WarrantyCheck/warr_chk.aspx" target="_blank" style="color: var(--info);">Register.acer.co.th/WarrantyCheck/warr_chk.aspx</a></li>
+      <li>ส่งเมลไปที่ <a href="mailto:ath.onsite@acer.com" style="color: var(--info);">ath.onsite@acer.com</a></li>
+      <li>แจ้งรายละเอียด อาการเสีย เลขS/Nและที่อยู่</li>
+      <li><strong>กรณีแจ้งเคลมเมาส์คีย์บอร์ด:</strong> ให้ใส่รุ่นและเลข S/N ของคอมที่ยังไม่เคยส่งเคลม (ตัวอย่างรุ่นคอม: Veriton X2720G)</li>
+    </ol>
+  `
+};
+
+function handleVendorChange(e) {
+  const panel = document.getElementById('brand-procedure-panel');
+  const vendor = e.target.value;
+  if (vendorProcedures[vendor]) {
+    panel.innerHTML = vendorProcedures[vendor];
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+
 async function handleClaimInitiate(e) {
   e.preventDefault();
   if (!state.selectedAsset) return;
@@ -532,53 +597,6 @@ async function handleClaimInitiate(e) {
   } catch (error) {
     console.error('Claim initiation error:', error);
   }
-}
-
-// Camera WebRTC Implementation & Preset Fallback Simulation
-function startCamera(videoId) {
-  const video = document.getElementById(videoId);
-  if (!video) return;
-  
-  stopCamera();
-  
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => {
-      state.webcamStream = stream;
-      video.srcObject = stream;
-      video.style.display = 'block';
-      
-      // Simulate scanning barcode after 3 seconds
-      setTimeout(() => {
-        if (state.webcamStream) {
-          // Select a random asset to parse automatically
-          const demoTags = ['CIT-2024-AIO-02', 'CIT-2023-SCN-01', 'CIT-2022-TAB-03'];
-          const randomTag = demoTags[Math.floor(Math.random() * demoTags.length)];
-          
-          const inputId = videoId.startsWith('ward') ? 'ward-search-input' : 'it-search-input';
-          document.getElementById(inputId).value = randomTag;
-          
-          alert(`[CAMERA DETECTED BARCODE] สแกนพบรหัส: ${randomTag}`);
-          lookupAsset(randomTag);
-          stopCamera();
-        }
-      }, 3000);
-    })
-    .catch(err => {
-      console.warn('Camera access denied or unavailable:', err);
-      alert('ไม่พบกล้องเชื่อมต่ออยู่ หรือคุณไม่อนุญาตให้เข้าถึงกล้อง (Camera not found or access denied). ระบบจำลองเปิดกล้องเพื่อเลือก Tag ด้านล่างแทน');
-    });
-}
-
-function stopCamera() {
-  if (state.webcamStream) {
-    state.webcamStream.getTracks().forEach(track => track.stop());
-    state.webcamStream = null;
-  }
-  
-  const v1 = document.getElementById('ward-video');
-  const v2 = document.getElementById('it-video');
-  if (v1) { v1.srcObject = null; v1.style.display = 'none'; }
-  if (v2) { v2.srcObject = null; v2.style.display = 'none'; }
 }
 
 // Global functions for presets

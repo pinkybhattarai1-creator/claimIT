@@ -2,20 +2,31 @@
 
 This plan outlines the architecture and workflow for the ClaimIT system, specifically tailored for a **Hospital IT Support Environment**. It prioritizes strict data security (ISO standards), legal compliance (PDPA), and a realistic Return Merchandise Authorization (RMA) workflow for medical/IT assets.
 
-## Problem Statement & Background
-Hospital IT departments manage critical infrastructure (PCs, Barcode Scanners, AIOs) across various wards and departments. When an asset fails, the warranty claim (RMA) process must be initiated swiftly. However, this process must adhere to strict security protocols: ensuring no Protected Health Information (PHI) or unnecessary Personally Identifiable Information (PII) leaves the premises, maintaining an unalterable audit trail (ISO 27001), and accurately tracking the asset's physical location.
-
 ## User Review Required
 
 > [!IMPORTANT]
-> Please review the heavily revised **Security & Compliance** and **RMA Workflow** sections. As this is for a hospital, ensuring we meet your internal security audits is the highest priority.
+> Please review the **Brand-Specific Claiming Procedures Integration** section. I have extracted the procedures for IDA, Dell, Lenovo, TSC, and Acer from your images and proposed a way to integrate them into the IT Admin Portal.
 
 ## Open Questions
 
 > [!WARNING]
 > 1. **Data Sanitization:** Before an IT asset (e.g., a PC hard drive) is sent outside to a vendor (Acer, HP) for a warranty claim, do you have a standard operating procedure (SOP) for wiping the data? Should the ClaimIT system include a mandatory "Data Wiped" checkbox before allowing the status to change to "Out for Claim"?
-> 2. **Network Segregation:** To maintain "next to no connection to the outside", will this server sit on a specific isolated Hospital IT VLAN? 
-> 3. **Authentication:** For the "us" (IT Staff) side, should we build a standalone login system, or do you want to integrate with the hospital's existing Active Directory/LDAP?
+> 2. **Authentication:** For the "us" (IT Staff) side, should we build a standalone login system, or do you want to integrate with the hospital's existing Active Directory/LDAP?
+> 3. **Are there any other brands** you would like to add claiming procedures for in the future? The system will be designed to easily add more.
+
+## Brand-Specific Claiming Procedures Integration (NEW)
+
+To integrate the 5 vendor procedures into the program, I will modify the IT Admin Portal's "Send to Vendor RMA" section. 
+
+**Proposed Changes:**
+1. **Vendor Selection Dropdown:** Instead of just a text input for the vendor name, we will provide a searchable dropdown or preset buttons for the supported vendors (IDA, Dell, Lenovo, TSC, Acer), plus an "Other" option.
+2. **Dynamic Procedure Panel:** When a specific brand is selected, a panel will appear displaying the exact step-by-step claiming instructions specific to that brand (extracted from your images).
+3. **Data Extraction:** The procedures have been transcribed into Thai exactly as provided:
+   - **IDA**: Email contact, info required, wait for pickup.
+   - **Dell**: Take photos with ServiceTag, call support, email photos, keep old tag for new device, test.
+   - **Lenovo**: Use warranty lookup website, enter S/N, select contact channel.
+   - **TSC**: Call/Line, send photos/video, document signing for equipment leaving premises, ID card copy upon return.
+   - **Acer**: Email support, specific instructions for mouse/keyboard claims requiring the PC's S/N.
 
 ## Proposed Architecture & Security (PDPA / ISO)
 
@@ -36,40 +47,37 @@ Instead of just a "warranty checker", the system will manage the physical realit
 1.  **Fault Reported:** Asset flagged as broken.
 2.  **Warranty Verification:** Camera scans the tag OR IT inputs the Asset Tag. System checks local DB (`mains`) and calculates if the warranty is active based on the scanned/stored dates.
 3.  **Sanitization Check (Security Gate):** System prompts IT to confirm if storage media has been removed or securely wiped (PDPA protection).
-4.  **Vendor Claim Initiated:** Item marked as "Out to Vendor".
+4.  **Vendor Claim Initiated:** IT selects the brand, views the **Brand-Specific Procedure**, follows the steps, and marks item as "Out to Vendor".
 5.  **Resolution:** Item returns, is tested, and marked "In / Active", returning to the `stock_floor`.
 
 ### 2. Dual Portal System (The "Two Sides")
-*   **Ward/Department Portal (The "User" side):** A simple, read-only interface where hospital staff (e.g., in Ward 20) can scan an asset tag using a tablet/phone camera to see if IT is already fixing it or if it's under warranty.
-*   **IT Department Portal (The "Us" side):** A secure dashboard to manage the RMA lifecycle, update the `move_log`, and oversee the `stock_department` inventory.
-
-### 3. Camera Integration & AI Tag Parsing (On-Device)
-*   We will use the HTML5 WebRTC API for camera access.
-*   To maintain the strict "no outside connection" rule, any OCR or AI parsing of the complex "old" and "new" tags MUST happen locally. We will use a local heuristic parser in the Controller to extract the `Year`, `Version`, and `Status` from the raw text.
+*   **Ward/Department Portal (The "User" side):** A simple, read-only interface where hospital staff can scan an asset tag to see if IT is already fixing it or if it's under warranty.
+*   **IT Department Portal (The "Us" side):** A secure dashboard to manage the RMA lifecycle.
 
 ## Database Schema (Hospital Context)
 
 **`mains` (Core IT Assets)**
 *   `id` (PK), `asset_tag`, `category`, `brand`, `model`, `serial_no`, `Device_name`
-*   `location` (FK -> `stock_floor.id` or `stock_department.id`)
-*   `warranty_start_date`, `warranty_end_date` (Parsed from tags or manually entered)
-*   **`sanitization_required` (Boolean - Does this device hold data?)**
+*   `location` (FK)
+*   `warranty_start_date`, `warranty_end_date`
+*   `sanitization_required` (Boolean)
 
 **`move_log` (ISO Audit Trail)**
-*   `id` (PK)
-*   `serial_no` / `asset_tag` (FK)
-*   `department_name`, `floor`, `status` (e.g., "Working", "Broken", "At Vendor")
+*   `id` (PK), `serial_no` / `asset_tag` (FK)
+*   `department_name`, `floor`, `status`
 *   `moved` (in/out)
-*   **`action_by_user_id` (Who moved it? Critical for ISO)**
+*   `action_by_user_id`
 
-**`rma_claims` (New Table for Warranty Tracking)**
+**`rma_claims`**
 *   `id` (PK), `asset_id` (FK)
 *   `vendor_rma_number`, `claim_date`, `expected_return_date`
-*   **`data_wiped_confirmed` (Boolean - Security check)**
+*   `data_wiped_confirmed` (Boolean)
 
 ## Verification Plan
 
+### Automated Tests
+- None currently specified.
+
 ### Manual Verification
-1.  **Security Audit:** Verify that no external API calls are made during the scanning or parsing process.
-2.  **PDPA Check:** Review the database schema and UI forms to ensure no fields exist that could accidentally capture patient names or medical records.
-3.  **Workflow Test:** Simulate a broken PC in "ต้อนรับ หน้า รพ." being scanned, data-wiped, sent to Acer, and returned, ensuring the `move_log` captures every step accurately.
+1.  **UI Verification:** Log in as IT Admin, select a broken asset, proceed to RMA form. Select each brand (IDA, Dell, Lenovo, TSC, Acer) and verify the correct procedure instructions appear.
+2.  **Workflow Test:** Simulate a claim process following the displayed instructions and submitting the RMA form.

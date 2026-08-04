@@ -76,22 +76,10 @@
         <div class="glass-panel">
           <h3 style="margin-bottom: 16px;">📸 สแกนโค้ดครุภัณฑ์ (Scan Tag)</h3>
           
-          <div class="scanner-viewport">
-            <video id="ward-video" class="scanner-video" style="display: none;" autoplay playsinline></video>
-            <div class="scanner-overlay"></div>
-            <div class="scanner-box">
-              <div class="scanner-laser"></div>
-            </div>
-          </div>
-          
-          <div style="display: flex; gap: 10px;">
-            <button class="btn" id="btn-start-camera-ward" style="flex: 1;">📷 เปิดกล้องสแกน</button>
-          </div>
-
-          <div style="margin-top: 20px;">
-            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">หรือพิมพ์รหัสครุภัณฑ์ (Manual Search)</label>
+          <div>
+            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
             <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02">
+              <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02" autofocus>
               <button class="btn" id="ward-search-btn" style="padding: 10px 18px;">ค้นหา</button>
             </div>
           </div>
@@ -188,22 +176,10 @@
         <div class="glass-panel">
           <h3 style="margin-bottom: 16px;">🔍 จัดการและสแกนส่งเคลม (IT Control)</h3>
           
-          <div class="scanner-viewport">
-            <video id="it-video" class="scanner-video" style="display: none;" autoplay playsinline></video>
-            <div class="scanner-overlay"></div>
-            <div class="scanner-box">
-              <div class="scanner-laser"></div>
-            </div>
-          </div>
-          
-          <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-            <button class="btn" id="btn-start-camera-it" style="flex: 1;">📷 เปิดกล้องสแกน</button>
-          </div>
-
           <div>
-            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์คอมพิวเตอร์</label>
+            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
             <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03">
+              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03" autofocus>
               <button class="btn" id="it-search-btn" style="padding: 10px 18px;">ค้นหา</button>
             </div>
           </div>
@@ -284,8 +260,17 @@
               <input type="hidden" id="claim-tag-input">
               <div class="form-group">
                 <label for="claim-vendor">ระบุบริษัทศูนย์บริการ (Vendor Name)</label>
-                <input type="text" id="claim-vendor" class="form-control" placeholder="ตัวอย่าง: HP Thailand, Acer Care" required>
+                <select id="claim-vendor" class="form-control" required>
+                  <option value="" disabled selected>-- กรุณาเลือกศูนย์บริการ --</option>
+                  <option value="IDA">IDA</option>
+                  <option value="Dell">Dell</option>
+                  <option value="Lenovo">Lenovo</option>
+                  <option value="TSC">TSC</option>
+                  <option value="Acer">Acer</option>
+                  <option value="Other">อื่นๆ (Other)</option>
+                </select>
               </div>
+              <div id="brand-procedure-panel" style="display: none; margin-bottom: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px;"></div>
               <div class="form-group">
                 <label for="claim-rma-no">หมายเลขใบรับงานเคลม (RMA / Case ID)</label>
                 <input type="text" id="claim-rma-no" class="form-control" placeholder="ตัวอย่าง: RMA-9988-77" required>
