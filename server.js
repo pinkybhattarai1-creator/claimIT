@@ -244,13 +244,21 @@ app.get('/api/assets/:tag', (req, res) => {
           return matrix[b.length][a.length];
         };
 
+        // Skip fuzzy matching for very short queries (too many false positives)
+        if (tag.length < 4) {
+          return res.status(404).json({ error: 'ไม่พบทรัพย์สินดังกล่าว' });
+        }
+
         for (const r of rows) {
           const tagDist = levenshtein(tag, r.asset_tag.toUpperCase());
           const serialDist = levenshtein(tag, r.serial_no.toUpperCase());
           const dist = Math.min(tagDist, serialDist);
           
-          // Set a reasonable threshold for fuzzy matching (e.g., max 3 character differences)
-          if (dist < minDistance && dist <= 3) {
+          // Threshold scales with tag length: allow ~20% character variance, min 1, max 4
+          const candidate = dist === tagDist ? r.asset_tag : r.serial_no;
+          const maxAllowed = Math.max(1, Math.min(4, Math.floor(candidate.length * 0.20)));
+          
+          if (dist < minDistance && dist <= maxAllowed) {
             minDistance = dist;
             bestMatch = r;
           }

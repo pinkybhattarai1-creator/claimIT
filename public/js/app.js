@@ -358,7 +358,7 @@ async function lookupAsset(tag) {
       
       // If it was a fuzzy match, notify the user and update the input field
       if (asset.is_fuzzy_match) {
-        alert(`⚠️ ไม่พบรหัสตรงตัว "${asset.original_query}"\\nระบบได้ค้นหาข้อมูลที่ใกล้เคียงที่สุดอัตโนมัติ: "${asset.asset_tag}" (${asset.device_name})`);
+        alert(`⚠️ ไม่พบรหัสตรงตัว "${asset.original_query}"\nระบบได้ค้นหาข้อมูลที่ใกล้เคียงที่สุดอัตโนมัติ: "${asset.asset_tag}" (${asset.device_name})`);
         
         const prefix = state.activeView === 'ward' ? 'ward' : 'it';
         const inputEl = document.getElementById(`${prefix}-search-input`);
