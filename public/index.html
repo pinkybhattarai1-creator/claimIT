@@ -88,6 +88,17 @@
           <div id="parser-analytics-ward" class="glass-panel" style="margin-top: 16px; display: none; background: rgba(6, 182, 212, 0.05); border-color: rgba(6, 182, 212, 0.2);">
           </div>
 
+          <!-- Fuzzy Match Suggestion Banner (Ward) -->
+          <div id="fuzzy-suggestion-ward" style="display: none; margin-top: 12px; padding: 12px 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; display: none; align-items: center; gap: 12px;">
+            <span style="font-size: 20px;">🔍</span>
+            <div style="flex: 1; font-size: 13px;">
+              <div style="color: var(--warning); font-weight: 700; margin-bottom: 2px;">ไม่พบรหัสที่ระบุ — พบรหัสใกล้เคียง</div>
+              <div style="color: var(--text-main);" id="fuzzy-suggestion-ward-text"></div>
+            </div>
+            <button class="btn" id="fuzzy-confirm-ward" style="background: var(--warning); box-shadow: 0 4px 12px rgba(245,158,11,0.3); font-size: 13px; padding: 8px 14px; white-space: nowrap;">ใช่ ใช้รหัสนี้ ✓</button>
+            <button class="btn btn-secondary" id="fuzzy-dismiss-ward" style="font-size: 13px; padding: 8px 14px;">ยกเลิก</button>
+          </div>
+
           <!-- Preset simulation items -->
           <div style="margin-top: 24px;">
             <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-muted);">คลิกเพื่อจำลองการสแกน (Demo Hotkeys):</h4>
@@ -186,6 +197,17 @@
 
           <!-- Parser Analytics Panel -->
           <div id="parser-analytics-it" class="glass-panel" style="margin-top: 16px; display: none; background: rgba(6, 182, 212, 0.05); border-color: rgba(6, 182, 212, 0.2);">
+          </div>
+
+          <!-- Fuzzy Match Suggestion Banner (IT) -->
+          <div id="fuzzy-suggestion-it" style="display: none; margin-top: 12px; padding: 12px 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; align-items: center; gap: 12px;">
+            <span style="font-size: 20px;">🔍</span>
+            <div style="flex: 1; font-size: 13px;">
+              <div style="color: var(--warning); font-weight: 700; margin-bottom: 2px;">ไม่พบรหัสที่ระบุ — พบรหัสใกล้เคียง</div>
+              <div style="color: var(--text-main);" id="fuzzy-suggestion-it-text"></div>
+            </div>
+            <button class="btn" id="fuzzy-confirm-it" style="background: var(--warning); box-shadow: 0 4px 12px rgba(245,158,11,0.3); font-size: 13px; padding: 8px 14px; white-space: nowrap;">ใช่ ใช้รหัสนี้ ✓</button>
+            <button class="btn btn-secondary" id="fuzzy-dismiss-it" style="font-size: 13px; padding: 8px 14px;">ยกเลิก</button>
           </div>
 
           <!-- Quick Presets -->

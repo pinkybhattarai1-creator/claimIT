@@ -3,7 +3,8 @@ const state = {
   user: null,
   activeView: 'auth', // 'auth', 'ward', 'it'
   selectedAsset: null,
-  sanitizationChecked: false
+  sanitizationChecked: false,
+  pendingFuzzyAsset: null // holds a fuzzy match until the user confirms it
 };
 
 // DOM Elements
@@ -77,6 +78,7 @@ function setupEventListeners() {
   document.getElementById('ward-search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      hideFuzzySuggestion(); // clear any previous suggestion
       const val = document.getElementById('ward-search-input').value.trim();
       if (val) lookupAsset(val);
     }
@@ -85,9 +87,41 @@ function setupEventListeners() {
   document.getElementById('it-search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      hideFuzzySuggestion(); // clear any previous suggestion
       const val = document.getElementById('it-search-input').value.trim();
       if (val) lookupAsset(val);
     }
+  });
+
+  // Fuzzy suggestion confirm / dismiss buttons
+  document.getElementById('fuzzy-confirm-ward').addEventListener('click', () => {
+    if (state.pendingFuzzyAsset) {
+      const asset = state.pendingFuzzyAsset;
+      state.pendingFuzzyAsset = null;
+      hideFuzzySuggestion();
+      document.getElementById('ward-search-input').value = asset.asset_tag;
+      state.selectedAsset = asset;
+      displayAssetDetails(asset);
+    }
+  });
+  document.getElementById('fuzzy-dismiss-ward').addEventListener('click', () => {
+    state.pendingFuzzyAsset = null;
+    hideFuzzySuggestion();
+  });
+
+  document.getElementById('fuzzy-confirm-it').addEventListener('click', () => {
+    if (state.pendingFuzzyAsset) {
+      const asset = state.pendingFuzzyAsset;
+      state.pendingFuzzyAsset = null;
+      hideFuzzySuggestion();
+      document.getElementById('it-search-input').value = asset.asset_tag;
+      state.selectedAsset = asset;
+      displayAssetDetails(asset);
+    }
+  });
+  document.getElementById('fuzzy-dismiss-it').addEventListener('click', () => {
+    state.pendingFuzzyAsset = null;
+    hideFuzzySuggestion();
   });
   
   // Action Buttons
@@ -348,23 +382,26 @@ async function lookupAsset(tag) {
   // First run local parser heuristic
   const parsed = parseAssetTagLocal(tag);
   displayLocalParserResults(parsed);
+  hideFuzzySuggestion();
   
   try {
-    const res = await fetch(`/api/assets/${tag}`);
+    const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`);
     if (res.ok) {
       const asset = await res.json();
-      state.selectedAsset = asset;
-      displayAssetDetails(asset);
-      
-      // If it was a fuzzy match, notify the user and update the input field
+
       if (asset.is_fuzzy_match) {
-        alert(`⚠️ ไม่พบรหัสตรงตัว "${asset.original_query}"\nระบบได้ค้นหาข้อมูลที่ใกล้เคียงที่สุดอัตโนมัติ: "${asset.asset_tag}" (${asset.device_name})`);
-        
+        // Don't auto-load — show a 'Did you mean?' suggestion banner instead
+        state.pendingFuzzyAsset = asset;
         const prefix = state.activeView === 'ward' ? 'ward' : 'it';
-        const inputEl = document.getElementById(`${prefix}-search-input`);
-        if (inputEl) {
-          inputEl.value = asset.asset_tag;
+        const textEl = document.getElementById(`fuzzy-suggestion-${prefix}-text`);
+        if (textEl) {
+          textEl.innerHTML = `คุณหมายถึง <strong style="color:var(--warning);">${asset.asset_tag}</strong> — ${asset.device_name} (${asset.location}) ใช่หรือไม่?`;
         }
+        const banner = document.getElementById(`fuzzy-suggestion-${prefix}`);
+        if (banner) banner.style.display = 'flex';
+      } else {
+        state.selectedAsset = asset;
+        displayAssetDetails(asset);
       }
     } else {
       alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
