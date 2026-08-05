@@ -212,13 +212,59 @@ app.get('/api/assets/:tag/evaluate', (req, res) => {
   });
 });
 
-// Lookup Asset by Tag/Serial
+// Lookup Asset by Tag/Serial with Fuzzy Matching Fallback
 app.get('/api/assets/:tag', (req, res) => {
-  const tag = req.params.tag;
+  const tag = req.params.tag.toUpperCase();
   db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE (m.asset_tag = ? OR m.serial_no = ?) AND m.is_deleted = 0", [tag, tag], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
-    if (row) res.json(row);
-    else res.status(404).json({ error: 'ไม่พบทรัพย์สินดังกล่าว' });
+    if (row) {
+      res.json(row);
+    } else {
+      // Fuzzy matching logic if exact match fails
+      db.all("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE m.is_deleted = 0", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        let bestMatch = null;
+        let minDistance = Infinity;
+        
+        // Levenshtein distance algorithm
+        const levenshtein = (a, b) => {
+          const matrix = [];
+          for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+          for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+          for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+              if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+              } else {
+                matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+              }
+            }
+          }
+          return matrix[b.length][a.length];
+        };
+
+        for (const r of rows) {
+          const tagDist = levenshtein(tag, r.asset_tag.toUpperCase());
+          const serialDist = levenshtein(tag, r.serial_no.toUpperCase());
+          const dist = Math.min(tagDist, serialDist);
+          
+          // Set a reasonable threshold for fuzzy matching (e.g., max 3 character differences)
+          if (dist < minDistance && dist <= 3) {
+            minDistance = dist;
+            bestMatch = r;
+          }
+        }
+        
+        if (bestMatch) {
+          bestMatch.is_fuzzy_match = true;
+          bestMatch.original_query = req.params.tag;
+          res.json(bestMatch);
+        } else {
+          res.status(404).json({ error: 'ไม่พบทรัพย์สินดังกล่าว' });
+        }
+      });
+    }
   });
 });
 

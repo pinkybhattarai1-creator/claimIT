@@ -62,7 +62,7 @@ function setupEventListeners() {
   
   logoutBtn.addEventListener('click', logout);
   
-  // Manual search
+  // Manual search (Click)
   document.getElementById('ward-search-btn').addEventListener('click', () => {
     const val = document.getElementById('ward-search-input').value.trim();
     if (val) lookupAsset(val);
@@ -71,6 +71,23 @@ function setupEventListeners() {
   document.getElementById('it-search-btn').addEventListener('click', () => {
     const val = document.getElementById('it-search-input').value.trim();
     if (val) lookupAsset(val);
+  });
+
+  // Hardware Scanner Support (Listens for "Enter" key after scan)
+  document.getElementById('ward-search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = document.getElementById('ward-search-input').value.trim();
+      if (val) lookupAsset(val);
+    }
+  });
+
+  document.getElementById('it-search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = document.getElementById('it-search-input').value.trim();
+      if (val) lookupAsset(val);
+    }
   });
   
   // Action Buttons
@@ -338,6 +355,17 @@ async function lookupAsset(tag) {
       const asset = await res.json();
       state.selectedAsset = asset;
       displayAssetDetails(asset);
+      
+      // If it was a fuzzy match, notify the user and update the input field
+      if (asset.is_fuzzy_match) {
+        alert(`⚠️ ไม่พบรหัสตรงตัว "${asset.original_query}"\\nระบบได้ค้นหาข้อมูลที่ใกล้เคียงที่สุดอัตโนมัติ: "${asset.asset_tag}" (${asset.device_name})`);
+        
+        const prefix = state.activeView === 'ward' ? 'ward' : 'it';
+        const inputEl = document.getElementById(`${prefix}-search-input`);
+        if (inputEl) {
+          inputEl.value = asset.asset_tag;
+        }
+      }
     } else {
       alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
     }
