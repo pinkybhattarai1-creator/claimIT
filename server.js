@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const crypto = require('crypto');
 const { evaluateClaimWorthiness } = require('./claim_calculator');
 
 const app = express();
@@ -21,6 +22,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
     initializeDatabase();
   }
 });
+
+// Built-in Secure Password Hashing (Local & Offline Capable)
+function hashPassword(password) {
+  const salt = 'claimit_local_salt_2026';
+  return crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+}
 
 // Initialize Database Tables and Seed Data
 function initializeDatabase() {
@@ -88,15 +95,16 @@ function initializeDatabase() {
       is_deleted INTEGER DEFAULT 0
     )`);
 
-    // Seed data if database is empty
+    // Seed data if users table is empty
     db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
       if (row && row.count === 0) {
-        // Seed Users
-        db.run(`INSERT INTO users (username, password, role, name, department) VALUES 
-          ('admin', 'admin123', 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'),
-          ('nurse', 'nurse123', 'nurse', 'Nurse Joy', 'Ward 20')`);
+        const adminPass = hashPassword('admin123');
+        const nursePass = hashPassword('nurse123');
 
-        // Seed Departments based on layout map
+        db.run(`INSERT INTO users (username, password, role, name, department) VALUES 
+          ('admin', ?, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'),
+          ('nurse', ?, 'nurse', 'Nurse Joy', 'Ward 20')`, [adminPass, nursePass]);
+
         db.run(`INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
           ('Building 1', '1', 'ฉุกเฉิน (ER)', 0),
           ('Building 1', '2', 'ศูนย์ระบบทางเดินอาหาร (GI)', 0),
@@ -105,18 +113,32 @@ function initializeDatabase() {
           ('Building 1', '5', 'สำนักงาน ผอ.รพ.', 0),
           ('Call Center New', '2', 'Call Center Employee Workspace', 0)`);
 
-        // Seed Assets (mains)
+        // Seed Assets (mains) including demo preset tags
         db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status) VALUES 
           ('032186040006', 'Webcam', 'Logitech', 'C930E', 'SN9988', 'Logitech C930E', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working'),
           ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J', 'Dell E2318H', 'Technical Support & Infrastructure', '2020-05-10', '2023-05-10', 0, 'Working'),
-          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working')`);
+          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working'),
+          ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working'),
+          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken'),
+          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2021-06-01', '2024-06-01', 1, 'Working')`);
 
-        // Seed Audit Logs (move_log)
         db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
           ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system'),
-          ('CIT-2023-SCN-01', 'Ward 20', 'Fl 2', 'Working', 'IN', 'system')`);
+          ('CIT-2023-SCN-01', 'Ward 20', 'Fl 2', 'Working', 'IN', 'system'),
+          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'nurse')`);
         
-        console.log('Database tables initialized and seeded.');
+        console.log('Database tables initialized and seeded with demo presets.');
+      } else {
+        // Ensure missing preset tags exist even if database already created
+        const presets = [
+          ['CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working'],
+          ['CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken'],
+          ['CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2021-06-01', '2024-06-01', 1, 'Working']
+        ];
+        presets.forEach(p => {
+          db.run(`INSERT OR IGNORE INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, p);
+        });
       }
     });
   });
@@ -124,12 +146,19 @@ function initializeDatabase() {
 
 // REST APIs
 
-// 1. Authentication
+// 1. Authentication (Supports hashed + fallback plain text)
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
-  db.get("SELECT * FROM users WHERE username = ? AND password = ? AND is_deleted = 0", [username, password], (err, user) => {
+  if (!username || !password) return res.status(400).json({ error: 'กรุณาระบุ Username และ Password' });
+
+  db.get("SELECT * FROM users WHERE username = ? AND is_deleted = 0", [username], (err, user) => {
     if (err) return res.status(500).json({ error: 'Database query error' });
-    if (user) {
+    if (!user) return res.status(401).json({ error: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' });
+
+    const hashedInput = hashPassword(password);
+    const isMatch = (user.password === hashedInput) || (user.password === password);
+
+    if (isMatch) {
       res.json({ username: user.username, role: user.role, name: user.name, department: user.department });
     } else {
       res.status(401).json({ error: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' });
@@ -138,7 +167,45 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // ==========================================
-// DEPARTMENTS CRUD (Phase 1)
+// USER MANAGEMENT CRUD (Admin only)
+// ==========================================
+app.get('/api/users', (req, res) => {
+  db.all("SELECT id, username, role, name, department FROM users WHERE is_deleted = 0", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/users', (req, res) => {
+  const { username, password, role, name, department } = req.body;
+  if (!username || !password || !role || !name || !department) {
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลผู้ใช้งานให้ครบถ้วน' });
+  }
+
+  const hashedPassword = hashPassword(password);
+  db.run(`INSERT INTO users (username, password, role, name, department) VALUES (?, ?, ?, ?, ?)`,
+    [username, hashedPassword, role, name, department],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'Username นี้ถูกใช้งานแล้ว' });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ id: this.lastID, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
+    }
+  );
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  db.run("UPDATE users SET is_deleted = 1 WHERE id = ?", [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'ลบผู้ใช้งานสำเร็จ' });
+  });
+});
+
+// ==========================================
+// DEPARTMENTS CRUD
 // ==========================================
 app.get('/api/departments', (req, res) => {
   db.all("SELECT * FROM departments WHERE is_deleted = 0", [], (err, rows) => {
@@ -165,7 +232,6 @@ app.put('/api/departments/:id', (req, res) => {
   });
 });
 
-// Soft Delete Department
 app.delete('/api/departments/:id', (req, res) => {
   db.run(`UPDATE departments SET is_deleted = 1 WHERE id = ?`, [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -177,34 +243,78 @@ app.delete('/api/departments/:id', (req, res) => {
 // ASSETS CRUD & SOFT DELETES
 // ==========================================
 
-// Get All Assets (Only active)
+// Get All Assets
 app.get('/api/assets', (req, res) => {
-  db.all("SELECT * FROM mains WHERE is_deleted = 0", [], (err, rows) => {
+  db.all("SELECT * FROM mains WHERE is_deleted = 0 ORDER BY id DESC", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-// Soft Delete Asset (keeps IP, Code, Origin)
+// Create New Asset
+app.post('/api/assets', (req, res) => {
+  const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, action_by_username } = req.body;
+  
+  if (!asset_tag || !category || !brand || !model || !serial_no || !device_name || !location || !warranty_start || !warranty_end) {
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลครุภัณฑ์ให้ครบถ้วน' });
+  }
+
+  const sReq = sanitization_required ? 1 : 0;
+
+  db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working')`,
+    [asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sReq],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'รหัสครุภัณฑ์หรือ Serial Number นี้มีอยู่ในระบบแล้ว' });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+
+      db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'Fl 1', 'Working', 'IN', ?)`, 
+        [asset_tag, location, action_by_username || 'system']);
+
+      res.json({ id: this.lastID, asset_tag, message: 'ลงทะเบียนครุภัณฑ์ใหม่สำเร็จ' });
+    }
+  );
+});
+
+// Update Asset Details
+app.put('/api/assets/:tag', (req, res) => {
+  const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status } = req.body;
+  const tag = req.params.tag;
+
+  db.run(`UPDATE mains SET category=?, brand=?, model=?, serial_no=?, device_name=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?
+          WHERE asset_tag=? AND is_deleted=0`,
+    [category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, tag],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ' });
+    }
+  );
+});
+
+// Soft Delete Asset
 app.delete('/api/assets/:tag', (req, res) => {
   db.run("UPDATE mains SET is_deleted = 1 WHERE asset_tag = ?", [req.params.tag], function(err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Asset soft deleted successfully. Audit trail preserved.' });
+    res.json({ message: 'ลบรายการครุภัณฑ์สำเร็จ' });
   });
 });
 
-// Evaluate Claim Worthiness (Phase 2 Integration)
+// Evaluate Claim Worthiness Endpoint
 app.get('/api/assets/:tag/evaluate', (req, res) => {
   db.get("SELECT * FROM mains WHERE asset_tag = ? AND is_deleted = 0", [req.params.tag], (err, row) => {
     if (err || !row) return res.status(404).json({ error: 'Asset not found' });
     
-    // Mock purchase price & lifespan
     const evaluationPayload = {
       assetId: row.asset_tag,
       purchaseDate: row.warranty_start,
-      purchasePrice: 10000, 
+      purchasePrice: row.category === 'Computer' ? 18000 : (row.category === 'Tablet' ? 22000 : 4500),
       warrantyMonths: 36,
-      expectedLifespanMonths: 60
+      expectedLifespanMonths: 60,
+      status: row.status
     };
     
     const result = evaluateClaimWorthiness(evaluationPayload);
@@ -220,14 +330,12 @@ app.get('/api/assets/:tag', (req, res) => {
     if (row) {
       res.json(row);
     } else {
-      // Fuzzy matching logic if exact match fails
       db.all("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE m.is_deleted = 0", [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         
         let bestMatch = null;
         let minDistance = Infinity;
         
-        // Levenshtein distance algorithm
         const levenshtein = (a, b) => {
           const matrix = [];
           for (let i = 0; i <= b.length; i++) matrix[i] = [i];
@@ -244,8 +352,7 @@ app.get('/api/assets/:tag', (req, res) => {
           return matrix[b.length][a.length];
         };
 
-        // Skip fuzzy matching for very short queries (too many false positives)
-        if (tag.length < 4) {
+        if (tag.length < 3) {
           return res.status(404).json({ error: 'ไม่พบทรัพย์สินดังกล่าว' });
         }
 
@@ -254,9 +361,8 @@ app.get('/api/assets/:tag', (req, res) => {
           const serialDist = levenshtein(tag, r.serial_no.toUpperCase());
           const dist = Math.min(tagDist, serialDist);
           
-          // Threshold scales with tag length: allow ~20% character variance, min 1, max 4
           const candidate = dist === tagDist ? r.asset_tag : r.serial_no;
-          const maxAllowed = Math.max(1, Math.min(4, Math.floor(candidate.length * 0.20)));
+          const maxAllowed = Math.max(1, Math.min(4, Math.floor(candidate.length * 0.25)));
           
           if (dist < minDistance && dist <= maxAllowed) {
             minDistance = dist;
@@ -276,7 +382,7 @@ app.get('/api/assets/:tag', (req, res) => {
   });
 });
 
-// Update Asset Status (IT/Nurse Action)
+// Update Asset Status
 app.post('/api/assets/update-status', (req, res) => {
   const { asset_tag, status, location, action_by_username, department_name, floor } = req.body;
   if (!asset_tag || !status || !action_by_username) return res.status(400).json({ error: 'Missing fields' });
@@ -348,7 +454,7 @@ app.post('/api/assets/claim', (req, res) => {
   });
 });
 
-// Get Audit Trail
+// Audit Trail
 app.get('/api/audit-logs', (req, res) => {
   db.all("SELECT * FROM move_log ORDER BY timestamp DESC", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -356,7 +462,7 @@ app.get('/api/audit-logs', (req, res) => {
   });
 });
 
-// Get RMA Claims (Only non-deleted)
+// RMA Claims
 app.get('/api/rma-claims', (req, res) => {
   db.all("SELECT * FROM rma_claims WHERE is_deleted = 0", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -364,7 +470,6 @@ app.get('/api/rma-claims', (req, res) => {
   });
 });
 
-// Soft Delete RMA Claim
 app.delete('/api/rma-claims/:id', (req, res) => {
   db.run("UPDATE rma_claims SET is_deleted = 1 WHERE id = ?", [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });

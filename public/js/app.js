@@ -47,6 +47,14 @@ function initApp() {
   }
 }
 
+// Helper to hide fuzzy suggestion banners safely
+function hideFuzzySuggestion() {
+  const wardBanner = document.getElementById('fuzzy-suggestion-ward');
+  const itBanner = document.getElementById('fuzzy-suggestion-it');
+  if (wardBanner) wardBanner.style.display = 'none';
+  if (itBanner) itBanner.style.display = 'none';
+}
+
 function setupEventListeners() {
   // Login Form
   document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -78,7 +86,7 @@ function setupEventListeners() {
   document.getElementById('ward-search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      hideFuzzySuggestion(); // clear any previous suggestion
+      hideFuzzySuggestion();
       const val = document.getElementById('ward-search-input').value.trim();
       if (val) lookupAsset(val);
     }
@@ -87,7 +95,7 @@ function setupEventListeners() {
   document.getElementById('it-search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      hideFuzzySuggestion(); // clear any previous suggestion
+      hideFuzzySuggestion();
       const val = document.getElementById('it-search-input').value.trim();
       if (val) lookupAsset(val);
     }
@@ -149,13 +157,31 @@ function setupEventListeners() {
   if (vendorSelect) {
     vendorSelect.addEventListener('change', handleVendorChange);
   }
+
+  // Modals (Add Asset & Add User)
+  const addAssetModal = document.getElementById('add-asset-modal');
+  document.getElementById('btn-open-add-asset-modal').addEventListener('click', () => {
+    addAssetModal.style.display = 'flex';
+  });
+  document.getElementById('close-asset-modal-btn').addEventListener('click', () => {
+    addAssetModal.style.display = 'none';
+  });
+  document.getElementById('add-asset-form').addEventListener('submit', handleAddAsset);
+
+  const addUserModal = document.getElementById('add-user-modal');
+  document.getElementById('btn-open-add-user-modal').addEventListener('click', () => {
+    addUserModal.style.display = 'flex';
+  });
+  document.getElementById('close-user-modal-btn').addEventListener('click', () => {
+    addUserModal.style.display = 'none';
+  });
+  document.getElementById('add-user-form').addEventListener('submit', handleAddUser);
 }
 
 // Routing & View Switcher
 function switchView(viewName) {
   state.activeView = viewName;
   
-  // Hide all sections
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
@@ -238,13 +264,17 @@ function logout() {
 // Fetch Lists & Update Statistics
 async function refreshData() {
   try {
-    // 1. Fetch Assets
     const assetsRes = await fetch('/api/assets');
     const assets = await assetsRes.json();
     
-    // 2. Fetch Logs
     const logsRes = await fetch('/api/audit-logs');
     const logs = await logsRes.json();
+
+    if (state.user && state.user.role === 'admin') {
+      const usersRes = await fetch('/api/users');
+      const users = await usersRes.json();
+      populateUserTable(users);
+    }
     
     updateStatistics(assets);
     populateAssetTable(assets);
@@ -275,7 +305,6 @@ function populateAssetTable(assets) {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.addEventListener('click', () => {
-      // populate scanner form
       document.getElementById('it-search-input').value = asset.asset_tag;
       lookupAsset(asset.asset_tag);
     });
@@ -300,6 +329,42 @@ function populateAssetTable(assets) {
     tbody.appendChild(tr);
   });
 }
+
+function populateUserTable(users) {
+  const tbody = document.getElementById('user-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.id}</td>
+      <td><strong>${u.username}</strong></td>
+      <td>${u.name}</td>
+      <td>${u.department}</td>
+      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role.toUpperCase()}</span></td>
+      <td>
+        ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ลบผู้ใช้</button>` : `<span style="font-size: 11px; color: var(--text-muted);">ระบบหลัก</span>`}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.deleteUser = async function(id) {
+  if (!confirm('คุณต้องการลบผู้ใช้นี้ออกจากระบบใช่หรือไม่?')) return;
+  try {
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('ลบผู้ใช้สำเร็จแล้ว');
+      refreshData();
+    } else {
+      alert('ไม่สามารถลบผู้ใช้ได้');
+    }
+  } catch (error) {
+    console.error('Delete user error:', error);
+  }
+};
 
 function populateAuditTable(logs) {
   const tbody = document.getElementById('audit-table-body');
@@ -327,17 +392,12 @@ function populateAuditTable(logs) {
 
 // Local Tag Parser Heuristic (ISO / Off-grid Offline Parser)
 function parseAssetTagLocal(rawText) {
-  console.log('Running Local Heuristic Regex Parser on:', rawText);
-  
-  // Matches 4-digit years like 2021, 2022, etc.
   const yearMatch = rawText.match(/\b(20\d{2})\b/);
   const year = yearMatch ? yearMatch[1] : 'Unknown';
   
-  // Matches Version numbers e.g. V1, V2, Version 3
   const versionMatch = rawText.match(/[vV](ersion)?\s*([0-9])/);
   const version = versionMatch ? versionMatch[2] : '1';
   
-  // Determine if Tag syntax holds indications of status
   let parsedStatus = 'Unknown';
   if (rawText.includes('-W') || rawText.toLowerCase().includes('work')) {
     parsedStatus = 'Warranty Active';
@@ -354,7 +414,6 @@ function parseAssetTagLocal(rawText) {
   };
 }
 
-// Display Parser results visually to WOW the user
 function displayLocalParserResults(parsed) {
   const elements = [
     document.getElementById('parser-analytics-ward'),
@@ -379,7 +438,6 @@ function displayLocalParserResults(parsed) {
 
 // Lookup Asset Details
 async function lookupAsset(tag) {
-  // First run local parser heuristic
   const parsed = parseAssetTagLocal(tag);
   displayLocalParserResults(parsed);
   hideFuzzySuggestion();
@@ -390,7 +448,6 @@ async function lookupAsset(tag) {
       const asset = await res.json();
 
       if (asset.is_fuzzy_match) {
-        // Don't auto-load — show a 'Did you mean?' suggestion banner instead
         state.pendingFuzzyAsset = asset;
         const prefix = state.activeView === 'ward' ? 'ward' : 'it';
         const textEl = document.getElementById(`fuzzy-suggestion-${prefix}-text`);
@@ -411,11 +468,42 @@ async function lookupAsset(tag) {
   }
 }
 
+async function fetchAndDisplayEvaluation(assetTag, prefix) {
+  const container = document.getElementById(`${prefix}-detail-evaluate`);
+  if (!container) return;
+
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/evaluate`);
+    if (res.ok) {
+      const evalData = await res.json();
+      container.style.display = 'block';
+      
+      if (evalData.isWorthClaiming) {
+        container.style.background = 'rgba(16, 185, 129, 0.1)';
+        container.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        container.style.color = '#10b981';
+        container.innerHTML = `
+          <strong>💡 ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
+          <span style="color:#fff;">${evalData.reason}</span>
+        `;
+      } else {
+        container.style.background = 'rgba(239, 68, 68, 0.1)';
+        container.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        container.style.color = '#ef4444';
+        container.innerHTML = `
+          <strong>⚠️ ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
+          <span style="color:#fff;">${evalData.reason}</span>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Evaluation fetch error:', err);
+  }
+}
+
 function displayAssetDetails(asset) {
-  // Update details panel in active view
   const prefix = state.activeView === 'ward' ? 'ward' : 'it';
   
-  // Calculate remaining warranty days
   const warrantyEnd = new Date(asset.warranty_end);
   const today = new Date();
   const diffTime = warrantyEnd - today;
@@ -434,7 +522,6 @@ function displayAssetDetails(asset) {
   document.getElementById(`${prefix}-detail-loc`).textContent = asset.location;
   document.getElementById(`${prefix}-detail-warranty`).innerHTML = `${asset.warranty_end} (${warrantyHTML})`;
   
-  // Status Class Badge
   let statusClass = 'badge-working';
   let statusText = 'ปกติ (Working)';
   if (asset.status === 'Broken') {
@@ -446,41 +533,37 @@ function displayAssetDetails(asset) {
   }
   document.getElementById(`${prefix}-detail-status`).innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
   
-  // Show/Hide forms based on status
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   
+  // Fetch and display claim worthiness calculator evaluation
+  fetchAndDisplayEvaluation(asset.asset_tag, prefix);
+
   if (prefix === 'it') {
     const claimForm = document.getElementById('rma-form-container');
     const sanitizePanel = document.getElementById('sanitize-panel');
     const btnResolve = document.getElementById('btn-resolve');
     const btnReportBroken = document.getElementById('btn-report-broken');
     
-    // Reset buttons
     btnResolve.style.display = 'none';
-    btnReportBroken.style.display = 'none';
+    if (btnReportBroken) btnReportBroken.style.display = 'none';
     sanitizePanel.style.display = 'none';
     claimForm.style.display = 'none';
     
-    // Status Logic
     if (asset.status === 'Working') {
-      btnReportBroken.style.display = 'block';
+      if (btnReportBroken) btnReportBroken.style.display = 'block';
     } else if (asset.status === 'Broken') {
       btnResolve.style.display = 'block';
       
-      // If data wipe required, show Sanitization panel
       if (asset.sanitization_required) {
         if (!asset.rma_data_wiped_confirmed && asset.rma_status !== 'Sanitized') {
           sanitizePanel.style.display = 'block';
-          // Ensure checkbox reset
           state.sanitizationChecked = false;
           document.getElementById('sanitize-chk').classList.remove('checked');
         } else {
-          // Already sanitized, show claim form
           claimForm.style.display = 'block';
           document.getElementById('claim-tag-input').value = asset.asset_tag;
         }
       } else {
-        // Sanitization not required (e.g. barcode scanner), show claim form immediately
         claimForm.style.display = 'block';
         document.getElementById('claim-tag-input').value = asset.asset_tag;
       }
@@ -488,6 +571,75 @@ function displayAssetDetails(asset) {
       btnResolve.style.display = 'block';
       btnResolve.textContent = 'รับเครื่องกลับเข้าคลัง (Return to Stock)';
     }
+  }
+}
+
+// Form Handlers: Add Asset & Add User
+async function handleAddAsset(e) {
+  e.preventDefault();
+  const payload = {
+    asset_tag: document.getElementById('new-asset-tag').value.trim(),
+    device_name: document.getElementById('new-device-name').value.trim(),
+    category: document.getElementById('new-category').value,
+    brand: document.getElementById('new-brand').value.trim(),
+    model: document.getElementById('new-model').value.trim(),
+    serial_no: document.getElementById('new-serial').value.trim(),
+    location: document.getElementById('new-location').value.trim(),
+    warranty_start: document.getElementById('new-warranty-start').value,
+    warranty_end: document.getElementById('new-warranty-end').value,
+    sanitization_required: document.getElementById('new-sanitization-req').checked ? 1 : 0,
+    action_by_username: state.user ? state.user.username : 'admin'
+  };
+
+  try {
+    const res = await fetch('/api/assets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      alert('ลงทะเบียนครุภัณฑ์ใหม่เรียบร้อยแล้ว');
+      document.getElementById('add-asset-modal').style.display = 'none';
+      document.getElementById('add-asset-form').reset();
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถลงทะเบียนครุภัณฑ์ได้');
+    }
+  } catch (error) {
+    console.error('Add asset error:', error);
+  }
+}
+
+async function handleAddUser(e) {
+  e.preventDefault();
+  const payload = {
+    username: document.getElementById('new-username').value.trim(),
+    password: document.getElementById('new-password').value,
+    name: document.getElementById('new-fullname').value.trim(),
+    department: document.getElementById('new-user-dept').value.trim(),
+    role: document.getElementById('new-user-role').value
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      alert('เพิ่มผู้ใช้งานใหม่เรียบร้อยแล้ว');
+      document.getElementById('add-user-modal').style.display = 'none';
+      document.getElementById('add-user-form').reset();
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถเพิ่มผู้ใช้งานได้');
+    }
+  } catch (error) {
+    console.error('Add user error:', error);
   }
 }
 
@@ -545,7 +697,6 @@ async function confirmSanitization() {
     if (res.ok) {
       const data = await res.json();
       alert(data.message);
-      // Reload details to show RMA form
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
@@ -621,7 +772,6 @@ function handleVendorChange(e) {
     panel.style.display = 'none';
   }
 }
-
 
 async function handleClaimInitiate(e) {
   e.preventDefault();
