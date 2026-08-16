@@ -176,12 +176,74 @@ function setupEventListeners() {
     addUserModal.style.display = 'none';
   });
   document.getElementById('add-user-form').addEventListener('submit', handleAddUser);
+
+  // Modal (Add Config)
+  const addConfigModal = document.getElementById('add-config-modal');
+  if (addConfigModal) {
+      document.getElementById('btn-open-add-config-modal').addEventListener('click', () => {
+        document.getElementById('add-config-form').reset();
+        document.getElementById('config-id').value = '';
+        addConfigModal.style.display = 'flex';
+      });
+      document.getElementById('close-config-modal-btn').addEventListener('click', () => {
+        addConfigModal.style.display = 'none';
+      });
+      document.getElementById('add-config-form').addEventListener('submit', handleAddConfig);
+  }
+
+  // Email Modal Events
+  document.getElementById('close-email-modal-btn').addEventListener('click', closeEmailModal);
+  document.getElementById('cancel-email-btn').addEventListener('click', closeEmailModal);
+  document.getElementById('confirm-send-email-btn').addEventListener('click', confirmAndSendEmail);
+
+  // Copy Data Event
+  const copyBtn = document.getElementById('btn-copy-data');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copyAssetDataToClipboard);
+  }
 }
 
+// Copy Data Logic
+async function copyAssetDataToClipboard() {
+  try {
+    const res = await fetch('/api/assets?limit=500');
+    if (!res.ok) throw new Error('Failed to fetch data');
+    const data = await res.json();
+    const assets = Array.isArray(data) ? data : (data.assets || []);
+    
+    // Create TSV (Tab-Separated Values) format
+    let tsvData = 'Asset Tag\tDevice Name\tLocation\tWarranty End\tStatus\n';
+    assets.forEach(a => {
+      tsvData += `${a.asset_tag}\t${a.device_name}\t${a.location}\t${a.warranty_end}\t${a.status}\n`;
+    });
+    
+    await navigator.clipboard.writeText(tsvData);
+    alert('คัดลอกข้อมูลสำเร็จ (Data copied to clipboard)!');
+  } catch (error) {
+    console.error('Copy data error:', error);
+    alert('ไม่สามารถคัดลอกข้อมูลได้ (Failed to copy data)');
+  }
+}
+
+function closeEmailModal() {
+  document.getElementById('email-preview-modal').style.display = 'none';
+}
+
+let pendingClaimData = null;
+
 // Routing & View Switcher
+const PAGE_TITLES = {
+  auth: 'ClaimIT — เข้าสู่ระบบ',
+  ward: 'ClaimIT — Staff Portal (แจ้งซ่อมครุภัณฑ์)',
+  it:   'ClaimIT — IT Dashboard (จัดการระบบ)'
+};
+
 function switchView(viewName) {
   state.activeView = viewName;
   
+  // Update browser tab title to reflect current page
+  document.title = PAGE_TITLES[viewName] || 'ClaimIT';
+
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
@@ -245,8 +307,6 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = state.user.role === 'admin' ? 'IT Support' : 'Ward Staff';
-  
   const itBtn = document.getElementById('btn-to-it');
   if (state.user.role === 'admin') {
     itBtn.style.display = 'flex';
@@ -264,8 +324,10 @@ function logout() {
 // Fetch Lists & Update Statistics
 async function refreshData() {
   try {
-    const assetsRes = await fetch('/api/assets');
-    const assets = await assetsRes.json();
+    const assetsRes = await fetch('/api/assets?limit=500');
+    const assetsData = await assetsRes.json();
+    // Handle both old array format and new paginated { assets: [...] } format
+    const assets = Array.isArray(assetsData) ? assetsData : (assetsData.assets || []);
     
     const logsRes = await fetch('/api/audit-logs');
     const logs = await logsRes.json();
@@ -274,6 +336,11 @@ async function refreshData() {
       const usersRes = await fetch('/api/users');
       const users = await usersRes.json();
       populateUserTable(users);
+      
+      const configRes = await fetch('/api/configurations');
+      const configs = await configRes.json();
+      populateConfigTable(configs);
+      updateDynamicDropdowns(configs);
     }
     
     updateStatistics(assets);
@@ -288,7 +355,7 @@ function updateStatistics(assets) {
   const total = assets.length;
   const working = assets.filter(a => a.status === 'Working').length;
   const broken = assets.filter(a => a.status === 'Broken').length;
-  const atVendor = assets.filter(a => a.status === 'At Vendor').length;
+  const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
   
   document.getElementById('stat-total-assets').textContent = total;
   document.getElementById('stat-working-assets').textContent = working;
@@ -314,9 +381,9 @@ function populateAssetTable(assets) {
     if (asset.status === 'Broken') {
       statusClass = 'badge-broken';
       statusText = 'ชำรุด (Broken)';
-    } else if (asset.status === 'At Vendor') {
+    } else if (asset.status === 'Pending Pickup') {
       statusClass = 'badge-vendor';
-      statusText = 'เคลมศูนย์ (At Vendor)';
+      statusText = 'รอศูนย์เข้ามารับ (Pending Pickup)';
     }
     
     tr.innerHTML = `
@@ -461,7 +528,12 @@ async function lookupAsset(tag) {
         displayAssetDetails(asset);
       }
     } else {
-      alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
+      if (confirm(`ไม่พบรหัสครุภัณฑ์ "${tag}" คุณต้องการเพิ่มข้อมูลครุภัณฑ์ใหม่หรือไม่?`)) {
+        document.getElementById('add-asset-modal').style.display = 'flex';
+        document.getElementById('new-asset-tag').value = tag;
+      } else {
+        alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
+      }
     }
   } catch (error) {
     console.error('Lookup failed:', error);
@@ -522,14 +594,77 @@ function displayAssetDetails(asset) {
   document.getElementById(`${prefix}-detail-loc`).textContent = asset.location;
   document.getElementById(`${prefix}-detail-warranty`).innerHTML = `${asset.warranty_end} (${warrantyHTML})`;
   
+  // --- WARRANTY QUICK-ACCESS PANEL ---
+  const WARRANTY_LINKS = {
+    'dell':     'https://www.dell.com/support/home/en-us',
+    'lenovo':   'https://support.lenovo.com/warrantylookup',
+    'acer':     'https://register.acer.co.th/WarrantyCheck/warr_chk.aspx',
+    'hp':       'https://support.hp.com/us-en/check-warranty',
+    'tsc':      'https://support.tscprinters.com/',
+    'logitech': 'https://support.logi.com',
+    'apple':    'https://checkcoverage.apple.com/',
+    'zebra':    'https://www.zebra.com/us/en/support-downloads/warranty.html',
+    'ida':      `https://www.google.com/search?q=${encodeURIComponent('IDA warranty check serial number Thailand')}`,
+  };
+  const brandKey = (asset.brand || '').toLowerCase().trim();
+  let warrantyUrl = WARRANTY_LINKS[brandKey];
+  if (warrantyUrl === undefined) {
+    // Unknown brand — fallback to Google search
+    warrantyUrl = `https://www.google.com/search?q=${encodeURIComponent(asset.brand + ' warranty check serial number')}`;
+  }
+
+  // Remove old panel if exists
+  const oldPanel = document.getElementById(`${prefix}-warranty-quick`);
+  if (oldPanel) oldPanel.remove();
+
+  const quickPanel = document.createElement('div');
+  quickPanel.id = `${prefix}-warranty-quick`;
+  quickPanel.style.cssText = 'display:flex; gap:8px; margin-top:10px; margin-bottom:4px; flex-wrap:wrap;';
+
+  // Copy S/N Button
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn btn-secondary';
+  copyBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px;';
+  copyBtn.innerHTML = '📋 คัดลอก Serial Number';
+  copyBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(asset.serial_no);
+      copyBtn.innerHTML = '✅ คัดลอกแล้ว!';
+      copyBtn.style.background = 'var(--success)';
+      setTimeout(() => {
+        copyBtn.innerHTML = '📋 คัดลอก Serial Number';
+        copyBtn.style.background = '';
+      }, 2000);
+    } catch {
+      prompt('คัดลอก S/N นี้:', asset.serial_no);
+    }
+  };
+  quickPanel.appendChild(copyBtn);
+
+  // Warranty Link Button — always present now (direct site or Google search fallback)
+  const linkBtn = document.createElement('a');
+  linkBtn.href = warrantyUrl;
+  linkBtn.target = '_blank';
+  linkBtn.rel = 'noopener noreferrer';
+  linkBtn.className = 'btn btn-secondary';
+  linkBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;';
+  const brandLabel = asset.brand ? asset.brand.charAt(0).toUpperCase() + asset.brand.slice(1) : 'Brand';
+  linkBtn.innerHTML = `🌐 ตรวจสอบรับประกัน ${brandLabel}`;
+  quickPanel.appendChild(linkBtn);
+
+  // Insert panel after the serial number detail-item
+  const serialEl = document.getElementById(`${prefix}-detail-serial`);
+  serialEl.closest('.detail-item').after(quickPanel);
+  // --- END WARRANTY QUICK-ACCESS PANEL ---
+
   let statusClass = 'badge-working';
   let statusText = 'ปกติ (Working)';
   if (asset.status === 'Broken') {
     statusClass = 'badge-broken';
     statusText = 'ชำรุด (Broken)';
-  } else if (asset.status === 'At Vendor') {
+  } else if (asset.status === 'Pending Pickup') {
     statusClass = 'badge-vendor';
-    statusText = `เคลมศูนย์ (${asset.vendor_name || 'Vendor'})`;
+    statusText = `รอศูนย์เข้ามารับ (${asset.vendor_name || 'Vendor'})`;
   }
   document.getElementById(`${prefix}-detail-status`).innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
   
@@ -567,7 +702,7 @@ function displayAssetDetails(asset) {
         claimForm.style.display = 'block';
         document.getElementById('claim-tag-input').value = asset.asset_tag;
       }
-    } else if (asset.status === 'At Vendor') {
+    } else if (asset.status === 'Pending Pickup') {
       btnResolve.style.display = 'block';
       btnResolve.textContent = 'รับเครื่องกลับเข้าคลัง (Return to Stock)';
     }
@@ -643,6 +778,35 @@ async function handleAddUser(e) {
   }
 }
 
+async function handleAddConfig(e) {
+  e.preventDefault();
+  const id = document.getElementById('config-id').value;
+  const payload = {
+    type: document.getElementById('config-type').value,
+    value: document.getElementById('config-value').value.trim(),
+    details: document.getElementById('config-details').value.trim()
+  };
+  
+  try {
+    const url = id ? `/api/configurations/${id}` : '/api/configurations';
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      alert('บันทึกการตั้งค่าสำเร็จ');
+      document.getElementById('add-config-modal').style.display = 'none';
+      refreshData();
+    } else {
+      alert('บันทึกข้อมูลล้มเหลว');
+    }
+  } catch (error) {
+    console.error('Add config error:', error);
+  }
+}
+
 // Action handlers
 async function updateAssetStatus(newStatus) {
   if (!state.selectedAsset) return;
@@ -707,59 +871,87 @@ async function confirmSanitization() {
   }
 }
 
-const vendorProcedures = {
-  'IDA': `
-    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ IDA</h5>
-    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
-      <li>ติดต่อผ่านเมล <a href="mailto:vorakan.t@planetbarcode.co.th" style="color: var(--info);">vorakan.t@planetbarcode.co.th</a></li>
-      <li>แจ้งรุ่น S/N อาการเสียและที่อยู่เบอร์โทร (ตัวอย่างรุ่น: IDA-52P1)</li>
-      <li>ทางบริษัทจะตอบเมลมาและรอนัดวันเข้ามารับอุปกรณ์</li>
-    </ol>
-  `,
-  'Dell': `
-    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Dell</h5>
-    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
-      <li>ตรวจสอบประกัน: <a href="https://Dell.com/support/contractservice/en-th" target="_blank" style="color: var(--info);">Dell.com/support/contractservice/en-th</a></li>
-      <li>เทสอุปกรณ์และถ่ายรูปอุปกรณ์ที่เสีย 2-3 รูปพร้อม ServiceTag</li>
-      <li>โทรไปที่เบอร์ 02-855-7085 ต่อ 3 และแจ้ง Service Code 10-11 หลัก (เวลาทำการ 9:00 - 16:00 น.)</li>
-      <li>ติดต่อพนักงาน Dell แจ้งอาการและรอตอบเมลด้วยรูปที่ถ่ายมาและที่อยู่</li>
-      <li>ยืนยันที่อยู่กับพนักงานส่งของและรอรับของ</li>
-      <li>นำ Tag ที่ติดกับอุปกรณ์เก่าออกมาเพื่อไปติดที่เครื่องใหม่</li>
-      <li>Test อุปกรณ์ให้เรียบร้อยและนำเข้าสตอก</li>
-    </ol>
-  `,
-  'Lenovo': `
-    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Lenovo</h5>
-    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
-      <li>เข้าไปที่เว็บไซต์ <a href="https://pcsupport.lenovo.com/th/th/warranty-lookup#/" target="_blank" style="color: var(--info);">https://pcsupport.lenovo.com/th/th/warranty-lookup#/</a></li>
-      <li>กรอก S/N ในช่องและกดติดต่อฝ่ายสนับสนุน</li>
-      <li>เลือกช่องทางการติดต่อหลังจากนั้นทางบริษัทจะโทรมานัดวันเพื่อเข้ามาซ่อม</li>
-    </ol>
-  `,
-  'TSC': `
-    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ TSC</h5>
-    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
-      <li>ติดต่อเบอร์ 081-467-3307 และติดต่อผ่าน Line</li>
-      <li>แจ้ง รุ่น S/N และอาการเสียที่เจอพร้อมส่งรูปหรือวีดีโอ</li>
-      <li>แจ้งที่อยู่ ชื่อเบอร์โทรและนัดวันรับของ</li>
-      <li>พนักงานมารับของไปซ่อมข้างนอกให้นำใบ นำอุปกรณ์ออกนอกสถานที่ให้เซ็น</li>
-      <li>รอนัดวันรับของหลังแก้ไขเสร็จ</li>
-      <li>รับของและเทสให้เรียบร้อย หลังจากนั้นขอ สำเนาบัตร ปชช คนส่งเพื่อมาแนบกับใบนำอุปกรณ์ออกนอกสถานที่</li>
-      <li>แจ้งผู้ดูแล สตอกและนำเข้า</li>
-    </ol>
-    <div style="font-size: 12px; color: var(--warning); margin-top: 8px; padding: 6px; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">
-      <strong>ประกัน:</strong> (เครื่อง 1 ปี / หัว 6 เดือน) หลังปี 2569 จะเป็น 1 ปีทั้ง 2 อย่าง
-    </div>
-  `,
-  'Acer': `
-    <h5 style="color: var(--primary); margin-bottom: 8px;">ขั้นตอนการส่งเคลมอุปกรณ์ Acer</h5>
-    <ol style="padding-left: 20px; font-size: 13px; color: var(--text-main); margin-bottom: 0;">
-      <li>ตรวจสอบประกัน: <a href="https://Register.acer.co.th/WarrantyCheck/warr_chk.aspx" target="_blank" style="color: var(--info);">Register.acer.co.th/WarrantyCheck/warr_chk.aspx</a></li>
-      <li>ส่งเมลไปที่ <a href="mailto:ath.onsite@acer.com" style="color: var(--info);">ath.onsite@acer.com</a></li>
-      <li>แจ้งรายละเอียด อาการเสีย เลขS/Nและที่อยู่</li>
-      <li><strong>กรณีแจ้งเคลมเมาส์คีย์บอร์ด:</strong> ให้ใส่รุ่นและเลข S/N ของคอมที่ยังไม่เคยส่งเคลม (ตัวอย่างรุ่นคอม: Veriton X2720G)</li>
-    </ol>
-  `
+let vendorProcedures = {}; // Dynamically populated from configurations
+
+function populateConfigTable(configs) {
+  const tbody = document.getElementById('config-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  configs.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.id}</td>
+      <td><strong>${c.type}</strong></td>
+      <td>${c.value}</td>
+      <td><div style="max-height: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${c.details || '-'}</div></td>
+      <td>
+        <button class="btn btn-secondary" onclick="editConfig(${c.id}, '${c.type}', '${c.value}', \`${(c.details||'').replace(/`/g, '\\`')}\`)" style="padding: 4px 8px; font-size: 11px;">แก้ไข</button>
+        <button class="btn btn-danger" onclick="deleteConfig(${c.id})" style="padding: 4px 8px; font-size: 11px;">ลบ</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateDynamicDropdowns(configs) {
+  // Update Brand/Vendor Dropdown
+  const vendorSelect = document.getElementById('claim-vendor');
+  if (vendorSelect) {
+    vendorSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกศูนย์บริการ --</option>';
+    const brands = configs.filter(c => c.type === 'brand');
+    vendorProcedures = {};
+    brands.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.value;
+      opt.textContent = b.value;
+      vendorSelect.appendChild(opt);
+      if (b.details) {
+        vendorProcedures[b.value] = b.details;
+      }
+    });
+    const otherOpt = document.createElement('option');
+    otherOpt.value = 'Other';
+    otherOpt.textContent = 'อื่นๆ (Other)';
+    vendorSelect.appendChild(otherOpt);
+  }
+
+  // Update Category Dropdown in Add Asset Form
+  const catSelect = document.getElementById('new-category');
+  if (catSelect) {
+    catSelect.innerHTML = '';
+    const categories = configs.filter(c => c.type === 'category');
+    if (categories.length === 0) {
+        catSelect.innerHTML = '<option value="Computer">Computer</option>';
+    } else {
+        categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.value;
+        opt.textContent = c.value;
+        catSelect.appendChild(opt);
+        });
+    }
+  }
+}
+
+window.editConfig = function(id, type, value, details) {
+  document.getElementById('config-id').value = id;
+  document.getElementById('config-type').value = type;
+  document.getElementById('config-value').value = value;
+  document.getElementById('config-details').value = details;
+  document.getElementById('add-config-modal').style.display = 'flex';
+};
+
+window.deleteConfig = async function(id) {
+  if (!confirm('ยืนยันการลบการตั้งค่านี้?')) return;
+  try {
+    const res = await fetch(`/api/configurations/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('ลบสำเร็จ');
+      refreshData();
+    }
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 function handleVendorChange(e) {
@@ -786,7 +978,8 @@ async function handleClaimInitiate(e) {
     return;
   }
   
-  const payload = {
+  // Prepare claim data
+  pendingClaimData = {
     asset_tag: state.selectedAsset.asset_tag,
     vendor_name: vendorName,
     vendor_rma_number: rmaNumber,
@@ -794,16 +987,83 @@ async function handleClaimInitiate(e) {
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
     action_by_username: state.user.username
   };
-  
+
+  // Prepare Email Preview
+  const to = `support@${vendorName.toLowerCase().replace(' ', '')}.com`;
+  const subject = `[ClaimIT] แจ้งส่งซ่อมอุปกรณ์เคลมประกัน - ${vendorName} (RMA: ${rmaNumber})`;
+  const body = `เรียน ทีมงานศูนย์บริการ ${vendorName},\n\n` +
+               `ทางโรงพยาบาลขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
+               `รหัสครุภัณฑ์ (Asset Tag): ${state.selectedAsset.asset_tag}\n` +
+               `ชื่ออุปกรณ์: ${state.selectedAsset.device_name}\n` +
+               `ยี่ห้อ/รุ่น: ${state.selectedAsset.brand} ${state.selectedAsset.model}\n` +
+               `Serial Number: ${state.selectedAsset.serial_no}\n` +
+               `RMA / Case ID: ${rmaNumber}\n\n` +
+               `ทางเราคาดหวังว่าจะได้รับอุปกรณ์คืนภายในวันที่: ${expectedDate}\n\n` +
+               `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
+
+  // Update Modal Content
+  document.getElementById('email-preview-to').textContent = to;
+  document.getElementById('email-preview-subject').textContent = subject;
+  document.getElementById('email-preview-body').textContent = body;
+
+  // Store email data for sending
+  pendingClaimData.email = { to, subject, body };
+
+  // Show Modal
+  document.getElementById('email-preview-modal').style.display = 'flex';
+}
+
+async function confirmAndSendEmail() {
+  if (!pendingClaimData) return;
+
+  const btn = document.getElementById('confirm-send-email-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง...';
+
+  const token = state.user ? state.user.token : null;
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
   try {
-    const res = await fetch('/api/assets/claim', {
+    // 1. Send Email via authenticated SendGrid endpoint
+    const emailPayload = {
+      to: pendingClaimData.email.to,
+      subject: pendingClaimData.email.subject,
+      html: `<pre style="font-family:sans-serif;white-space:pre-wrap;">${pendingClaimData.email.body}</pre>`
+    };
+    const emailRes = await fetch('/api/email/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: authHeaders,
+      body: JSON.stringify(emailPayload)
     });
     
-    if (res.ok) {
-      alert(`ดำเนินการเปิดใบเคลมศูนย์บริการ ${vendorName} เรียบร้อยแล้ว`);
+    if (!emailRes.ok) {
+      const errData = await emailRes.json().catch(() => ({}));
+      // If email fails due to unconfigured SendGrid, warn but continue with claim
+      console.warn('Email send warning:', errData.error || 'Email service not configured');
+      if (emailRes.status === 500) {
+        const proceed = confirm('ไม่สามารถส่งอีเมลได้ (SendGrid ยังไม่ได้ตั้งค่า) ต้องการดำเนินการบันทึกเคลมต่อไปโดยไม่ส่งอีเมลหรือไม่?');
+        if (!proceed) {
+          btn.disabled = false;
+          btn.textContent = '🚀 ยืนยันส่งอีเมลและบันทึกเคลม';
+          return;
+        }
+      }
+    }
+
+    // 2. Process Claim
+    const claimRes = await fetch('/api/assets/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pendingClaimData)
+    });
+    
+    if (claimRes.ok) {
+      alert(`ดำเนินการบันทึกใบเคลมศูนย์บริการ ${pendingClaimData.vendor_name} เรียบร้อยแล้ว`);
+      closeEmailModal();
+      document.getElementById('rma-form').reset();
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
@@ -811,6 +1071,11 @@ async function handleClaimInitiate(e) {
     }
   } catch (error) {
     console.error('Claim initiation error:', error);
+    alert('เกิดข้อผิดพลาดในการส่งเคลม');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 ยืนยันส่งอีเมลและบันทึกเคลม';
+    pendingClaimData = null;
   }
 }
 
@@ -819,4 +1084,30 @@ window.selectPreset = function(tag) {
   const prefix = state.activeView === 'ward' ? 'ward' : 'it';
   document.getElementById(`${prefix}-search-input`).value = tag;
   lookupAsset(tag);
+};
+
+// PDF Download – opens authenticated PDF report for an asset
+window.downloadPDF = async function(assetTag) {
+  if (!state.user || !state.user.token) {
+    alert('กรุณาเข้าสู่ระบบก่อนดาวน์โหลด PDF');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/pdf`, {
+      headers: { 'Authorization': `Bearer ${state.user.token}` }
+    });
+    if (!res.ok) throw new Error('PDF generation failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claim_${assetTag}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('PDF download error:', err);
+    alert('ไม่สามารถดาวน์โหลด PDF ได้');
+  }
 };

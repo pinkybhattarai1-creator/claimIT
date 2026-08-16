@@ -1,16 +1,46 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
+const sqlite3 = require('sqlite3').verbose();
+const dotenv = require('dotenv');
+dotenv.config();
 const { evaluateClaimWorthiness } = require('./claim_calculator');
+const sgMail = require('@sendgrid/mail');
+const jwt = require('jsonwebtoken');
+
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8847;
+
+// Configure SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+
+// JWT secret
+const JWT_SECRET = process.env.JWT_SECRET || 'default_jwt_secret';
+
+// Middleware to verify JWT
+function verifyToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+// Staff‑only middleware (both 'admin' and 'staff' roles can access staff endpoints)
+function staffOnly(req, res, next) {
+  if (req.user && (req.user.role === 'staff' || req.user.role === 'admin')) return next();
+  return res.status(403).json({ error: 'Staff access required' });
+}
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Connect to SQLite Database
 const dbPath = path.join(__dirname, 'database.db');
@@ -95,15 +125,24 @@ function initializeDatabase() {
       is_deleted INTEGER DEFAULT 0
     )`);
 
+    // 6. Configurations Table (Dynamic Settings)
+    db.run(`CREATE TABLE IF NOT EXISTS configurations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      value TEXT NOT NULL,
+      details TEXT,
+      is_deleted INTEGER DEFAULT 0
+    )`);
+
     // Seed data if users table is empty
     db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
       if (row && row.count === 0) {
         const adminPass = hashPassword('admin123');
-        const nursePass = hashPassword('nurse123');
+        const staffPass = hashPassword('staff123');
 
         db.run(`INSERT INTO users (username, password, role, name, department) VALUES 
           ('admin', ?, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'),
-          ('nurse', ?, 'nurse', 'Nurse Joy', 'Ward 20')`, [adminPass, nursePass]);
+          ('staff', ?, 'staff', 'General Staff', 'General Department')`, [adminPass, staffPass]);
 
         db.run(`INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
           ('Building 1', '1', 'ฉุกเฉิน (ER)', 0),
@@ -125,8 +164,20 @@ function initializeDatabase() {
         db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
           ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system'),
           ('CIT-2023-SCN-01', 'Ward 20', 'Fl 2', 'Working', 'IN', 'system'),
-          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'nurse')`);
+          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'staff')`);
         
+        db.run(`INSERT INTO configurations (type, value, details) VALUES 
+          ('brand', 'IDA', 'Email contact, info required, wait for pickup.'),
+          ('brand', 'Dell', 'Take photos with ServiceTag, call support, email photos, keep old tag for new device, test.'),
+          ('brand', 'Lenovo', 'Use warranty lookup website, enter S/N, select contact channel.'),
+          ('brand', 'TSC', 'Call/Line, send photos/video, document signing for equipment leaving premises, ID card copy upon return.'),
+          ('brand', 'Acer', 'Email support, specific instructions for mouse/keyboard claims requiring the PC''s S/N.'),
+          ('category', 'Computer', ''),
+          ('category', 'Scanner', ''),
+          ('category', 'Tablet', ''),
+          ('category', 'Webcam', ''),
+          ('category', 'Monitor', '')`);
+
         console.log('Database tables initialized and seeded with demo presets.');
       } else {
         // Ensure missing preset tags exist even if database already created
@@ -159,12 +210,14 @@ app.post('/api/auth/login', (req, res) => {
     const isMatch = (user.password === hashedInput) || (user.password === password);
 
     if (isMatch) {
-      res.json({ username: user.username, role: user.role, name: user.name, department: user.department });
+      const token = jwt.sign({ username: user.username, role: user.role, name: user.name, department: user.department }, JWT_SECRET, { expiresIn: '8h' });
+      res.json({ token, username: user.username, role: user.role, name: user.name, department: user.department });
     } else {
       res.status(401).json({ error: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' });
     }
   });
 });
+
 
 // ==========================================
 // USER MANAGEMENT CRUD (Admin only)
@@ -240,16 +293,66 @@ app.delete('/api/departments/:id', (req, res) => {
 });
 
 // ==========================================
-// ASSETS CRUD & SOFT DELETES
+// CONFIGURATIONS CRUD (Admin only)
 // ==========================================
-
-// Get All Assets
-app.get('/api/assets', (req, res) => {
-  db.all("SELECT * FROM mains WHERE is_deleted = 0 ORDER BY id DESC", [], (err, rows) => {
+app.get('/api/configurations', (req, res) => {
+  const { type } = req.query;
+  let query = "SELECT * FROM configurations WHERE is_deleted = 0";
+  let params = [];
+  if (type) {
+    query += " AND type = ?";
+    params.push(type);
+  }
+  db.all(query, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
+
+app.post('/api/configurations', (req, res) => {
+  const { type, value, details } = req.body;
+  if (!type || !value) return res.status(400).json({ error: 'Missing required fields' });
+  db.run(`INSERT INTO configurations (type, value, details) VALUES (?, ?, ?)`, [type, value, details || ''], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, message: 'Configuration added' });
+  });
+});
+
+app.put('/api/configurations/:id', (req, res) => {
+  const { type, value, details } = req.body;
+  db.run(`UPDATE configurations SET type = ?, value = ?, details = ? WHERE id = ? AND is_deleted = 0`, [type, value, details || '', req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Configuration updated' });
+  });
+});
+
+app.delete('/api/configurations/:id', (req, res) => {
+  db.run(`UPDATE configurations SET is_deleted = 1 WHERE id = ?`, [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Configuration soft deleted' });
+  });
+});
+
+// ==========================================
+// ASSETS CRUD & SOFT DELETES
+// ==========================================
+
+// Get All Assets with optional pagination
+app.get('/api/assets', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const offset = (page - 1) * limit;
+  
+  db.all("SELECT * FROM mains WHERE is_deleted = 0 ORDER BY id DESC LIMIT ? OFFSET ?", [limit, offset], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    // Also return total count for client‑side pagination
+    db.get("SELECT COUNT(*) as total FROM mains WHERE is_deleted = 0", (cntErr, cntRow) => {
+      if (cntErr) return res.status(500).json({ error: cntErr.message });
+      res.json({ total: cntRow.total, page, limit, assets: rows });
+    });
+  });
+});
+
 
 // Create New Asset
 app.post('/api/assets', (req, res) => {
@@ -442,12 +545,12 @@ app.post('/api/assets/claim', (req, res) => {
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
 
-        db.run("UPDATE mains SET status = 'At Vendor' WHERE asset_tag = ?", [asset_tag], function(err) {
+        db.run("UPDATE mains SET status = 'Pending Pickup' WHERE asset_tag = ?", [asset_tag], function(err) {
           if (err) return res.status(500).json({ error: 'Failed to update asset status' });
 
-          db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'External', 'At Vendor', 'OUT', ?)`, 
+          db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'External', 'Pending Pickup', 'OUT', ?)`, 
             [asset_tag, vendor_name, action_by_username]);
-          res.json({ message: 'ส่งเคลมไปที่ศูนย์บริการ', asset_tag, status: 'At Vendor' });
+          res.json({ message: 'รอศูนย์บริการเข้ามารับ', asset_tag, status: 'Pending Pickup' });
         });
       }
     );
@@ -477,7 +580,54 @@ app.delete('/api/rma-claims/:id', (req, res) => {
   });
 });
 
+// PDF Generation for Claim Report
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+
+app.get('/api/assets/:tag/pdf', verifyToken, staffOnly, (req, res) => {
+  const tag = req.params.tag.toUpperCase();
+  db.get("SELECT * FROM mains WHERE asset_tag = ? AND is_deleted = 0", [tag], (err, asset) => {
+    if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
+    const doc = new PDFDocument();
+    const filename = `claim_${tag}.pdf`;
+    res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+    res.setHeader('Content-type', 'application/pdf');
+    doc.pipe(res);
+    // Simple template – can be replaced with HTML rendering later
+    doc.fontSize(20).text('Claim Report', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Asset Tag: ${asset.asset_tag}`);
+    doc.text(`Category: ${asset.category}`);
+    doc.text(`Brand: ${asset.brand}`);
+    doc.text(`Model: ${asset.model}`);
+    doc.text(`Serial No: ${asset.serial_no}`);
+    doc.text(`Location: ${asset.location}`);
+    doc.text(`Warranty: ${asset.warranty_start} – ${asset.warranty_end}`);
+    doc.text(`Status: ${asset.status}`);
+    doc.end();
+  });
+});
+
+
+// ==========================================
+// EMAIL ENDPOINT (Staff‑only, real SendGrid)
+// ==========================================
+app.post('/api/email/send', verifyToken, staffOnly, async (req, res) => {
+  const { to, subject, html } = req.body;
+  if (!to || !subject || !html) {
+    return res.status(400).json({ error: 'Missing email parameters (to, subject, html).' });
+  }
+  try {
+    await sgMail.send({ to, from: process.env.SENDGRID_FROM || 'no-reply@claimit.local', subject, html });
+    res.json({ success: true, message: 'Email sent successfully.' });
+  } catch (error) {
+    console.error('SendGrid error:', error);
+    res.status(500).json({ error: 'Failed to send email.' });
+  }
+});
+
+
 // Start Server
 app.listen(PORT, () => {
-  console.log(`ClaimIT server running on http://localhost:${PORT}`);
+  console.log(`ClaimIT Server running on port ${PORT}`);
 });
