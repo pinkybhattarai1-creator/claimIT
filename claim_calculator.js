@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * System Diagnostics & Audit Logger
+ * System Diagnostics & Claim Worthiness Calculator
  * ============================================================================
  * 
  * SECURITY NOTICE: 
@@ -9,39 +9,59 @@
  */
 
 function evaluateClaimWorthiness(asset) {
-    // TODO: [INSERT ACTUAL FORMULA HERE]
-    // The exact formula for finding whether it's worth the claim or not 
-    // needs to be inserted here by the domain team. 
-    // For now, it returns random placeholder logic for testing.
+    const purchaseDate = new Date(asset.purchaseDate || asset.warrantyStart || '2023-01-01');
+    const warrantyMonths = parseInt(asset.warrantyMonths || 36, 10);
+    const expectedLifespanMonths = parseInt(asset.expectedLifespanMonths || 60, 10);
+    const purchasePrice = parseFloat(asset.purchasePrice || 10000);
 
-    const isWorthClaiming = Math.random() > 0.5; // Random placeholder logic
+    const today = new Date();
     
-    let reason = "Pending actual formula calculation. ";
-    if (isWorthClaiming) {
-        reason += "Placeholder: Item flagged as worth claiming.";
+    // Calculate warranty expiration date
+    const warrantyExpiry = new Date(purchaseDate);
+    warrantyExpiry.setMonth(warrantyExpiry.getMonth() + warrantyMonths);
+
+    // Calculate lifespan end date
+    const lifespanExpiry = new Date(purchaseDate);
+    lifespanExpiry.setMonth(lifespanExpiry.getMonth() + expectedLifespanMonths);
+
+    const isUnderWarranty = today <= warrantyExpiry;
+    const isWithinLifespan = today <= lifespanExpiry;
+
+    // Calculate approximate depreciated value
+    const totalAgeDays = Math.max(1, (today - purchaseDate) / (1000 * 60 * 60 * 24));
+    const totalLifespanDays = expectedLifespanMonths * 30.4375;
+    const depreciationRatio = Math.max(0, 1 - (totalAgeDays / totalLifespanDays));
+    const estimatedCurrentValue = Math.round(purchasePrice * depreciationRatio);
+
+    let isWorthClaiming = false;
+    let category = 'EXPIRED';
+    let reason = '';
+
+    if (isUnderWarranty) {
+        isWorthClaiming = true;
+        category = 'UNDER_WARRANTY';
+        const remainingWarrantyDays = Math.ceil((warrantyExpiry - today) / (1000 * 60 * 60 * 24));
+        reason = `คุ้มค่าที่จะส่งเคลม: ครุภัณฑ์ยังอยู่ในระยะเวลารับประกัน (เหลือ ${remainingWarrantyDays} วัน) เคลมได้ฟรีโดยไม่มีค่าใช้จ่ายอะไหล่`;
+    } else if (isWithinLifespan && depreciationRatio >= 0.25) {
+        isWorthClaiming = true;
+        category = 'OUT_OF_WARRANTY_REPAIRABLE';
+        reason = `หมดประกันแล้ว แต่ยังอยู่ในอายุการใช้งาน (มูลค่าประเมินคงเหลือประมาณ ฿${estimatedCurrentValue.toLocaleString()}) แนะนำส่งซ่อมแซมหากค่าซ่อมไม่เกิน 50% ของมูลค่าเครื่อง`;
     } else {
-        reason += "Placeholder: Item flagged as NOT worth claiming.";
+        isWorthClaiming = false;
+        category = 'END_OF_LIFE';
+        reason = `ไม่คุ้มค่าที่จะส่งเคลม/ซ่อม: ครุภัณฑ์พ้นอายุการใช้งาน (EOL) มูลค่าประเมินคงเหลือต่ำกว่า 25% (฿${estimatedCurrentValue.toLocaleString()}) แนะนำพิจารณาจัดซื้อทดแทน`;
     }
 
     return {
-        assetId: asset.assetId,
-        isWorthClaiming: isWorthClaiming,
-        reason: reason
+        assetId: asset.assetId || asset.asset_tag,
+        isWorthClaiming,
+        category,
+        estimatedCurrentValue,
+        purchasePrice,
+        isUnderWarranty,
+        warrantyExpiry: warrantyExpiry.toISOString().split('T')[0],
+        reason
     };
 }
-
-// --- Audit Execution Example ---
-const sampleAssets = [
-    { assetId: '032186040006' }, // Logitech Webcam
-    { assetId: '031709030031' }  // Dell Monitor
-];
-
-console.log("=== System Audit: Evaluating Claim Worthiness ===");
-sampleAssets.forEach(asset => {
-    const evaluation = evaluateClaimWorthiness(asset);
-    console.log(`Asset: ${evaluation.assetId}`);
-    console.log(`- Worth Claiming?: ${evaluation.isWorthClaiming ? '✅ YES' : '❌ NO'}`);
-    console.log(`- Reason: ${evaluation.reason}\n`);
-});
 
 module.exports = { evaluateClaimWorthiness };

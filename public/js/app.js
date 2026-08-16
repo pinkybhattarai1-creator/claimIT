@@ -4,7 +4,7 @@ const state = {
   activeView: 'auth', // 'auth', 'ward', 'it'
   selectedAsset: null,
   sanitizationChecked: false,
-  webcamStream: null
+  pendingFuzzyAsset: null // holds a fuzzy match until the user confirms it
 };
 
 // DOM Elements
@@ -47,6 +47,14 @@ function initApp() {
   }
 }
 
+// Helper to hide fuzzy suggestion banners safely
+function hideFuzzySuggestion() {
+  const wardBanner = document.getElementById('fuzzy-suggestion-ward');
+  const itBanner = document.getElementById('fuzzy-suggestion-it');
+  if (wardBanner) wardBanner.style.display = 'none';
+  if (itBanner) itBanner.style.display = 'none';
+}
+
 function setupEventListeners() {
   // Login Form
   document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -63,7 +71,7 @@ function setupEventListeners() {
   
   logoutBtn.addEventListener('click', logout);
   
-  // Manual search
+  // Manual search (Click)
   document.getElementById('ward-search-btn').addEventListener('click', () => {
     const val = document.getElementById('ward-search-input').value.trim();
     if (val) lookupAsset(val);
@@ -72,6 +80,56 @@ function setupEventListeners() {
   document.getElementById('it-search-btn').addEventListener('click', () => {
     const val = document.getElementById('it-search-input').value.trim();
     if (val) lookupAsset(val);
+  });
+
+  // Hardware Scanner Support (Listens for "Enter" key after scan)
+  document.getElementById('ward-search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      hideFuzzySuggestion();
+      const val = document.getElementById('ward-search-input').value.trim();
+      if (val) lookupAsset(val);
+    }
+  });
+
+  document.getElementById('it-search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      hideFuzzySuggestion();
+      const val = document.getElementById('it-search-input').value.trim();
+      if (val) lookupAsset(val);
+    }
+  });
+
+  // Fuzzy suggestion confirm / dismiss buttons
+  document.getElementById('fuzzy-confirm-ward').addEventListener('click', () => {
+    if (state.pendingFuzzyAsset) {
+      const asset = state.pendingFuzzyAsset;
+      state.pendingFuzzyAsset = null;
+      hideFuzzySuggestion();
+      document.getElementById('ward-search-input').value = asset.asset_tag;
+      state.selectedAsset = asset;
+      displayAssetDetails(asset);
+    }
+  });
+  document.getElementById('fuzzy-dismiss-ward').addEventListener('click', () => {
+    state.pendingFuzzyAsset = null;
+    hideFuzzySuggestion();
+  });
+
+  document.getElementById('fuzzy-confirm-it').addEventListener('click', () => {
+    if (state.pendingFuzzyAsset) {
+      const asset = state.pendingFuzzyAsset;
+      state.pendingFuzzyAsset = null;
+      hideFuzzySuggestion();
+      document.getElementById('it-search-input').value = asset.asset_tag;
+      state.selectedAsset = asset;
+      displayAssetDetails(asset);
+    }
+  });
+  document.getElementById('fuzzy-dismiss-it').addEventListener('click', () => {
+    state.pendingFuzzyAsset = null;
+    hideFuzzySuggestion();
   });
   
   // Action Buttons
@@ -93,25 +151,102 @@ function setupEventListeners() {
 
   document.getElementById('btn-confirm-sanitize').addEventListener('click', confirmSanitization);
   
-  // Claim Submit
+  // Claim Submit & Vendor Change
   document.getElementById('rma-form').addEventListener('submit', handleClaimInitiate);
-  
-  // Camera trigger
-  document.getElementById('btn-start-camera-ward').addEventListener('click', () => startCamera('ward-video'));
-  document.getElementById('btn-start-camera-it').addEventListener('click', () => startCamera('it-video'));
+  const vendorSelect = document.getElementById('claim-vendor');
+  if (vendorSelect) {
+    vendorSelect.addEventListener('change', handleVendorChange);
+  }
+
+  // Modals (Add Asset & Add User)
+  const addAssetModal = document.getElementById('add-asset-modal');
+  document.getElementById('btn-open-add-asset-modal').addEventListener('click', () => {
+    addAssetModal.style.display = 'flex';
+  });
+  document.getElementById('close-asset-modal-btn').addEventListener('click', () => {
+    addAssetModal.style.display = 'none';
+  });
+  document.getElementById('add-asset-form').addEventListener('submit', handleAddAsset);
+
+  const addUserModal = document.getElementById('add-user-modal');
+  document.getElementById('btn-open-add-user-modal').addEventListener('click', () => {
+    addUserModal.style.display = 'flex';
+  });
+  document.getElementById('close-user-modal-btn').addEventListener('click', () => {
+    addUserModal.style.display = 'none';
+  });
+  document.getElementById('add-user-form').addEventListener('submit', handleAddUser);
+
+  // Modal (Add Config)
+  const addConfigModal = document.getElementById('add-config-modal');
+  if (addConfigModal) {
+      document.getElementById('btn-open-add-config-modal').addEventListener('click', () => {
+        document.getElementById('add-config-form').reset();
+        document.getElementById('config-id').value = '';
+        addConfigModal.style.display = 'flex';
+      });
+      document.getElementById('close-config-modal-btn').addEventListener('click', () => {
+        addConfigModal.style.display = 'none';
+      });
+      document.getElementById('add-config-form').addEventListener('submit', handleAddConfig);
+  }
+
+  // Email Modal Events
+  document.getElementById('close-email-modal-btn').addEventListener('click', closeEmailModal);
+  document.getElementById('cancel-email-btn').addEventListener('click', closeEmailModal);
+  document.getElementById('confirm-send-email-btn').addEventListener('click', confirmAndSendEmail);
+
+  // Copy Data Event
+  const copyBtn = document.getElementById('btn-copy-data');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copyAssetDataToClipboard);
+  }
 }
 
+// Copy Data Logic
+async function copyAssetDataToClipboard() {
+  try {
+    const res = await fetch('/api/assets?limit=500');
+    if (!res.ok) throw new Error('Failed to fetch data');
+    const data = await res.json();
+    const assets = Array.isArray(data) ? data : (data.assets || []);
+    
+    // Create TSV (Tab-Separated Values) format
+    let tsvData = 'Asset Tag\tDevice Name\tLocation\tWarranty End\tStatus\n';
+    assets.forEach(a => {
+      tsvData += `${a.asset_tag}\t${a.device_name}\t${a.location}\t${a.warranty_end}\t${a.status}\n`;
+    });
+    
+    await navigator.clipboard.writeText(tsvData);
+    alert('คัดลอกข้อมูลสำเร็จ (Data copied to clipboard)!');
+  } catch (error) {
+    console.error('Copy data error:', error);
+    alert('ไม่สามารถคัดลอกข้อมูลได้ (Failed to copy data)');
+  }
+}
+
+function closeEmailModal() {
+  document.getElementById('email-preview-modal').style.display = 'none';
+}
+
+let pendingClaimData = null;
+
 // Routing & View Switcher
+const PAGE_TITLES = {
+  auth: 'ClaimIT — เข้าสู่ระบบ',
+  ward: 'ClaimIT — Staff Portal (แจ้งซ่อมครุภัณฑ์)',
+  it:   'ClaimIT — IT Dashboard (จัดการระบบ)'
+};
+
 function switchView(viewName) {
   state.activeView = viewName;
   
-  // Hide all sections
+  // Update browser tab title to reflect current page
+  document.title = PAGE_TITLES[viewName] || 'ClaimIT';
+
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
-  
-  // Stop camera stream when leaving view
-  stopCamera();
   
   if (viewName === 'auth') {
     authSection.classList.add('active');
@@ -124,6 +259,7 @@ function switchView(viewName) {
     document.getElementById('btn-to-ward').classList.add('active');
     document.getElementById('btn-to-it').classList.remove('active');
     refreshData();
+    setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
     itSection.classList.add('active');
     navTabs.style.display = 'flex';
@@ -131,6 +267,7 @@ function switchView(viewName) {
     document.getElementById('btn-to-it').classList.add('active');
     document.getElementById('btn-to-ward').classList.remove('active');
     refreshData();
+    setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
   }
 }
 
@@ -170,8 +307,6 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = state.user.role === 'admin' ? 'IT Support' : 'Ward Staff';
-  
   const itBtn = document.getElementById('btn-to-it');
   if (state.user.role === 'admin') {
     itBtn.style.display = 'flex';
@@ -189,13 +324,24 @@ function logout() {
 // Fetch Lists & Update Statistics
 async function refreshData() {
   try {
-    // 1. Fetch Assets
-    const assetsRes = await fetch('/api/assets');
-    const assets = await assetsRes.json();
+    const assetsRes = await fetch('/api/assets?limit=500');
+    const assetsData = await assetsRes.json();
+    // Handle both old array format and new paginated { assets: [...] } format
+    const assets = Array.isArray(assetsData) ? assetsData : (assetsData.assets || []);
     
-    // 2. Fetch Logs
     const logsRes = await fetch('/api/audit-logs');
     const logs = await logsRes.json();
+
+    if (state.user && state.user.role === 'admin') {
+      const usersRes = await fetch('/api/users');
+      const users = await usersRes.json();
+      populateUserTable(users);
+      
+      const configRes = await fetch('/api/configurations');
+      const configs = await configRes.json();
+      populateConfigTable(configs);
+      updateDynamicDropdowns(configs);
+    }
     
     updateStatistics(assets);
     populateAssetTable(assets);
@@ -209,7 +355,7 @@ function updateStatistics(assets) {
   const total = assets.length;
   const working = assets.filter(a => a.status === 'Working').length;
   const broken = assets.filter(a => a.status === 'Broken').length;
-  const atVendor = assets.filter(a => a.status === 'At Vendor').length;
+  const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
   
   document.getElementById('stat-total-assets').textContent = total;
   document.getElementById('stat-working-assets').textContent = working;
@@ -226,7 +372,6 @@ function populateAssetTable(assets) {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.addEventListener('click', () => {
-      // populate scanner form
       document.getElementById('it-search-input').value = asset.asset_tag;
       lookupAsset(asset.asset_tag);
     });
@@ -236,9 +381,9 @@ function populateAssetTable(assets) {
     if (asset.status === 'Broken') {
       statusClass = 'badge-broken';
       statusText = 'ชำรุด (Broken)';
-    } else if (asset.status === 'At Vendor') {
+    } else if (asset.status === 'Pending Pickup') {
       statusClass = 'badge-vendor';
-      statusText = 'เคลมศูนย์ (At Vendor)';
+      statusText = 'รอศูนย์เข้ามารับ (Pending Pickup)';
     }
     
     tr.innerHTML = `
@@ -251,6 +396,42 @@ function populateAssetTable(assets) {
     tbody.appendChild(tr);
   });
 }
+
+function populateUserTable(users) {
+  const tbody = document.getElementById('user-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.id}</td>
+      <td><strong>${u.username}</strong></td>
+      <td>${u.name}</td>
+      <td>${u.department}</td>
+      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role.toUpperCase()}</span></td>
+      <td>
+        ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ลบผู้ใช้</button>` : `<span style="font-size: 11px; color: var(--text-muted);">ระบบหลัก</span>`}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+window.deleteUser = async function(id) {
+  if (!confirm('คุณต้องการลบผู้ใช้นี้ออกจากระบบใช่หรือไม่?')) return;
+  try {
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('ลบผู้ใช้สำเร็จแล้ว');
+      refreshData();
+    } else {
+      alert('ไม่สามารถลบผู้ใช้ได้');
+    }
+  } catch (error) {
+    console.error('Delete user error:', error);
+  }
+};
 
 function populateAuditTable(logs) {
   const tbody = document.getElementById('audit-table-body');
@@ -278,17 +459,12 @@ function populateAuditTable(logs) {
 
 // Local Tag Parser Heuristic (ISO / Off-grid Offline Parser)
 function parseAssetTagLocal(rawText) {
-  console.log('Running Local Heuristic Regex Parser on:', rawText);
-  
-  // Matches 4-digit years like 2021, 2022, etc.
   const yearMatch = rawText.match(/\b(20\d{2})\b/);
   const year = yearMatch ? yearMatch[1] : 'Unknown';
   
-  // Matches Version numbers e.g. V1, V2, Version 3
   const versionMatch = rawText.match(/[vV](ersion)?\s*([0-9])/);
   const version = versionMatch ? versionMatch[2] : '1';
   
-  // Determine if Tag syntax holds indications of status
   let parsedStatus = 'Unknown';
   if (rawText.includes('-W') || rawText.toLowerCase().includes('work')) {
     parsedStatus = 'Warranty Active';
@@ -305,7 +481,6 @@ function parseAssetTagLocal(rawText) {
   };
 }
 
-// Display Parser results visually to WOW the user
 function displayLocalParserResults(parsed) {
   const elements = [
     document.getElementById('parser-analytics-ward'),
@@ -330,29 +505,77 @@ function displayLocalParserResults(parsed) {
 
 // Lookup Asset Details
 async function lookupAsset(tag) {
-  // First run local parser heuristic
   const parsed = parseAssetTagLocal(tag);
   displayLocalParserResults(parsed);
+  hideFuzzySuggestion();
   
   try {
-    const res = await fetch(`/api/assets/${tag}`);
+    const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`);
     if (res.ok) {
       const asset = await res.json();
-      state.selectedAsset = asset;
-      displayAssetDetails(asset);
+
+      if (asset.is_fuzzy_match) {
+        state.pendingFuzzyAsset = asset;
+        const prefix = state.activeView === 'ward' ? 'ward' : 'it';
+        const textEl = document.getElementById(`fuzzy-suggestion-${prefix}-text`);
+        if (textEl) {
+          textEl.innerHTML = `คุณหมายถึง <strong style="color:var(--warning);">${asset.asset_tag}</strong> — ${asset.device_name} (${asset.location}) ใช่หรือไม่?`;
+        }
+        const banner = document.getElementById(`fuzzy-suggestion-${prefix}`);
+        if (banner) banner.style.display = 'flex';
+      } else {
+        state.selectedAsset = asset;
+        displayAssetDetails(asset);
+      }
     } else {
-      alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
+      if (confirm(`ไม่พบรหัสครุภัณฑ์ "${tag}" คุณต้องการเพิ่มข้อมูลครุภัณฑ์ใหม่หรือไม่?`)) {
+        document.getElementById('add-asset-modal').style.display = 'flex';
+        document.getElementById('new-asset-tag').value = tag;
+      } else {
+        alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
+      }
     }
   } catch (error) {
     console.error('Lookup failed:', error);
   }
 }
 
+async function fetchAndDisplayEvaluation(assetTag, prefix) {
+  const container = document.getElementById(`${prefix}-detail-evaluate`);
+  if (!container) return;
+
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/evaluate`);
+    if (res.ok) {
+      const evalData = await res.json();
+      container.style.display = 'block';
+      
+      if (evalData.isWorthClaiming) {
+        container.style.background = 'rgba(16, 185, 129, 0.1)';
+        container.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        container.style.color = '#10b981';
+        container.innerHTML = `
+          <strong>💡 ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
+          <span style="color:#fff;">${evalData.reason}</span>
+        `;
+      } else {
+        container.style.background = 'rgba(239, 68, 68, 0.1)';
+        container.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        container.style.color = '#ef4444';
+        container.innerHTML = `
+          <strong>⚠️ ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
+          <span style="color:#fff;">${evalData.reason}</span>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('Evaluation fetch error:', err);
+  }
+}
+
 function displayAssetDetails(asset) {
-  // Update details panel in active view
   const prefix = state.activeView === 'ward' ? 'ward' : 'it';
   
-  // Calculate remaining warranty days
   const warrantyEnd = new Date(asset.warranty_end);
   const today = new Date();
   const diffTime = warrantyEnd - today;
@@ -371,60 +594,216 @@ function displayAssetDetails(asset) {
   document.getElementById(`${prefix}-detail-loc`).textContent = asset.location;
   document.getElementById(`${prefix}-detail-warranty`).innerHTML = `${asset.warranty_end} (${warrantyHTML})`;
   
-  // Status Class Badge
+  // --- WARRANTY QUICK-ACCESS PANEL ---
+  const WARRANTY_LINKS = {
+    'dell':     'https://www.dell.com/support/home/en-us',
+    'lenovo':   'https://support.lenovo.com/warrantylookup',
+    'acer':     'https://register.acer.co.th/WarrantyCheck/warr_chk.aspx',
+    'hp':       'https://support.hp.com/us-en/check-warranty',
+    'tsc':      'https://support.tscprinters.com/',
+    'logitech': 'https://support.logi.com',
+    'apple':    'https://checkcoverage.apple.com/',
+    'zebra':    'https://www.zebra.com/us/en/support-downloads/warranty.html',
+    'ida':      `https://www.google.com/search?q=${encodeURIComponent('IDA warranty check serial number Thailand')}`,
+  };
+  const brandKey = (asset.brand || '').toLowerCase().trim();
+  let warrantyUrl = WARRANTY_LINKS[brandKey];
+  if (warrantyUrl === undefined) {
+    // Unknown brand — fallback to Google search
+    warrantyUrl = `https://www.google.com/search?q=${encodeURIComponent(asset.brand + ' warranty check serial number')}`;
+  }
+
+  // Remove old panel if exists
+  const oldPanel = document.getElementById(`${prefix}-warranty-quick`);
+  if (oldPanel) oldPanel.remove();
+
+  const quickPanel = document.createElement('div');
+  quickPanel.id = `${prefix}-warranty-quick`;
+  quickPanel.style.cssText = 'display:flex; gap:8px; margin-top:10px; margin-bottom:4px; flex-wrap:wrap;';
+
+  // Copy S/N Button
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn btn-secondary';
+  copyBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px;';
+  copyBtn.innerHTML = '📋 คัดลอก Serial Number';
+  copyBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(asset.serial_no);
+      copyBtn.innerHTML = '✅ คัดลอกแล้ว!';
+      copyBtn.style.background = 'var(--success)';
+      setTimeout(() => {
+        copyBtn.innerHTML = '📋 คัดลอก Serial Number';
+        copyBtn.style.background = '';
+      }, 2000);
+    } catch {
+      prompt('คัดลอก S/N นี้:', asset.serial_no);
+    }
+  };
+  quickPanel.appendChild(copyBtn);
+
+  // Warranty Link Button — always present now (direct site or Google search fallback)
+  const linkBtn = document.createElement('a');
+  linkBtn.href = warrantyUrl;
+  linkBtn.target = '_blank';
+  linkBtn.rel = 'noopener noreferrer';
+  linkBtn.className = 'btn btn-secondary';
+  linkBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;';
+  const brandLabel = asset.brand ? asset.brand.charAt(0).toUpperCase() + asset.brand.slice(1) : 'Brand';
+  linkBtn.innerHTML = `🌐 ตรวจสอบรับประกัน ${brandLabel}`;
+  quickPanel.appendChild(linkBtn);
+
+  // Insert panel after the serial number detail-item
+  const serialEl = document.getElementById(`${prefix}-detail-serial`);
+  serialEl.closest('.detail-item').after(quickPanel);
+  // --- END WARRANTY QUICK-ACCESS PANEL ---
+
   let statusClass = 'badge-working';
   let statusText = 'ปกติ (Working)';
   if (asset.status === 'Broken') {
     statusClass = 'badge-broken';
     statusText = 'ชำรุด (Broken)';
-  } else if (asset.status === 'At Vendor') {
+  } else if (asset.status === 'Pending Pickup') {
     statusClass = 'badge-vendor';
-    statusText = `เคลมศูนย์ (${asset.vendor_name || 'Vendor'})`;
+    statusText = `รอศูนย์เข้ามารับ (${asset.vendor_name || 'Vendor'})`;
   }
   document.getElementById(`${prefix}-detail-status`).innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
   
-  // Show/Hide forms based on status
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   
+  // Fetch and display claim worthiness calculator evaluation
+  fetchAndDisplayEvaluation(asset.asset_tag, prefix);
+
   if (prefix === 'it') {
     const claimForm = document.getElementById('rma-form-container');
     const sanitizePanel = document.getElementById('sanitize-panel');
     const btnResolve = document.getElementById('btn-resolve');
     const btnReportBroken = document.getElementById('btn-report-broken');
     
-    // Reset buttons
     btnResolve.style.display = 'none';
-    btnReportBroken.style.display = 'none';
+    if (btnReportBroken) btnReportBroken.style.display = 'none';
     sanitizePanel.style.display = 'none';
     claimForm.style.display = 'none';
     
-    // Status Logic
     if (asset.status === 'Working') {
-      btnReportBroken.style.display = 'block';
+      if (btnReportBroken) btnReportBroken.style.display = 'block';
     } else if (asset.status === 'Broken') {
       btnResolve.style.display = 'block';
       
-      // If data wipe required, show Sanitization panel
       if (asset.sanitization_required) {
         if (!asset.rma_data_wiped_confirmed && asset.rma_status !== 'Sanitized') {
           sanitizePanel.style.display = 'block';
-          // Ensure checkbox reset
           state.sanitizationChecked = false;
           document.getElementById('sanitize-chk').classList.remove('checked');
         } else {
-          // Already sanitized, show claim form
           claimForm.style.display = 'block';
           document.getElementById('claim-tag-input').value = asset.asset_tag;
         }
       } else {
-        // Sanitization not required (e.g. barcode scanner), show claim form immediately
         claimForm.style.display = 'block';
         document.getElementById('claim-tag-input').value = asset.asset_tag;
       }
-    } else if (asset.status === 'At Vendor') {
+    } else if (asset.status === 'Pending Pickup') {
       btnResolve.style.display = 'block';
       btnResolve.textContent = 'รับเครื่องกลับเข้าคลัง (Return to Stock)';
     }
+  }
+}
+
+// Form Handlers: Add Asset & Add User
+async function handleAddAsset(e) {
+  e.preventDefault();
+  const payload = {
+    asset_tag: document.getElementById('new-asset-tag').value.trim(),
+    device_name: document.getElementById('new-device-name').value.trim(),
+    category: document.getElementById('new-category').value,
+    brand: document.getElementById('new-brand').value.trim(),
+    model: document.getElementById('new-model').value.trim(),
+    serial_no: document.getElementById('new-serial').value.trim(),
+    location: document.getElementById('new-location').value.trim(),
+    warranty_start: document.getElementById('new-warranty-start').value,
+    warranty_end: document.getElementById('new-warranty-end').value,
+    sanitization_required: document.getElementById('new-sanitization-req').checked ? 1 : 0,
+    action_by_username: state.user ? state.user.username : 'admin'
+  };
+
+  try {
+    const res = await fetch('/api/assets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      alert('ลงทะเบียนครุภัณฑ์ใหม่เรียบร้อยแล้ว');
+      document.getElementById('add-asset-modal').style.display = 'none';
+      document.getElementById('add-asset-form').reset();
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถลงทะเบียนครุภัณฑ์ได้');
+    }
+  } catch (error) {
+    console.error('Add asset error:', error);
+  }
+}
+
+async function handleAddUser(e) {
+  e.preventDefault();
+  const payload = {
+    username: document.getElementById('new-username').value.trim(),
+    password: document.getElementById('new-password').value,
+    name: document.getElementById('new-fullname').value.trim(),
+    department: document.getElementById('new-user-dept').value.trim(),
+    role: document.getElementById('new-user-role').value
+  };
+
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      alert('เพิ่มผู้ใช้งานใหม่เรียบร้อยแล้ว');
+      document.getElementById('add-user-modal').style.display = 'none';
+      document.getElementById('add-user-form').reset();
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถเพิ่มผู้ใช้งานได้');
+    }
+  } catch (error) {
+    console.error('Add user error:', error);
+  }
+}
+
+async function handleAddConfig(e) {
+  e.preventDefault();
+  const id = document.getElementById('config-id').value;
+  const payload = {
+    type: document.getElementById('config-type').value,
+    value: document.getElementById('config-value').value.trim(),
+    details: document.getElementById('config-details').value.trim()
+  };
+  
+  try {
+    const url = id ? `/api/configurations/${id}` : '/api/configurations';
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      alert('บันทึกการตั้งค่าสำเร็จ');
+      document.getElementById('add-config-modal').style.display = 'none';
+      refreshData();
+    } else {
+      alert('บันทึกข้อมูลล้มเหลว');
+    }
+  } catch (error) {
+    console.error('Add config error:', error);
   }
 }
 
@@ -482,7 +861,6 @@ async function confirmSanitization() {
     if (res.ok) {
       const data = await res.json();
       alert(data.message);
-      // Reload details to show RMA form
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
@@ -490,6 +868,100 @@ async function confirmSanitization() {
     }
   } catch (error) {
     console.error('Sanitization update error:', error);
+  }
+}
+
+let vendorProcedures = {}; // Dynamically populated from configurations
+
+function populateConfigTable(configs) {
+  const tbody = document.getElementById('config-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  configs.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.id}</td>
+      <td><strong>${c.type}</strong></td>
+      <td>${c.value}</td>
+      <td><div style="max-height: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${c.details || '-'}</div></td>
+      <td>
+        <button class="btn btn-secondary" onclick="editConfig(${c.id}, '${c.type}', '${c.value}', \`${(c.details||'').replace(/`/g, '\\`')}\`)" style="padding: 4px 8px; font-size: 11px;">แก้ไข</button>
+        <button class="btn btn-danger" onclick="deleteConfig(${c.id})" style="padding: 4px 8px; font-size: 11px;">ลบ</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateDynamicDropdowns(configs) {
+  // Update Brand/Vendor Dropdown
+  const vendorSelect = document.getElementById('claim-vendor');
+  if (vendorSelect) {
+    vendorSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกศูนย์บริการ --</option>';
+    const brands = configs.filter(c => c.type === 'brand');
+    vendorProcedures = {};
+    brands.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.value;
+      opt.textContent = b.value;
+      vendorSelect.appendChild(opt);
+      if (b.details) {
+        vendorProcedures[b.value] = b.details;
+      }
+    });
+    const otherOpt = document.createElement('option');
+    otherOpt.value = 'Other';
+    otherOpt.textContent = 'อื่นๆ (Other)';
+    vendorSelect.appendChild(otherOpt);
+  }
+
+  // Update Category Dropdown in Add Asset Form
+  const catSelect = document.getElementById('new-category');
+  if (catSelect) {
+    catSelect.innerHTML = '';
+    const categories = configs.filter(c => c.type === 'category');
+    if (categories.length === 0) {
+        catSelect.innerHTML = '<option value="Computer">Computer</option>';
+    } else {
+        categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.value;
+        opt.textContent = c.value;
+        catSelect.appendChild(opt);
+        });
+    }
+  }
+}
+
+window.editConfig = function(id, type, value, details) {
+  document.getElementById('config-id').value = id;
+  document.getElementById('config-type').value = type;
+  document.getElementById('config-value').value = value;
+  document.getElementById('config-details').value = details;
+  document.getElementById('add-config-modal').style.display = 'flex';
+};
+
+window.deleteConfig = async function(id) {
+  if (!confirm('ยืนยันการลบการตั้งค่านี้?')) return;
+  try {
+    const res = await fetch(`/api/configurations/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      alert('ลบสำเร็จ');
+      refreshData();
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+function handleVendorChange(e) {
+  const panel = document.getElementById('brand-procedure-panel');
+  const vendor = e.target.value;
+  if (vendorProcedures[vendor]) {
+    panel.innerHTML = vendorProcedures[vendor];
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
   }
 }
 
@@ -506,7 +978,8 @@ async function handleClaimInitiate(e) {
     return;
   }
   
-  const payload = {
+  // Prepare claim data
+  pendingClaimData = {
     asset_tag: state.selectedAsset.asset_tag,
     vendor_name: vendorName,
     vendor_rma_number: rmaNumber,
@@ -514,16 +987,83 @@ async function handleClaimInitiate(e) {
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
     action_by_username: state.user.username
   };
-  
+
+  // Prepare Email Preview
+  const to = `support@${vendorName.toLowerCase().replace(' ', '')}.com`;
+  const subject = `[ClaimIT] แจ้งส่งซ่อมอุปกรณ์เคลมประกัน - ${vendorName} (RMA: ${rmaNumber})`;
+  const body = `เรียน ทีมงานศูนย์บริการ ${vendorName},\n\n` +
+               `ทางโรงพยาบาลขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
+               `รหัสครุภัณฑ์ (Asset Tag): ${state.selectedAsset.asset_tag}\n` +
+               `ชื่ออุปกรณ์: ${state.selectedAsset.device_name}\n` +
+               `ยี่ห้อ/รุ่น: ${state.selectedAsset.brand} ${state.selectedAsset.model}\n` +
+               `Serial Number: ${state.selectedAsset.serial_no}\n` +
+               `RMA / Case ID: ${rmaNumber}\n\n` +
+               `ทางเราคาดหวังว่าจะได้รับอุปกรณ์คืนภายในวันที่: ${expectedDate}\n\n` +
+               `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
+
+  // Update Modal Content
+  document.getElementById('email-preview-to').textContent = to;
+  document.getElementById('email-preview-subject').textContent = subject;
+  document.getElementById('email-preview-body').textContent = body;
+
+  // Store email data for sending
+  pendingClaimData.email = { to, subject, body };
+
+  // Show Modal
+  document.getElementById('email-preview-modal').style.display = 'flex';
+}
+
+async function confirmAndSendEmail() {
+  if (!pendingClaimData) return;
+
+  const btn = document.getElementById('confirm-send-email-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง...';
+
+  const token = state.user ? state.user.token : null;
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
   try {
-    const res = await fetch('/api/assets/claim', {
+    // 1. Send Email via authenticated SendGrid endpoint
+    const emailPayload = {
+      to: pendingClaimData.email.to,
+      subject: pendingClaimData.email.subject,
+      html: `<pre style="font-family:sans-serif;white-space:pre-wrap;">${pendingClaimData.email.body}</pre>`
+    };
+    const emailRes = await fetch('/api/email/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers: authHeaders,
+      body: JSON.stringify(emailPayload)
     });
     
-    if (res.ok) {
-      alert(`ดำเนินการเปิดใบเคลมศูนย์บริการ ${vendorName} เรียบร้อยแล้ว`);
+    if (!emailRes.ok) {
+      const errData = await emailRes.json().catch(() => ({}));
+      // If email fails due to unconfigured SendGrid, warn but continue with claim
+      console.warn('Email send warning:', errData.error || 'Email service not configured');
+      if (emailRes.status === 500) {
+        const proceed = confirm('ไม่สามารถส่งอีเมลได้ (SendGrid ยังไม่ได้ตั้งค่า) ต้องการดำเนินการบันทึกเคลมต่อไปโดยไม่ส่งอีเมลหรือไม่?');
+        if (!proceed) {
+          btn.disabled = false;
+          btn.textContent = '🚀 ยืนยันส่งอีเมลและบันทึกเคลม';
+          return;
+        }
+      }
+    }
+
+    // 2. Process Claim
+    const claimRes = await fetch('/api/assets/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pendingClaimData)
+    });
+    
+    if (claimRes.ok) {
+      alert(`ดำเนินการบันทึกใบเคลมศูนย์บริการ ${pendingClaimData.vendor_name} เรียบร้อยแล้ว`);
+      closeEmailModal();
+      document.getElementById('rma-form').reset();
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
@@ -531,54 +1071,12 @@ async function handleClaimInitiate(e) {
     }
   } catch (error) {
     console.error('Claim initiation error:', error);
+    alert('เกิดข้อผิดพลาดในการส่งเคลม');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 ยืนยันส่งอีเมลและบันทึกเคลม';
+    pendingClaimData = null;
   }
-}
-
-// Camera WebRTC Implementation & Preset Fallback Simulation
-function startCamera(videoId) {
-  const video = document.getElementById(videoId);
-  if (!video) return;
-  
-  stopCamera();
-  
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(stream => {
-      state.webcamStream = stream;
-      video.srcObject = stream;
-      video.style.display = 'block';
-      
-      // Simulate scanning barcode after 3 seconds
-      setTimeout(() => {
-        if (state.webcamStream) {
-          // Select a random asset to parse automatically
-          const demoTags = ['CIT-2024-AIO-02', 'CIT-2023-SCN-01', 'CIT-2022-TAB-03'];
-          const randomTag = demoTags[Math.floor(Math.random() * demoTags.length)];
-          
-          const inputId = videoId.startsWith('ward') ? 'ward-search-input' : 'it-search-input';
-          document.getElementById(inputId).value = randomTag;
-          
-          alert(`[CAMERA DETECTED BARCODE] สแกนพบรหัส: ${randomTag}`);
-          lookupAsset(randomTag);
-          stopCamera();
-        }
-      }, 3000);
-    })
-    .catch(err => {
-      console.warn('Camera access denied or unavailable:', err);
-      alert('ไม่พบกล้องเชื่อมต่ออยู่ หรือคุณไม่อนุญาตให้เข้าถึงกล้อง (Camera not found or access denied). ระบบจำลองเปิดกล้องเพื่อเลือก Tag ด้านล่างแทน');
-    });
-}
-
-function stopCamera() {
-  if (state.webcamStream) {
-    state.webcamStream.getTracks().forEach(track => track.stop());
-    state.webcamStream = null;
-  }
-  
-  const v1 = document.getElementById('ward-video');
-  const v2 = document.getElementById('it-video');
-  if (v1) { v1.srcObject = null; v1.style.display = 'none'; }
-  if (v2) { v2.srcObject = null; v2.style.display = 'none'; }
 }
 
 // Global functions for presets
@@ -586,4 +1084,30 @@ window.selectPreset = function(tag) {
   const prefix = state.activeView === 'ward' ? 'ward' : 'it';
   document.getElementById(`${prefix}-search-input`).value = tag;
   lookupAsset(tag);
+};
+
+// PDF Download – opens authenticated PDF report for an asset
+window.downloadPDF = async function(assetTag) {
+  if (!state.user || !state.user.token) {
+    alert('กรุณาเข้าสู่ระบบก่อนดาวน์โหลด PDF');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/pdf`, {
+      headers: { 'Authorization': `Bearer ${state.user.token}` }
+    });
+    if (!res.ok) throw new Error('PDF generation failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claim_${assetTag}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('PDF download error:', err);
+    alert('ไม่สามารถดาวน์โหลด PDF ได้');
+  }
 };
