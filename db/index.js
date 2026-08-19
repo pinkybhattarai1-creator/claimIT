@@ -1,21 +1,67 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 const dbPath = path.join(__dirname, '..', 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Database connection error:', err.message);
   } else {
-    console.log('Connected to the SQLite database.');
+    // Enable SQLite optimizations & foreign keys
+    db.run("PRAGMA foreign_keys = ON;");
+    db.run("PRAGMA journal_mode = WAL;");
     initializeDatabase();
   }
 });
 
-// Built-in Secure Password Hashing (Local & Offline Capable)
+// Built-in Secure Password Hashing via bcryptjs
 function hashPassword(password) {
+  return bcrypt.hashSync(String(password), 10);
+}
+
+function verifyPassword(inputPassword, storedHash) {
+  if (!storedHash || !inputPassword) return false;
+  // Standard bcrypt hash
+  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$')) {
+    return bcrypt.compareSync(String(inputPassword), storedHash);
+  }
+  // Legacy pbkdf2 migration support
+  const crypto = require('crypto');
   const salt = 'claimit_local_salt_2026';
-  return crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+  const legacyHash = crypto.pbkdf2Sync(String(inputPassword), salt, 1000, 32, 'sha256').toString('hex');
+  return storedHash === legacyHash;
+}
+
+// Safely add missing columns to existing SQLite tables
+function migrateColumns() {
+  const migrations = [
+    { table: 'users', col: 'is_active', def: 'INTEGER DEFAULT 1' },
+    { table: 'users', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+    { table: 'departments', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+    { table: 'mains', col: 'purchase_price', def: 'REAL DEFAULT 0' },
+    { table: 'mains', col: 'warranty_months', def: 'INTEGER DEFAULT 36' },
+    { table: 'mains', col: 'expected_lifespan_months', def: 'INTEGER DEFAULT 60' },
+    { table: 'mains', col: 'po_number', def: 'TEXT' },
+    { table: 'mains', col: 'invoice_no', def: 'TEXT' },
+    { table: 'mains', col: 'salvage_status', def: "TEXT DEFAULT 'None'" },
+    { table: 'mains', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+    { table: 'mains', col: 'updated_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
+    { table: 'rma_claims', col: 'data_wiped_by', def: 'TEXT' },
+    { table: 'rma_claims', col: 'data_wiped_at', def: 'DATETIME' },
+    { table: 'rma_claims', col: 'sanitization_note', def: 'TEXT' },
+    { table: 'rma_claims', col: 'resolved_date', def: 'TEXT' },
+    { table: 'rma_claims', col: 'resolution_type', def: 'TEXT' },
+    { table: 'rma_claims', col: 'replacement_serial_no', def: 'TEXT' },
+    { table: 'rma_claims', col: 'repair_cost', def: 'REAL DEFAULT 0' },
+    { table: 'move_log', col: 'details', def: 'TEXT' },
+    { table: 'configurations', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' }
+  ];
+
+  migrations.forEach(m => {
+    db.run(`ALTER TABLE ${m.table} ADD COLUMN ${m.col} ${m.def}`, () => {
+      // Ignore if column already exists
+    });
+  });
 }
 
 // Initialize Database Tables and Seed Data
@@ -29,20 +75,23 @@ function initializeDatabase() {
       role TEXT NOT NULL,
       name TEXT NOT NULL,
       department TEXT NOT NULL,
-      is_deleted INTEGER DEFAULT 0
+      is_active INTEGER DEFAULT 1,
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // 2. Departments Table (CRUD & Hospital Layout)
+    // 2. Departments Table
     db.run(`CREATE TABLE IF NOT EXISTS departments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       building_name TEXT NOT NULL,
       floor TEXT NOT NULL,
       name TEXT NOT NULL,
       is_technical_area INTEGER DEFAULT 0,
-      is_deleted INTEGER DEFAULT 0
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // 3. Mains Table (Core IT Assets)
+    // 3. Mains Table (Assets)
     db.run(`CREATE TABLE IF NOT EXISTS mains (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       asset_tag TEXT UNIQUE NOT NULL,
@@ -56,22 +105,56 @@ function initializeDatabase() {
       warranty_end TEXT NOT NULL,
       sanitization_required INTEGER DEFAULT 1,
       status TEXT DEFAULT 'Working',
-      is_deleted INTEGER DEFAULT 0
+      purchase_price REAL DEFAULT 0,
+      warranty_months INTEGER DEFAULT 36,
+      expected_lifespan_months INTEGER DEFAULT 60,
+      po_number TEXT,
+      invoice_no TEXT,
+      salvage_status TEXT DEFAULT 'None',
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // 4. Move Log Table (ISO 27001 Audit Trail)
-    db.run(`CREATE TABLE IF NOT EXISTS move_log (
+    // 4. Claims Table (Multi-Asset Claim)
+    db.run(`CREATE TABLE IF NOT EXISTS claims (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      asset_tag TEXT NOT NULL,
-      department_name TEXT NOT NULL,
-      floor TEXT NOT NULL,
-      status TEXT NOT NULL,
-      moved_direction TEXT NOT NULL,
-      action_by_username TEXT NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+      claim_number TEXT UNIQUE NOT NULL,
+      vendor_name TEXT NOT NULL,
+      vendor_rma_number TEXT,
+      claim_type TEXT DEFAULT 'WARRANTY',
+      viability_score REAL DEFAULT 0,
+      viability_status TEXT DEFAULT 'VIABLE',
+      status TEXT DEFAULT 'DRAFT',
+      claim_date TEXT,
+      expected_return_date TEXT,
+      resolved_date TEXT,
+      resolution_type TEXT,
+      replacement_serial_no TEXT,
+      repair_cost REAL DEFAULT 0,
+      created_by TEXT NOT NULL,
+      confirmed_by TEXT,
+      notes TEXT,
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // 5. RMA Claims Table (Warranty claims tracking)
+    // 5. Claim Assets Junction Table
+    db.run(`CREATE TABLE IF NOT EXISTS claim_assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      claim_id INTEGER NOT NULL,
+      asset_tag TEXT NOT NULL,
+      data_wiped_confirmed INTEGER DEFAULT 0,
+      data_wiped_by TEXT,
+      data_wiped_at DATETIME,
+      sanitization_note TEXT,
+      item_status TEXT DEFAULT 'Pending Pickup',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (claim_id) REFERENCES claims (id)
+    )`);
+
+    // 6. RMA Claims Table (Compatibility)
     db.run(`CREATE TABLE IF NOT EXISTS rma_claims (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       asset_tag TEXT UNIQUE NOT NULL,
@@ -80,76 +163,171 @@ function initializeDatabase() {
       claim_date TEXT NOT NULL,
       expected_return_date TEXT NOT NULL,
       data_wiped_confirmed INTEGER DEFAULT 0,
+      data_wiped_by TEXT,
+      data_wiped_at DATETIME,
+      sanitization_note TEXT,
+      resolved_date TEXT,
+      resolution_type TEXT,
+      replacement_serial_no TEXT,
+      repair_cost REAL DEFAULT 0,
       status TEXT DEFAULT 'Initiated',
       is_deleted INTEGER DEFAULT 0
     )`);
 
-    // 6. Configurations Table (Dynamic Settings)
+    // 7. Evidence Table
+    db.run(`CREATE TABLE IF NOT EXISTS evidence (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      claim_id INTEGER,
+      asset_tag TEXT,
+      uploader_username TEXT NOT NULL,
+      original_filename TEXT NOT NULL,
+      storage_key TEXT UNIQUE NOT NULL,
+      mime_type TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      checksum TEXT,
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // 8. Move Log Table (Audit trail)
+    db.run(`CREATE TABLE IF NOT EXISTS move_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_tag TEXT NOT NULL,
+      department_name TEXT NOT NULL,
+      floor TEXT NOT NULL,
+      status TEXT NOT NULL,
+      moved_direction TEXT NOT NULL,
+      action_by_username TEXT NOT NULL,
+      details TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // 9. Configurations Table
     db.run(`CREATE TABLE IF NOT EXISTS configurations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL,
       value TEXT NOT NULL,
       details TEXT,
-      is_deleted INTEGER DEFAULT 0
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Seed data if users table is empty
+    // 10. Email Logs Table
+    db.run(`CREATE TABLE IF NOT EXISTS email_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      claim_id INTEGER,
+      recipient TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      template_name TEXT NOT NULL,
+      status TEXT DEFAULT 'SENT',
+      error_message TEXT,
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Create Indexes
+    db.run(`CREATE INDEX IF NOT EXISTS idx_mains_asset_tag ON mains(asset_tag);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_mains_serial_no ON mains(serial_no);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_claims_claim_number ON claims(claim_number);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_claim_assets_claim_id ON claim_assets(claim_id);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_evidence_storage_key ON evidence(storage_key);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_move_log_asset_tag ON move_log(asset_tag);`);
+
+    // Apply migrations
+    migrateColumns();
+
+    // Seed Configurations if empty
+    db.get("SELECT COUNT(*) as count FROM configurations", (err, row) => {
+      if (row && row.count === 0) {
+        const defaultConfigs = [
+          ['brand', 'IDA', '<div class="brand-guide"><div style="font-weight:bold;color:#38bdf8;margin-bottom:6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ IDA:</div><ol style="margin:0 0 10px 18px;padding:0;line-height:1.6;font-size:13px;"><li>ส่ง Email แจ้งเคลมไปที่ <strong>support@idagroup.co.th</strong></li><li>ระบุข้อมูลจำเป็น: <strong>หมายเลขซีเรียล (S/N), อาการเสียอย่างละเอียด, จุดติดตั้ง/แผนก, ชื่อและเบอร์โทรผู้ติดต่อ</strong></li><li>รอรับการตอบกลับยืนยันและหมายเลข RMA / Case Number จากเจ้าหน้าที่</li><li>จัดเตรียมอุปกรณ์และรอรถขนส่งเข้ามารับเครื่องที่โรงพยาบาล</li></ol><div style="font-size:12px;color:#94a3b8;background:rgba(56,189,248,0.1);padding:8px;border-radius:6px;border-left:3px solid #38bdf8;">💡 <strong>ข้อแนะนำ:</strong> บันทึกหมายเลข Case No. หรือ RMA No. ที่ได้รับลงในระบบ ClaimIT ทันทีเพื่อความสะดวกในการติดตามสถานะ</div></div>'],
+          ['brand', 'Dell', '<div class="brand-guide"><div style="font-weight:bold;color:#38bdf8;margin-bottom:6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ Dell (ProSupport):</div><ol style="margin:0 0 10px 18px;padding:0;line-height:1.6;font-size:13px;"><li>ถ่ายรูปภาพตัวเครื่องให้เห็นป้าย <strong>Service Tag / Express Service Code</strong> ชัดเจน และรูปภาพแสดงอาการเสีย</li><li>โทรติดต่อ Call Center Dell Support (02-670-7250) หรือเปิดเคสออนไลน์</li><li>ส่งรูปภาพ Service Tag และข้อมูลประกอบตามที่ฝ่ายบริการส่งคำขอมาทาง Email</li><li><strong style="color:#f59e0b;">ข้อควรจำ:</strong> หากเป็นชิ้นส่วนหรือเครื่องทดแทน ให้ลอก/เก็บป้าย Tag เดิมไว้ติดกับอุปกรณ์ชิ้นใหม่</li><li>เมื่อช่าง Dell เข้าเปลี่ยนอะไหล่ ให้ทดสอบระบบ (Diagnostics) ให้เรียบร้อยก่อนเซ็นรับมอบงาน</li></ol></div>'],
+          ['brand', 'Lenovo', '<div class="brand-guide"><div style="font-weight:bold;color:#38bdf8;margin-bottom:6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ Lenovo:</div><ol style="margin:0 0 10px 18px;padding:0;line-height:1.6;font-size:13px;"><li>เข้าสู่ระบบตรวจสอบประกันที่เว็บไซต์ <a href="https://support.lenovo.com/warrantylookup" target="_blank" style="color:#38bdf8;text-decoration:underline;">Lenovo Warranty Lookup</a></li><li>กรอกหมายเลข Serial Number (S/N) ของเครื่องเพื่อตรวจสอบระดับการรับประกัน (Onsite / Premier Support)</li><li>เลือกช่องทางเปิดเคส: โทร 1800-011-936 หรือส่ง e-Ticket ผ่านระบบเว็บไซต์</li><li>นัดหมายวันเวลาให้ช่างผู้ชำนาญการ On-site เข้ามาให้บริการที่โรงพยาบาล หรือเตรียมส่งเครื่องเข้าศูนย์บริการ</li></ol></div>'],
+          ['brand', 'TSC', '<div class="brand-guide"><div style="font-weight:bold;color:#38bdf8;margin-bottom:6px;">📋 ขั้นตอนการส่งเคลมเครื่องพิมพ์บาร์โค้ด TSC:</div><ol style="margin:0 0 10px 18px;padding:0;line-height:1.6;font-size:13px;"><li>ติดต่อตัวแทนจำหน่าย/ศูนย์บริการ TSC ผ่านโทรศัพท์หรือ Line Official Service</li><li>ถ่ายรูปป้าย Serial Number และถ่ายคลิปวิดีโอสั้นแสดงอาการผิดปกติ (เช่น หัวพิมพ์ขาด, มอเตอร์ไม่หมุน, ฟีดกระดาษติด)</li><li><strong style="color:#f59e0b;">เอกสารนำออก:</strong> ทำหนังสือขออนุญาตนำทรัพย์สินออกนอกโรงพยาบาล (Gate Pass) พร้อมให้ผู้มีอำนาจลงนาม</li><li>เมื่อเจ้าหน้าที่นำเครื่องมาส่งคืน ให้ขอสำเนาบัตรประชาชนผู้ส่งและเอกสารใบส่งมอบคืนเครื่องไว้เป็นหลักฐาน</li></ol></div>'],
+          ['brand', 'Acer', '<div class="brand-guide"><div style="font-weight:bold;color:#38bdf8;margin-bottom:6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ Acer:</div><ol style="margin:0 0 10px 18px;padding:0;line-height:1.6;font-size:13px;"><li>ส่ง Email แจ้งเคลมไปที่ <strong>acerthai@acer.com</strong> หรือติดต่อ Call Center 02-153-9600</li><li><strong style="color:#ef4444;">⚠️ กฎสำคัญ:</strong> หากเป็นการเคลมอุปกรณ์ต่อพ่วง (เมาส์ / คีย์บอร์ด / Adapter) <strong>ต้องระบุหมายเลข S/N ของเครื่อง PC/AIO ตัวแม่ที่ซื้อมาคู่กันเสมอ</strong></li><li>ระบุอาการเสีย สถานที่ตั้งเครื่อง และเบอร์โทรศัพท์ผู้ประสานงาน</li><li>รอรับใบงาน RMA เพื่อส่งเครื่องหรือรอขนส่งเข้ารับอุปกรณ์</li></ol></div>'],
+          ['category', 'Computer', ''],
+          ['category', 'Scanner', ''],
+          ['category', 'Tablet', ''],
+          ['category', 'Webcam', ''],
+          ['category', 'Monitor', ''],
+          ['location', 'Ward 20', 'Floor 2'],
+          ['location', 'ICU', 'Floor 3'],
+          ['location', 'ฉุกเฉิน (ER)', 'Floor 1'],
+          ['location', 'Technical Support & Infrastructure', 'Floor 4']
+        ];
+
+        const stmt = db.prepare("INSERT INTO configurations (type, value, details) VALUES (?, ?, ?)");
+        defaultConfigs.forEach(cfg => stmt.run(cfg));
+        stmt.finalize();
+        console.log('ClaimIT configurations seeded with rich brand procedures.');
+      }
+    });
+
+    // Seed Initial Admin & Staff if empty
     db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
       if (row && row.count === 0) {
         const adminPass = hashPassword('admin123');
         const staffPass = hashPassword('staff123');
 
-        db.run(`INSERT INTO users (username, password, role, name, department) VALUES 
-          ('admin', ?, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'),
-          ('staff', ?, 'staff', 'General Staff', 'General Department')`, [adminPass, staffPass]);
+        db.run(
+          `INSERT INTO users (username, password, role, name, department, is_active) VALUES 
+          ('admin', ?, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure', 1),
+          ('staff', ?, 'staff', 'General Staff', 'General Department', 1)`,
+          [adminPass, staffPass]
+        );
 
-        db.run(`INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
+        db.run(
+          `INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
           ('Building 1', '1', 'ฉุกเฉิน (ER)', 0),
           ('Building 1', '2', 'ศูนย์ระบบทางเดินอาหาร (GI)', 0),
           ('Building 1', '4', 'Technical Support & Infrastructure', 1),
           ('Building 1', '4', 'อายุรกรรม', 0),
           ('Building 1', '5', 'สำนักงาน ผอ.รพ.', 0),
-          ('Call Center New', '2', 'Call Center Employee Workspace', 0)`);
+          ('Call Center New', '2', 'Call Center Employee Workspace', 0)`
+        );
 
-        // Seed Assets (mains) including demo preset tags
-        db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status) VALUES 
-          ('032186040006', 'Webcam', 'Logitech', 'C930E', 'SN9988', 'Logitech C930E', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working'),
-          ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J', 'Dell E2318H', 'Technical Support & Infrastructure', '2020-05-10', '2023-05-10', 0, 'Working'),
-          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working'),
-          ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working'),
-          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken'),
-          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2021-06-01', '2024-06-01', 1, 'Working')`);
+        db.run(
+          `INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status) VALUES 
+          ('032186040006', 'Webcam', 'Logitech', 'C930E', 'SN9988', 'Logitech C930E', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working', 4500, 36, 60, 'None'),
+          ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J', 'Dell E2318H', 'Technical Support & Infrastructure', '2019-05-10', '2022-05-10', 0, 'Broken', 4800, 36, 48, 'Pending Sell'),
+          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working', 6500, 36, 60, 'None'),
+          ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working', 24500, 36, 60, 'None'),
+          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken', 22000, 36, 60, 'None'),
+          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2018-06-01', '2021-06-01', 1, 'Broken', 18500, 36, 48, 'Pending Donation')`
+        );
 
-        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
+        db.run(
+          `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
           ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system'),
           ('CIT-2023-SCN-01', 'Ward 20', 'Fl 2', 'Working', 'IN', 'system'),
-          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'staff')`);
-        
-        db.run(`INSERT INTO configurations (type, value, details) VALUES 
-          ('brand', 'IDA', 'Email contact, info required, wait for pickup.'),
-          ('brand', 'Dell', 'Take photos with ServiceTag, call support, email photos, keep old tag for new device, test.'),
-          ('brand', 'Lenovo', 'Use warranty lookup website, enter S/N, select contact channel.'),
-          ('brand', 'TSC', 'Call/Line, send photos/video, document signing for equipment leaving premises, ID card copy upon return.'),
-          ('brand', 'Acer', 'Email support, specific instructions for mouse/keyboard claims requiring the PC''s S/N.'),
-          ('category', 'Computer', ''),
-          ('category', 'Scanner', ''),
-          ('category', 'Tablet', ''),
-          ('category', 'Webcam', ''),
-          ('category', 'Monitor', '')`);
+          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'staff')`
+        );
 
-        console.log('Database tables initialized and seeded with demo presets.');
-      } else {
-        // Ensure missing preset tags exist even if database already created
-        const presets = [
-          ['CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working'],
-          ['CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken'],
-          ['CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2021-06-01', '2024-06-01', 1, 'Working']
-        ];
-        presets.forEach(p => {
-          db.run(`INSERT OR IGNORE INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, p);
-        });
+        console.log('ClaimIT database initialized with core tables and demo presets [DEMO ONLY].');
       }
+    });
+  });
+}
+
+// Transaction execution helper
+function runInTransaction(callback) {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run("BEGIN TRANSACTION;", (beginErr) => {
+        if (beginErr) return reject(beginErr);
+
+        callback(db)
+          .then((result) => {
+            db.run("COMMIT;", (commitErr) => {
+              if (commitErr) return reject(commitErr);
+              resolve(result);
+            });
+          })
+          .catch((err) => {
+            db.run("ROLLBACK;", () => {
+              reject(err);
+            });
+          });
+      });
     });
   });
 }
@@ -157,5 +335,7 @@ function initializeDatabase() {
 module.exports = {
   db,
   hashPassword,
-  initializeDatabase
+  verifyPassword,
+  initializeDatabase,
+  runInTransaction
 };

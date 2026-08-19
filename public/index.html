@@ -282,6 +282,10 @@
                 <div class="custom-chk"></div>
                 <span style="font-size: 13px; font-weight: 600; color: #fff;">ฉันขอยืนยันว่าได้ถอดสื่อบันทึกข้อมูล หรือล้างข้อมูลความปลอดภัยเรียบร้อยแล้ว</span>
               </div>
+              <div style="margin-top: 10px;">
+                <label for="sanitize-code-input" style="font-size: 12px; color: #fecaca; font-weight: 700; display: block; margin-bottom: 4px;">🔐 รหัสยืนยันความปลอดภัย (พิมพ์ "WIPED" หรือรหัสครุภัณฑ์เพื่อยืนยัน):</label>
+                <input type="text" id="sanitize-code-input" class="form-control" placeholder="พิมพ์ WIPED เพื่อยืนยัน" style="background: rgba(0,0,0,0.3); border-color: rgba(239, 68, 68, 0.5); color: #fff; text-transform: uppercase;">
+              </div>
               <button class="btn btn-secondary" id="btn-confirm-sanitize" style="width: 100%; margin-top: 12px; font-size: 13px;">ยืนยันความปลอดภัยข้อมูล (Confirm Data Wiped)</button>
             </div>
           </div>
@@ -313,18 +317,52 @@
             </form>
           </div>
 
+          <!-- EOL Salvage & Disposal Action Panel -->
+          <div id="salvage-panel" style="display: none; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">🔄 การจัดการจำหน่ายครุภัณฑ์หมดสภาพ (EOL / Salvage Actions)</h4>
+            <div class="salvage-card-grid">
+              <div class="salvage-card salvage-card-sell" onclick="handleSalvageAction('Pending Sell')">
+                <div style="font-size: 20px;">💰</div>
+                <div style="font-size: 12px; font-weight: 700; color: #c084fc; margin-top: 4px;">รอขายทอดตลาด</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Pending Sell</div>
+              </div>
+              <div class="salvage-card salvage-card-donation" onclick="handleSalvageAction('Pending Donation')">
+                <div style="font-size: 20px;">🎁</div>
+                <div style="font-size: 12px; font-weight: 700; color: #f472b6; margin-top: 4px;">รอดำเนินการบริจาค</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Pending Donation</div>
+              </div>
+              <div class="salvage-card salvage-card-scrap" onclick="handleSalvageAction('Scrapped')">
+                <div style="font-size: 20px;">🗑️</div>
+                <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-top: 4px;">แทงจำหน่าย (Scrap)</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Scrapped</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Resolve and Return button -->
           <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn" id="btn-resolve" style="width: 100%; display: none;">✅ ตรวจสอบเครื่องและนำเข้าคลังปกติ (Return to Stock)</button>
+            <button class="btn" id="btn-resolve" style="width: 100%; display: none; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">✅ ตรวจสอบเครื่องและนำเข้าคลังปกติ (Return to Stock)</button>
           </div>
         </div>
       </div>
 
       <!-- Asset Inventory list & ISO 27001 logs -->
       <div class="glass-panel" style="margin-bottom: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3>📦 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
-          <div style="display: flex; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h3>📦 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบจัดการครุภัณฑ์ การจำหน่าย และสถิติสถานะ</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select id="filter-status" class="form-control" style="padding: 6px 12px; font-size: 13px; min-width: 140px;">
+              <option value="">-- ทุกสถานะ --</option>
+              <option value="Working">ปกติ (Working)</option>
+              <option value="Broken">ชำรุด (Broken)</option>
+              <option value="Pending Pickup">รอศูนย์มารับ</option>
+              <option value="Pending Sell">รอขายทอดตลาด</option>
+              <option value="Pending Donation">รอดำเนินการบริจาค</option>
+              <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
+            </select>
             <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (Copy Data)</button>
             <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่ (Add New Asset)</button>
           </div>
@@ -337,6 +375,7 @@
                 <th>ชื่ออุปกรณ์</th>
                 <th>ที่อยู่/จุดติดตั้ง</th>
                 <th>วันหมดอายุรับประกัน</th>
+                <th>มูลค่าประเมิน</th>
                 <th>สถานะ</th>
               </tr>
             </thead>
@@ -344,6 +383,16 @@
               <!-- Dynamically populated -->
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div style="font-size: 13px; color: var(--text-muted);" id="pagination-info">แสดง 0 - 0 จาก 0 รายการ</div>
+          <div class="pagination-controls">
+            <button class="pagination-btn" id="btn-prev-page" disabled>‹ ย้อนกลับ</button>
+            <span style="font-size: 13px; font-weight: 600;" id="page-num-display">หน้า 1</span>
+            <button class="pagination-btn" id="btn-next-page">ถัดไป ›</button>
+          </div>
         </div>
       </div>
 
@@ -578,6 +627,36 @@
         <button id="confirm-send-email-btn" class="btn" style="flex: 1; background: var(--success); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">🚀 ยืนยันส่งอีเมลและบันทึกเคลม</button>
         <button id="cancel-email-btn" class="btn btn-secondary" style="flex: 1;">ยกเลิก (Cancel)</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESOLVE RMA CLAIM -->
+  <div id="resolve-rma-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 500px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>✅ บันทึกรับเครื่องคืนจากศูนย์บริการ</h3>
+        <button class="btn btn-secondary" id="close-resolve-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="resolve-rma-form">
+        <input type="hidden" id="resolve-tag-input">
+        <div class="form-group">
+          <label>ผลการซ่อม/เคลม (Resolution Type)</label>
+          <select id="resolve-type" class="form-control" required>
+            <option value="Repaired">ซ่อมเรียบร้อย อะไหลเดิม/เปลี่ยนอะไหล่ (Repaired)</option>
+            <option value="Replaced">เปลี่ยนเครื่องใหม่ยกชุด (Replaced)</option>
+            <option value="Scrapped">ซ่อมไม่ได้/หมดสภาพ (Scrapped)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>หมายเลข Serial Number ใหม่ (หากเปลี่ยนเครื่องใหม่)</label>
+          <input type="text" id="resolve-new-serial" class="form-control" placeholder="ระบุ S/N ใหม่ หรือเว้นว่างหากใช้เครื่องเดิม">
+        </div>
+        <div class="form-group">
+          <label>ค่าใช้จ่ายในการซ่อมแซม (บาท - 0 หากอยู่ในประกัน)</label>
+          <input type="number" id="resolve-cost" class="form-control" value="0" min="0" step="100">
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">บันทึกรับเครื่องคืนและนำเข้าคลังปกติ</button>
+      </form>
     </div>
   </div>
 

@@ -31,11 +31,12 @@ function evaluateClaimWorthiness(asset) {
     const totalAgeDays = Math.max(1, (today - purchaseDate) / (1000 * 60 * 60 * 24));
     const totalLifespanDays = expectedLifespanMonths * 30.4375;
     const depreciationRatio = Math.max(0, 1 - (totalAgeDays / totalLifespanDays));
-    const estimatedCurrentValue = Math.round(purchasePrice * depreciationRatio);
+    const estimatedCurrentValue = Math.max(0, Math.round(purchasePrice * depreciationRatio));
 
     let isWorthClaiming = false;
     let category = 'EXPIRED';
     let reason = '';
+    let recommendedSalvage = 'None';
 
     if (isUnderWarranty) {
         isWorthClaiming = true;
@@ -49,7 +50,13 @@ function evaluateClaimWorthiness(asset) {
     } else {
         isWorthClaiming = false;
         category = 'END_OF_LIFE';
-        reason = `ไม่คุ้มค่าที่จะส่งเคลม/ซ่อม: ครุภัณฑ์พ้นอายุการใช้งาน (EOL) มูลค่าประเมินคงเหลือต่ำกว่า 25% (฿${estimatedCurrentValue.toLocaleString()}) แนะนำพิจารณาจัดซื้อทดแทน`;
+        if (estimatedCurrentValue <= 0) {
+            recommendedSalvage = 'Pending Sell';
+            reason = `ไม่คุ้มค่าที่จะซ่อม: ครุภัณฑ์หมดมูลค่าทางบัญชี (฿0 / EOL) แนะนำส่งขายทอดตลาด (Pending Sell) หรือบริจาค (Pending Donation)`;
+        } else {
+            recommendedSalvage = 'Pending Donation';
+            reason = `ไม่คุ้มค่าที่จะส่งเคลม/ซ่อม: มูลค่าคงเหลือต่ำกว่า 25% (฿${estimatedCurrentValue.toLocaleString()}) แนะนำพิจารณาขายทอดตลาดหรือส่งมอบบริจาค`;
+        }
     }
 
     return {
@@ -60,7 +67,8 @@ function evaluateClaimWorthiness(asset) {
         purchasePrice,
         isUnderWarranty,
         warrantyExpiry: warrantyExpiry.toISOString().split('T')[0],
-        reason
+        reason,
+        recommendedSalvage
     };
 }
 

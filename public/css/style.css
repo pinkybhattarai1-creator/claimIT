@@ -387,6 +387,7 @@ main {
   align-items: center;
   gap: 6px;
   border: 1px solid transparent;
+  transition: all 0.2s ease;
 }
 
 .badge-working {
@@ -415,6 +416,117 @@ main {
   color: var(--warning);
   border-color: rgba(245, 158, 11, 0.3);
   box-shadow: 0 0 10px var(--warning-glow);
+}
+
+.badge-sell {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+}
+
+.badge-donation {
+  background: rgba(244, 114, 182, 0.15);
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.4);
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.3);
+}
+
+.badge-scrapped {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.4);
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.2);
+}
+
+/* EOL Salvage Action Cards */
+.salvage-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.salvage-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.salvage-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.salvage-card-sell {
+  border-color: rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.08);
+}
+.salvage-card-sell:hover {
+  background: rgba(168, 85, 247, 0.18);
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+}
+
+.salvage-card-donation {
+  border-color: rgba(244, 114, 182, 0.4);
+  background: rgba(244, 114, 182, 0.08);
+}
+.salvage-card-donation:hover {
+  background: rgba(244, 114, 182, 0.18);
+  box-shadow: 0 4px 15px rgba(244, 114, 182, 0.3);
+}
+
+.salvage-card-scrap {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.08);
+}
+.salvage-card-scrap:hover {
+  background: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 4px 15px rgba(148, 163, 184, 0.3);
+}
+
+/* Pagination Bar */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Detail Card & List Table */
@@ -595,5 +707,8 @@ footer {
   .nav-container {
     flex-direction: column;
     gap: 16px;
+  }
+  .salvage-card-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -4,7 +4,16 @@ const state = {
   activeView: 'auth', // 'auth', 'ward', 'it'
   selectedAsset: null,
   sanitizationChecked: false,
-  pendingFuzzyAsset: null // holds a fuzzy match until the user confirms it
+  pendingFuzzyAsset: null, // holds a fuzzy match until the user confirms it
+  pagination: {
+    page: 1,
+    limit: 50,
+    total: 0
+  },
+  filters: {
+    status: '',
+    category: ''
+  }
 };
 
 // DOM Elements
@@ -22,6 +31,14 @@ const logoutBtn = document.getElementById('logout-btn');
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
 });
+
+function getAuthHeaders() {
+  const token = state.user ? state.user.token : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+}
 
 function initApp() {
   // Check local storage for user session
@@ -134,7 +151,17 @@ function setupEventListeners() {
   
   // Action Buttons
   document.getElementById('btn-report-broken').addEventListener('click', () => updateAssetStatus('Broken'));
-  document.getElementById('btn-resolve').addEventListener('click', () => updateAssetStatus('Working'));
+  
+  // Open Resolve Modal
+  document.getElementById('btn-resolve').addEventListener('click', () => {
+    if (!state.selectedAsset) return;
+    document.getElementById('resolve-tag-input').value = state.selectedAsset.asset_tag;
+    document.getElementById('resolve-rma-modal').style.display = 'flex';
+  });
+  document.getElementById('close-resolve-modal-btn').addEventListener('click', () => {
+    document.getElementById('resolve-rma-modal').style.display = 'none';
+  });
+  document.getElementById('resolve-rma-form').addEventListener('submit', handleResolveRma);
   
   // Sanitization Checkbox
   const sanitizeChk = document.getElementById('sanitize-chk');
@@ -201,20 +228,48 @@ function setupEventListeners() {
   if (copyBtn) {
     copyBtn.addEventListener('click', copyAssetDataToClipboard);
   }
+
+  // Filter & Pagination Events
+  const filterStatus = document.getElementById('filter-status');
+  if (filterStatus) {
+    filterStatus.addEventListener('change', (e) => {
+      state.filters.status = e.target.value;
+      state.pagination.page = 1;
+      refreshData();
+    });
+  }
+
+  const btnPrev = document.getElementById('btn-prev-page');
+  const btnNext = document.getElementById('btn-next-page');
+  if (btnPrev && btnNext) {
+    btnPrev.addEventListener('click', () => {
+      if (state.pagination.page > 1) {
+        state.pagination.page--;
+        refreshData();
+      }
+    });
+    btnNext.addEventListener('click', () => {
+      const maxPage = Math.ceil(state.pagination.total / state.pagination.limit);
+      if (state.pagination.page < maxPage) {
+        state.pagination.page++;
+        refreshData();
+      }
+    });
+  }
 }
 
 // Copy Data Logic
 async function copyAssetDataToClipboard() {
   try {
-    const res = await fetch('/api/assets?limit=500');
+    const res = await fetch('/api/assets?limit=500', { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch data');
     const data = await res.json();
     const assets = Array.isArray(data) ? data : (data.assets || []);
     
     // Create TSV (Tab-Separated Values) format
-    let tsvData = 'Asset Tag\tDevice Name\tLocation\tWarranty End\tStatus\n';
+    let tsvData = 'Asset Tag\tDevice Name\tLocation\tWarranty End\tStatus\tSalvage Status\n';
     assets.forEach(a => {
-      tsvData += `${a.asset_tag}\t${a.device_name}\t${a.location}\t${a.warranty_end}\t${a.status}\n`;
+      tsvData += `${a.asset_tag}\t${a.device_name}\t${a.location}\t${a.warranty_end}\t${a.status}\t${a.salvage_status || 'None'}\n`;
     });
     
     await navigator.clipboard.writeText(tsvData);
@@ -240,8 +295,6 @@ const PAGE_TITLES = {
 
 function switchView(viewName) {
   state.activeView = viewName;
-  
-  // Update browser tab title to reflect current page
   document.title = PAGE_TITLES[viewName] || 'ClaimIT';
 
   authSection.classList.remove('active');
@@ -307,6 +360,7 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
+  userRoleEl.textContent = state.user.role === 'admin' ? 'IT Admin' : 'Staff';
   const itBtn = document.getElementById('btn-to-it');
   if (state.user.role === 'admin') {
     itBtn.style.display = 'flex';
@@ -323,24 +377,42 @@ function logout() {
 
 // Fetch Lists & Update Statistics
 async function refreshData() {
+  if (!state.user) return;
   try {
-    const assetsRes = await fetch('/api/assets?limit=500');
+    const params = new URLSearchParams({
+      page: state.pagination.page,
+      limit: state.pagination.limit
+    });
+    if (state.filters.status) params.append('status', state.filters.status);
+
+    const assetsRes = await fetch(`/api/assets?${params.toString()}`, { headers: getAuthHeaders() });
+    if (assetsRes.status === 401 || assetsRes.status === 403) {
+      logout();
+      return;
+    }
+
     const assetsData = await assetsRes.json();
-    // Handle both old array format and new paginated { assets: [...] } format
     const assets = Array.isArray(assetsData) ? assetsData : (assetsData.assets || []);
+    state.pagination.total = assetsData.total || assets.length;
+
+    updatePaginationUI();
     
-    const logsRes = await fetch('/api/audit-logs');
+    const logsRes = await fetch('/api/audit-logs', { headers: getAuthHeaders() });
     const logs = await logsRes.json();
 
     if (state.user && state.user.role === 'admin') {
-      const usersRes = await fetch('/api/users');
-      const users = await usersRes.json();
-      populateUserTable(users);
+      const usersRes = await fetch('/api/users', { headers: getAuthHeaders() });
+      if (usersRes.ok) {
+        const users = await usersRes.json();
+        populateUserTable(users);
+      }
       
-      const configRes = await fetch('/api/configurations');
-      const configs = await configRes.json();
-      populateConfigTable(configs);
-      updateDynamicDropdowns(configs);
+      const configRes = await fetch('/api/configurations', { headers: getAuthHeaders() });
+      if (configRes.ok) {
+        const configs = await configRes.json();
+        populateConfigTable(configs);
+        updateDynamicDropdowns(configs);
+      }
     }
     
     updateStatistics(assets);
@@ -351,8 +423,30 @@ async function refreshData() {
   }
 }
 
+function updatePaginationUI() {
+  const start = (state.pagination.page - 1) * state.pagination.limit + 1;
+  const end = Math.min(state.pagination.total, state.pagination.page * state.pagination.limit);
+  const infoEl = document.getElementById('pagination-info');
+  if (infoEl) {
+    infoEl.textContent = `แสดง ${state.pagination.total === 0 ? 0 : start} - ${end} จาก ${state.pagination.total} รายการ`;
+  }
+
+  const pageDisplay = document.getElementById('page-num-display');
+  if (pageDisplay) {
+    pageDisplay.textContent = `หน้า ${state.pagination.page}`;
+  }
+
+  const btnPrev = document.getElementById('btn-prev-page');
+  const btnNext = document.getElementById('btn-next-page');
+  if (btnPrev && btnNext) {
+    btnPrev.disabled = state.pagination.page <= 1;
+    const maxPage = Math.ceil(state.pagination.total / state.pagination.limit);
+    btnNext.disabled = state.pagination.page >= maxPage || maxPage === 0;
+  }
+}
+
 function updateStatistics(assets) {
-  const total = assets.length;
+  const total = state.pagination.total || assets.length;
   const working = assets.filter(a => a.status === 'Working').length;
   const broken = assets.filter(a => a.status === 'Broken').length;
   const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
@@ -361,6 +455,31 @@ function updateStatistics(assets) {
   document.getElementById('stat-working-assets').textContent = working;
   document.getElementById('stat-broken-assets').textContent = broken;
   document.getElementById('stat-vendor-claims').textContent = atVendor;
+}
+
+function getStatusBadgeHTML(status, salvageStatus) {
+  if (salvageStatus === 'Pending Sell') {
+    return `<span class="badge badge-sell">💰 รอขายทอดตลาด</span>`;
+  }
+  if (salvageStatus === 'Sold') {
+    return `<span class="badge badge-sell">💰 ขายทอดตลาดแล้ว</span>`;
+  }
+  if (salvageStatus === 'Pending Donation') {
+    return `<span class="badge badge-donation">🎁 รอดำเนินการบริจาค</span>`;
+  }
+  if (salvageStatus === 'Donated') {
+    return `<span class="badge badge-donation">🎁 บริจาคเรียบร้อย</span>`;
+  }
+  if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
+    return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย (Scrapped)</span>`;
+  }
+  if (status === 'Broken') {
+    return `<span class="badge badge-broken">🔴 ชำรุด (Broken)</span>`;
+  }
+  if (status === 'Pending Pickup') {
+    return `<span class="badge badge-vendor">🟡 รอศูนย์เข้ามารับ</span>`;
+  }
+  return `<span class="badge badge-working">🟢 ปกติ (Working)</span>`;
 }
 
 function populateAssetTable(assets) {
@@ -376,22 +495,15 @@ function populateAssetTable(assets) {
       lookupAsset(asset.asset_tag);
     });
     
-    let statusClass = 'badge-working';
-    let statusText = 'ปกติ (Working)';
-    if (asset.status === 'Broken') {
-      statusClass = 'badge-broken';
-      statusText = 'ชำรุด (Broken)';
-    } else if (asset.status === 'Pending Pickup') {
-      statusClass = 'badge-vendor';
-      statusText = 'รอศูนย์เข้ามารับ (Pending Pickup)';
-    }
+    const priceText = asset.purchase_price ? `฿${asset.purchase_price.toLocaleString()}` : '-';
     
     tr.innerHTML = `
       <td><strong>${asset.asset_tag}</strong></td>
       <td>${asset.device_name}</td>
       <td>${asset.location}</td>
       <td>${asset.warranty_end}</td>
-      <td><span class="badge ${statusClass}">${statusText}</span></td>
+      <td>${priceText}</td>
+      <td>${getStatusBadgeHTML(asset.status, asset.salvage_status)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -421,12 +533,13 @@ function populateUserTable(users) {
 window.deleteUser = async function(id) {
   if (!confirm('คุณต้องการลบผู้ใช้นี้ออกจากระบบใช่หรือไม่?')) return;
   try {
-    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     if (res.ok) {
       alert('ลบผู้ใช้สำเร็จแล้ว');
       refreshData();
     } else {
-      alert('ไม่สามารถลบผู้ใช้ได้');
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถลบผู้ใช้ได้');
     }
   } catch (error) {
     console.error('Delete user error:', error);
@@ -510,7 +623,7 @@ async function lookupAsset(tag) {
   hideFuzzySuggestion();
   
   try {
-    const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`);
+    const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`, { headers: getAuthHeaders() });
     if (res.ok) {
       const asset = await res.json();
 
@@ -545,27 +658,34 @@ async function fetchAndDisplayEvaluation(assetTag, prefix) {
   if (!container) return;
 
   try {
-    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/evaluate`);
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/evaluate`, { headers: getAuthHeaders() });
     if (res.ok) {
       const evalData = await res.json();
       container.style.display = 'block';
       
+      let html = '';
       if (evalData.isWorthClaiming) {
         container.style.background = 'rgba(16, 185, 129, 0.1)';
         container.style.border = '1px solid rgba(16, 185, 129, 0.3)';
         container.style.color = '#10b981';
-        container.innerHTML = `
-          <strong>💡 ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
-          <span style="color:#fff;">${evalData.reason}</span>
-        `;
+        html = `<strong>💡 ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
       } else {
         container.style.background = 'rgba(239, 68, 68, 0.1)';
         container.style.border = '1px solid rgba(239, 68, 68, 0.3)';
         container.style.color = '#ef4444';
-        container.innerHTML = `
-          <strong>⚠️ ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br>
-          <span style="color:#fff;">${evalData.reason}</span>
-        `;
+        html = `<strong>⚠️ ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
+      }
+
+      container.innerHTML = html;
+
+      // Automatically show salvage disposal panel if equipment is EOL / non-repairable
+      const salvagePanel = document.getElementById('salvage-panel');
+      if (salvagePanel && prefix === 'it') {
+        if (!evalData.isWorthClaiming || state.selectedAsset.status === 'Broken' || state.selectedAsset.salvage_status !== 'None') {
+          salvagePanel.style.display = 'block';
+        } else {
+          salvagePanel.style.display = 'none';
+        }
       }
     }
   } catch (err) {
@@ -603,17 +723,11 @@ function displayAssetDetails(asset) {
     'tsc':      'https://support.tscprinters.com/',
     'logitech': 'https://support.logi.com',
     'apple':    'https://checkcoverage.apple.com/',
-    'zebra':    'https://www.zebra.com/us/en/support-downloads/warranty.html',
-    'ida':      `https://www.google.com/search?q=${encodeURIComponent('IDA warranty check serial number Thailand')}`,
+    'zebra':    'https://www.zebra.com/us/en/support-downloads/warranty.html'
   };
   const brandKey = (asset.brand || '').toLowerCase().trim();
-  let warrantyUrl = WARRANTY_LINKS[brandKey];
-  if (warrantyUrl === undefined) {
-    // Unknown brand — fallback to Google search
-    warrantyUrl = `https://www.google.com/search?q=${encodeURIComponent(asset.brand + ' warranty check serial number')}`;
-  }
+  let warrantyUrl = WARRANTY_LINKS[brandKey] || `https://www.google.com/search?q=${encodeURIComponent((asset.brand||'') + ' warranty check serial number')}`;
 
-  // Remove old panel if exists
   const oldPanel = document.getElementById(`${prefix}-warranty-quick`);
   if (oldPanel) oldPanel.remove();
 
@@ -621,7 +735,6 @@ function displayAssetDetails(asset) {
   quickPanel.id = `${prefix}-warranty-quick`;
   quickPanel.style.cssText = 'display:flex; gap:8px; margin-top:10px; margin-bottom:4px; flex-wrap:wrap;';
 
-  // Copy S/N Button
   const copyBtn = document.createElement('button');
   copyBtn.className = 'btn btn-secondary';
   copyBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px;';
@@ -641,7 +754,6 @@ function displayAssetDetails(asset) {
   };
   quickPanel.appendChild(copyBtn);
 
-  // Warranty Link Button — always present now (direct site or Google search fallback)
   const linkBtn = document.createElement('a');
   linkBtn.href = warrantyUrl;
   linkBtn.target = '_blank';
@@ -652,22 +764,11 @@ function displayAssetDetails(asset) {
   linkBtn.innerHTML = `🌐 ตรวจสอบรับประกัน ${brandLabel}`;
   quickPanel.appendChild(linkBtn);
 
-  // Insert panel after the serial number detail-item
   const serialEl = document.getElementById(`${prefix}-detail-serial`);
   serialEl.closest('.detail-item').after(quickPanel);
   // --- END WARRANTY QUICK-ACCESS PANEL ---
 
-  let statusClass = 'badge-working';
-  let statusText = 'ปกติ (Working)';
-  if (asset.status === 'Broken') {
-    statusClass = 'badge-broken';
-    statusText = 'ชำรุด (Broken)';
-  } else if (asset.status === 'Pending Pickup') {
-    statusClass = 'badge-vendor';
-    statusText = `รอศูนย์เข้ามารับ (${asset.vendor_name || 'Vendor'})`;
-  }
-  document.getElementById(`${prefix}-detail-status`).innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
-  
+  document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset.status, asset.salvage_status);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   
   // Fetch and display claim worthiness calculator evaluation
@@ -688,6 +789,7 @@ function displayAssetDetails(asset) {
       if (btnReportBroken) btnReportBroken.style.display = 'block';
     } else if (asset.status === 'Broken') {
       btnResolve.style.display = 'block';
+      btnResolve.textContent = '✅ รับเครื่องคืนจากซ่อม/เคลม (Return to Stock)';
       
       if (asset.sanitization_required) {
         if (!asset.rma_data_wiped_confirmed && asset.rma_status !== 'Sanitized') {
@@ -704,12 +806,42 @@ function displayAssetDetails(asset) {
       }
     } else if (asset.status === 'Pending Pickup') {
       btnResolve.style.display = 'block';
-      btnResolve.textContent = 'รับเครื่องกลับเข้าคลัง (Return to Stock)';
+      btnResolve.textContent = '✅ รับเครื่องคืนจากศูนย์บริการ (Complete RMA)';
     }
   }
 }
 
-// Form Handlers: Add Asset & Add User
+// Global EOL Salvage Action Handler
+window.handleSalvageAction = async function(salvageStatus) {
+  if (!state.selectedAsset) return;
+  const tag = state.selectedAsset.asset_tag;
+  if (!confirm(`คุณยืนยันที่จะเปลี่ยนสถานะอุปกรณ์ ${tag} เป็น [${salvageStatus}] ใช่หรือไม่?`)) return;
+
+  try {
+    const res = await fetch('/api/assets/salvage', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        asset_tag: tag,
+        salvage_status: salvageStatus,
+        action_by_username: state.user ? state.user.username : 'admin'
+      })
+    });
+
+    if (res.ok) {
+      alert(`อัปเดตสถานะการจำหน่ายเป็น [${salvageStatus}] เรียบร้อยแล้ว`);
+      lookupAsset(tag);
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถทำรายการได้');
+    }
+  } catch (err) {
+    console.error('Salvage action error:', err);
+  }
+};
+
+// Form Handlers: Add Asset, Add User, Add Config
 async function handleAddAsset(e) {
   e.preventDefault();
   const payload = {
@@ -729,7 +861,7 @@ async function handleAddAsset(e) {
   try {
     const res = await fetch('/api/assets', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     
@@ -760,7 +892,7 @@ async function handleAddUser(e) {
   try {
     const res = await fetch('/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
 
@@ -792,7 +924,7 @@ async function handleAddConfig(e) {
     const method = id ? 'PUT' : 'POST';
     const res = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     if (res.ok) {
@@ -800,14 +932,15 @@ async function handleAddConfig(e) {
       document.getElementById('add-config-modal').style.display = 'none';
       refreshData();
     } else {
-      alert('บันทึกข้อมูลล้มเหลว');
+      const err = await res.json();
+      alert(err.error || 'บันทึกข้อมูลล้มเหลว');
     }
   } catch (error) {
     console.error('Add config error:', error);
   }
 }
 
-// Action handlers
+// Action Handlers
 async function updateAssetStatus(newStatus) {
   if (!state.selectedAsset) return;
   
@@ -823,7 +956,7 @@ async function updateAssetStatus(newStatus) {
   try {
     const res = await fetch('/api/assets/update-status', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     
@@ -839,32 +972,77 @@ async function updateAssetStatus(newStatus) {
   }
 }
 
+async function handleResolveRma(e) {
+  e.preventDefault();
+  if (!state.selectedAsset) return;
+  
+  const payload = {
+    asset_tag: document.getElementById('resolve-tag-input').value,
+    resolution_type: document.getElementById('resolve-type').value,
+    replacement_serial_no: document.getElementById('resolve-new-serial').value.trim(),
+    repair_cost: parseFloat(document.getElementById('resolve-cost').value) || 0,
+    action_by_username: state.user.username
+  };
+
+  try {
+    const res = await fetch('/api/assets/resolve-claim', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      alert(data.message);
+      document.getElementById('resolve-rma-modal').style.display = 'none';
+      lookupAsset(state.selectedAsset.asset_tag);
+      refreshData();
+    } else {
+      const err = await res.json();
+      alert(err.error || 'ไม่สามารถรับเครื่องคืนได้');
+    }
+  } catch (err) {
+    console.error('Resolve RMA error:', err);
+  }
+}
+
 async function confirmSanitization() {
   if (!state.selectedAsset) return;
   if (!state.sanitizationChecked) {
     alert('กรุณายืนยันการล้างข้อมูลโดยคลิกเครื่องหมายถูกก่อนยืนยัน (Please confirm data sanitization)');
     return;
   }
+
+  const codeInput = document.getElementById('sanitize-code-input');
+  const wipeCode = codeInput ? codeInput.value.trim() : '';
+  if (!wipeCode) {
+    alert('🔐 เพื่อความปลอดภัยสูงสุด กรุณากรอกรหัสยืนยันความปลอดภัย (พิมพ์ "WIPED" หรือรหัสครุภัณฑ์) ในช่องที่กำหนด');
+    if (codeInput) codeInput.focus();
+    return;
+  }
   
   const payload = {
     asset_tag: state.selectedAsset.asset_tag,
-    action_by_username: state.user.username
+    action_by_username: state.user.username,
+    sanitization_note: 'Verified data wipe via IT Security Safeguard Panel (Code: ' + wipeCode.toUpperCase() + ')',
+    wipe_code: wipeCode
   };
   
   try {
     const res = await fetch('/api/assets/sanitize', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
     
+    const data = await res.json();
     if (res.ok) {
-      const data = await res.json();
-      alert(data.message);
+      alert(data.message || 'บันทึกการล้างข้อมูลความปลอดภัยสำเร็จ');
+      if (codeInput) codeInput.value = '';
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
-      alert('ล้มเหลวในการบันทึกข้อมูลการ Sanitization');
+      alert(data.error || 'ล้มเหลวในการบันทึกข้อมูลการ Sanitization');
     }
   } catch (error) {
     console.error('Sanitization update error:', error);
@@ -894,7 +1072,6 @@ function populateConfigTable(configs) {
 }
 
 function updateDynamicDropdowns(configs) {
-  // Update Brand/Vendor Dropdown
   const vendorSelect = document.getElementById('claim-vendor');
   if (vendorSelect) {
     vendorSelect.innerHTML = '<option value="" disabled selected>-- กรุณาเลือกศูนย์บริการ --</option>';
@@ -915,7 +1092,6 @@ function updateDynamicDropdowns(configs) {
     vendorSelect.appendChild(otherOpt);
   }
 
-  // Update Category Dropdown in Add Asset Form
   const catSelect = document.getElementById('new-category');
   if (catSelect) {
     catSelect.innerHTML = '';
@@ -944,7 +1120,7 @@ window.editConfig = function(id, type, value, details) {
 window.deleteConfig = async function(id) {
   if (!confirm('ยืนยันการลบการตั้งค่านี้?')) return;
   try {
-    const res = await fetch(`/api/configurations/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/configurations/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     if (res.ok) {
       alert('ลบสำเร็จ');
       refreshData();
@@ -978,18 +1154,17 @@ async function handleClaimInitiate(e) {
     return;
   }
   
-  // Prepare claim data
   pendingClaimData = {
     asset_tag: state.selectedAsset.asset_tag,
     vendor_name: vendorName,
     vendor_rma_number: rmaNumber,
     expected_return_date: expectedDate,
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
+    sanitization_note: 'Verified data wipe prior to vendor RMA dispatch',
     action_by_username: state.user.username
   };
 
-  // Prepare Email Preview
-  const to = `support@${vendorName.toLowerCase().replace(' ', '')}.com`;
+  const to = `support@${vendorName.toLowerCase().replace(/\s+/g, '')}.com`;
   const subject = `[ClaimIT] แจ้งส่งซ่อมอุปกรณ์เคลมประกัน - ${vendorName} (RMA: ${rmaNumber})`;
   const body = `เรียน ทีมงานศูนย์บริการ ${vendorName},\n\n` +
                `ทางโรงพยาบาลขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
@@ -1001,15 +1176,11 @@ async function handleClaimInitiate(e) {
                `ทางเราคาดหวังว่าจะได้รับอุปกรณ์คืนภายในวันที่: ${expectedDate}\n\n` +
                `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
 
-  // Update Modal Content
   document.getElementById('email-preview-to').textContent = to;
   document.getElementById('email-preview-subject').textContent = subject;
   document.getElementById('email-preview-body').textContent = body;
 
-  // Store email data for sending
   pendingClaimData.email = { to, subject, body };
-
-  // Show Modal
   document.getElementById('email-preview-modal').style.display = 'flex';
 }
 
@@ -1020,14 +1191,8 @@ async function confirmAndSendEmail() {
   btn.disabled = true;
   btn.textContent = 'กำลังส่ง...';
 
-  const token = state.user ? state.user.token : null;
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
-
   try {
-    // 1. Send Email via authenticated SendGrid endpoint
+    // 1. Try sending email via authenticated endpoint
     const emailPayload = {
       to: pendingClaimData.email.to,
       subject: pendingClaimData.email.subject,
@@ -1035,15 +1200,14 @@ async function confirmAndSendEmail() {
     };
     const emailRes = await fetch('/api/email/send', {
       method: 'POST',
-      headers: authHeaders,
+      headers: getAuthHeaders(),
       body: JSON.stringify(emailPayload)
     });
     
     if (!emailRes.ok) {
       const errData = await emailRes.json().catch(() => ({}));
-      // If email fails due to unconfigured SendGrid, warn but continue with claim
       console.warn('Email send warning:', errData.error || 'Email service not configured');
-      if (emailRes.status === 500) {
+      if (emailRes.status === 500 || emailRes.status === 400) {
         const proceed = confirm('ไม่สามารถส่งอีเมลได้ (SendGrid ยังไม่ได้ตั้งค่า) ต้องการดำเนินการบันทึกเคลมต่อไปโดยไม่ส่งอีเมลหรือไม่?');
         if (!proceed) {
           btn.disabled = false;
@@ -1053,10 +1217,10 @@ async function confirmAndSendEmail() {
       }
     }
 
-    // 2. Process Claim
+    // 2. Process Claim (Strict PDPA gate enforced on server)
     const claimRes = await fetch('/api/assets/claim', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(pendingClaimData)
     });
     
@@ -1067,7 +1231,8 @@ async function confirmAndSendEmail() {
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {
-      alert('ไม่สามารถส่งเคลมทรัพย์สินได้');
+      const err = await claimRes.json();
+      alert(err.error || 'ไม่สามารถส่งเคลมทรัพย์สินได้');
     }
   } catch (error) {
     console.error('Claim initiation error:', error);
@@ -1086,7 +1251,7 @@ window.selectPreset = function(tag) {
   lookupAsset(tag);
 };
 
-// PDF Download – opens authenticated PDF report for an asset
+// PDF Download
 window.downloadPDF = async function(assetTag) {
   if (!state.user || !state.user.token) {
     alert('กรุณาเข้าสู่ระบบก่อนดาวน์โหลด PDF');
@@ -1094,7 +1259,7 @@ window.downloadPDF = async function(assetTag) {
   }
   try {
     const res = await fetch(`/api/assets/${encodeURIComponent(assetTag)}/pdf`, {
-      headers: { 'Authorization': `Bearer ${state.user.token}` }
+      headers: getAuthHeaders()
     });
     if (!res.ok) throw new Error('PDF generation failed');
     const blob = await res.blob();

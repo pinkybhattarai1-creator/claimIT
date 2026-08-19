@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
+const { verifyToken, adminOnly } = require('../middleware/auth');
 
 // GET /api/configurations
 router.get('/', (req, res) => {
@@ -17,8 +18,8 @@ router.get('/', (req, res) => {
   });
 });
 
-// POST /api/configurations
-router.post('/', (req, res) => {
+// POST /api/configurations (Admin-only)
+router.post('/', verifyToken, adminOnly, (req, res) => {
   const { type, value, details } = req.body;
   if (!type || !value) return res.status(400).json({ error: 'Missing required fields' });
   db.run(`INSERT INTO configurations (type, value, details) VALUES (?, ?, ?)`, [type, value, details || ''], function(err) {
@@ -27,8 +28,8 @@ router.post('/', (req, res) => {
   });
 });
 
-// PUT /api/configurations/:id
-router.put('/:id', (req, res) => {
+// PUT /api/configurations/:id (Admin-only)
+router.put('/:id', verifyToken, adminOnly, (req, res) => {
   const { type, value, details } = req.body;
   db.run(`UPDATE configurations SET type = ?, value = ?, details = ? WHERE id = ? AND is_deleted = 0`, [type, value, details || '', req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -36,8 +37,8 @@ router.put('/:id', (req, res) => {
   });
 });
 
-// DELETE /api/configurations/:id
-router.delete('/:id', (req, res) => {
+// DELETE /api/configurations/:id (Admin-only)
+router.delete('/:id', verifyToken, adminOnly, (req, res) => {
   db.run(`UPDATE configurations SET is_deleted = 1 WHERE id = ?`, [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: 'Configuration soft deleted' });
