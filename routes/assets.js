@@ -367,8 +367,8 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     doc.text(`Current Status: ${asset.status} (Salvage: ${asset.salvage_status || 'None'})`);
     doc.moveDown(1.5);
 
-    // Section 2: PDPA Data Sanitization Audit Log
-    doc.fontSize(14).fillColor('#1e293b').text('2. PDPA & ISO 27001 Data Sanitization Audit', { underline: true });
+    // Section 2: PDPA-Aware Data Sanitization Audit Log
+    doc.fontSize(14).fillColor('#1e293b').text('2. PDPA-Aware Storage Sanitization & Security Audit', { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(11).fillColor('#334155');
     doc.text(`Storage Media Sanitization Required: ${asset.sanitization_required ? 'YES' : 'NO'}`);

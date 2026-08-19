@@ -3,8 +3,8 @@ const router = express.Router();
 const { db } = require('../db');
 const { verifyToken, adminOnly } = require('../middleware/auth');
 
-// GET /api/departments
-router.get('/', (req, res) => {
+// GET /api/departments (Authenticated users)
+router.get('/', verifyToken, (req, res) => {
   db.all("SELECT * FROM departments WHERE is_deleted = 0", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);

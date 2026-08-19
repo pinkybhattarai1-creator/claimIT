@@ -4,3 +4,6 @@ database.db
 *.db-wal
 .env
 npm-debug.log*
+storage/evidence/*
+!storage/evidence/.gitkeep
+test_evidence.*

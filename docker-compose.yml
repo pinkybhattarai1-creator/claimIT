@@ -6,15 +6,19 @@ services:
     container_name: claimit_app
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8847}:8847"
     environment:
-      - PORT=3000
-      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      - PORT=8847
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - SENDGRID_FROM=${SENDGRID_FROM:-no-reply@claimit.local}
     volumes:
       # Persist the SQLite database outside the container
       - claimit_data:/app/database.db
+      # Persist uploaded evidence files
+      - claimit_evidence:/app/storage/evidence
 
 volumes:
   claimit_data:
+  claimit_evidence:

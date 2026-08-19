@@ -3,8 +3,8 @@ const router = express.Router();
 const { db } = require('../db');
 const { verifyToken, adminOnly } = require('../middleware/auth');
 
-// GET /api/configurations
-router.get('/', (req, res) => {
+// GET /api/configurations (Authenticated users)
+router.get('/', verifyToken, (req, res) => {
   const { type } = req.query;
   let query = "SELECT * FROM configurations WHERE is_deleted = 0";
   let params = [];
