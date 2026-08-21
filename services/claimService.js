@@ -121,8 +121,12 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
 
       // Check PDPA Sanitization requirement
       for (const asset of rows) {
-        if (asset.sanitization_required === 1 && asset.status !== 'Sanitized' && asset.status !== 'Working') {
-          // If sanitization is required and not yet satisfied
+        if (asset.sanitization_required === 1 && asset.status !== 'Sanitized') {
+          return reject({
+            status: 400,
+            code: 'PDPA_SANITIZATION_REQUIRED',
+            message: `PDPA Compliance Violation: ครุภัณฑ์รหัส [${asset.asset_tag}] (${asset.device_name || asset.category}) มีข้อมูลอ่อนไหว ต้องผ่านการล้างข้อมูล (Sanitization) ก่อนส่งเคลม`
+          });
         }
       }
 

@@ -5,9 +5,23 @@ const { verifyToken, adminOnly } = require('../middleware/auth');
 
 // GET /api/users (Admin-only)
 router.get('/', verifyToken, adminOnly, (req, res) => {
-  db.all("SELECT id, username, role, name, department FROM users WHERE is_deleted = 0", [], (err, rows) => {
+  const includeDeleted = req.query.include_deleted === 'true';
+  const query = includeDeleted
+    ? "SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users ORDER BY id ASC"
+    : "SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE is_deleted = 0 ORDER BY id ASC";
+
+  db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
+  });
+});
+
+// GET /api/users/:id (Admin-only)
+router.get('/:id', verifyToken, adminOnly, (req, res) => {
+  db.get("SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE id = ?", [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'User not found' });
+    res.json(row);
   });
 });
 
@@ -19,7 +33,7 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   }
 
   const hashedPassword = hashPassword(password);
-  db.run(`INSERT INTO users (username, password, role, name, department) VALUES (?, ?, ?, ?, ?)`,
+  db.run(`INSERT INTO users (username, password, role, name, department, is_active, is_deleted) VALUES (?, ?, ?, ?, ?, 1, 0)`,
     [username, hashedPassword, role, name, department],
     function(err) {
       if (err) {
@@ -33,11 +47,53 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   );
 });
 
-// DELETE /api/users/:id (Admin-only)
+// PUT /api/users/:id - Edit User Details (Admin-only)
+router.put('/:id', verifyToken, adminOnly, (req, res) => {
+  const { role, name, department } = req.body;
+  if (!role || !name || !department) {
+    return res.status(400).json({ error: 'กรุณาระบุ role, name, และ department ให้ครบถ้วน' });
+  }
+
+  db.run("UPDATE users SET role = ?, name = ?, department = ? WHERE id = ?", 
+    [role, name, department, req.params.id], 
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+      res.json({ message: 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ' });
+    }
+  );
+});
+
+// DELETE /api/users/:id - Deactivate User (Admin-only)
 router.delete('/:id', verifyToken, adminOnly, (req, res) => {
-  db.run("UPDATE users SET is_deleted = 1 WHERE id = ?", [req.params.id], function(err) {
+  db.run("UPDATE users SET is_deleted = 1, is_active = 0 WHERE id = ?", [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'ลบผู้ใช้งานสำเร็จ' });
+    if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'ระงับการใช้งานผู้ใช้งานสำเร็จ (Deactivated)' });
+  });
+});
+
+// POST /api/users/:id/reactivate - Reactivate User (Admin-only)
+router.post('/:id/reactivate', verifyToken, adminOnly, (req, res) => {
+  db.run("UPDATE users SET is_deleted = 0, is_active = 1 WHERE id = ?", [req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'เปิดใช้งานบัญชีผู้ใช้สำเร็จ (Reactivated)' });
+  });
+});
+
+// POST /api/users/:id/reset-password - Admin Reset Password (Admin-only)
+router.post('/:id/reset-password', verifyToken, adminOnly, (req, res) => {
+  const { new_password } = req.body;
+  if (!new_password) {
+    return res.status(400).json({ error: 'กรุณาระบุ new_password ใหม่' });
+  }
+
+  const hashedPassword = hashPassword(new_password);
+  db.run("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ message: 'รีเซ็ตรหัสผ่านสำเร็จ' });
   });
 });
 

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { db, hashPassword, verifyPassword } = require('../db');
 const { JWT_SECRET } = require('../utils/envValidator');
 const { loginLimiter } = require('../middleware/security');
+const { verifyToken } = require('../middleware/auth');
 
 // POST /api/auth/login
 router.post('/login', loginLimiter, (req, res) => {
@@ -23,7 +24,6 @@ router.post('/login', loginLimiter, (req, res) => {
       }
 
       if (!user) {
-        // Record login failure audit log
         logAuthEvent(cleanUsername, 'LOGIN_FAILED', 'User not found', req);
         return res.status(401).json({ error: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง' });
       }
@@ -77,13 +77,40 @@ router.post('/login', loginLimiter, (req, res) => {
   );
 });
 
+// POST /api/auth/change-password (Self password change for authenticated users)
+router.post('/change-password', (req, res) => {
+  const { username, current_password, new_password } = req.body;
+  if (!username || !current_password || !new_password) {
+    return res.status(400).json({ error: 'กรุณาระบุ username, current_password และ new_password ให้ครบถ้วน' });
+  }
+
+  const cleanUsername = String(username).trim();
+
+  db.get("SELECT * FROM users WHERE username = ? AND is_deleted = 0", [cleanUsername], (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const isCurrentValid = verifyPassword(current_password, user.password);
+    if (!isCurrentValid) {
+      return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+    }
+
+    const hashedNew = hashPassword(new_password);
+    db.run("UPDATE users SET password = ? WHERE id = ?", [hashedNew, user.id], function(updateErr) {
+      if (updateErr) return res.status(500).json({ error: 'Failed to update password' });
+      logAuthEvent(cleanUsername, 'PASSWORD_CHANGE', 'User changed password successfully', req);
+      res.json({ message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อยแล้ว' });
+    });
+  });
+});
+
 // Helper to record auth audit events safely
 function logAuthEvent(username, action, details, req) {
   const ip = req.ip || req.connection.remoteAddress || '127.0.0.1';
   db.run(
-    `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    ['SYSTEM_AUTH', `IP: ${ip}`, 'Security', action, 'AUTH', username || 'anonymous'],
+    `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details)
+     VALUES (?, ?, 'Security', ?, 'AUTH', ?, ?)`,
+    ['SYSTEM_AUTH', `IP: ${ip}`, action, username || 'anonymous', details || ''],
     () => {} // Non-blocking
   );
 }

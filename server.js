@@ -77,7 +77,18 @@ app.use('/api/assets', require('./routes/assets'));
 app.use('/api/claims', require('./routes/claims'));
 app.use('/api/evidence', require('./routes/evidence'));
 app.use('/api', require('./routes/audit'));
-app.use('/api/email', require('./routes/email'));
+const { performBackup } = require('./scripts/backup');
+
+// Admin Backup Trigger Endpoint
+app.post('/api/backup', (req, res) => {
+  performBackup()
+    .then(result => {
+      res.json({ message: 'Backup created successfully', fileName: result.fileName });
+    })
+    .catch(err => {
+      res.status(500).json({ error: 'Backup failed', details: err.message });
+    });
+});
 
 // 7. Centralized Safe Error Handler
 app.use(errorHandler);

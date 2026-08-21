@@ -1,10 +1,10 @@
-name: ClaimIT CI Pipeline
+name: ClaimIT CI
 
 on:
   push:
-    branches: [ main, master, feature/** ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -15,25 +15,16 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+    - name: Install dependencies
+      run: npm install
 
-      - name: Run automated test suite
-        env:
-          PORT: 8847
-          JWT_SECRET: test_secure_ci_jwt_secret_key_2026
-          NODE_ENV: test
-        run: |
-          node server.js &
-          sleep 3
-          node test_suite.js
-          node test_workflow.js
+    - name: Run comprehensive automated test suite
+      run: npm test

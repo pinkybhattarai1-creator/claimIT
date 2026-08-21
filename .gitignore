@@ -1,5 +1,6 @@
 node_modules/
 database.db
+*.db
 *.db-shm
 *.db-wal
 .env
@@ -7,3 +8,4 @@ npm-debug.log*
 storage/evidence/*
 !storage/evidence/.gitkeep
 test_evidence.*
+backups/

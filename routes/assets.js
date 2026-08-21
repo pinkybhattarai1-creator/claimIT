@@ -225,6 +225,7 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
       function(err) {
         if (err) return res.status(500).json({ error: 'Failed to confirm sanitization' });
         
+        db.run(`UPDATE mains SET status = 'Sanitized' WHERE asset_tag = ?`, [asset_tag]);
         db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, 'Technical Support', 'Fl 4', 'Sanitized', 'IN', ?)`, 
           [asset_tag, actionUser]);
         res.json({ message: 'การลบข้อมูล (PDPA Sanitization) เสร็จสิ้นและบันทึกประวัติสำเร็จ', data_wiped_by: actionUser, data_wiped_at: now });

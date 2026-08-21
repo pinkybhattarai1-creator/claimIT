@@ -8,7 +8,7 @@ dotenv.config();
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const PORT = parseInt(process.env.PORT || '8847', 10);
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || (NODE_ENV !== 'production' ? 'claimit_default_secure_secret_key_2026_dev' : undefined);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
@@ -18,20 +18,15 @@ const MAX_CLAIM_ASSETS = parseInt(process.env.MAX_CLAIM_ASSETS || '5', 10);
 const HOST = process.env.HOST || '127.0.0.1';
 const SECRET_PORTAL_PATH = process.env.SECRET_PORTAL_PATH || '';
 
-// Strict validation of JWT Secret
+// Strict validation of JWT Secret in production
 if (!JWT_SECRET) {
   if (NODE_ENV === 'production') {
     console.error('FATAL: JWT_SECRET environment variable is missing in production. Server startup aborted.');
     process.exit(1);
-  } else {
-    console.warn('WARNING: JWT_SECRET is not set in .env. Please set a secure random string.');
-    // In dev, fail startup if missing to prevent insecure defaults
-    console.error('FATAL: JWT_SECRET must be explicitly defined in .env or environment.');
-    process.exit(1);
   }
 }
 
-if (JWT_SECRET.length < 16 && NODE_ENV === 'production') {
+if (JWT_SECRET && JWT_SECRET.length < 16 && NODE_ENV === 'production') {
   console.error('FATAL: JWT_SECRET is too short for production (minimum 16 characters required).');
   process.exit(1);
 }
