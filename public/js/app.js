@@ -1146,16 +1146,48 @@ function populateConfigTable(configs) {
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${c.id}</td>
-      <td><strong>${c.type}</strong></td>
-      <td>${c.value}</td>
-      <td><div style="word-wrap: break-word; white-space: pre-wrap; max-width: 400px;">${c.details || '-'}</div></td>
-      <td>
-        <button class="btn btn-secondary" onclick="editConfig(${c.id}, '${c.type}', '${c.value}', \`${(c.details||'').replace(/`/g, '\\`')}\`)" style="padding: 4px 8px; font-size: 11px;">แก้ไข</button>
-        <button class="btn btn-danger" onclick="deleteConfig(${c.id})" style="padding: 4px 8px; font-size: 11px;">ลบ</button>
-      </td>
-    `;
+    const tdId = document.createElement('td');
+    tdId.innerHTML = String(c.id);
+
+    const tdType = document.createElement('td');
+    tdType.innerHTML = `<strong>${c.type}</strong>`;
+
+    const tdValue = document.createElement('td');
+    tdValue.textContent = c.value;
+
+    const tdDetails = document.createElement('td');
+    tdDetails.innerHTML = `<div style="word-wrap: break-word; white-space: pre-wrap; max-width: 400px;">${c.details || '-'}</div>`;
+
+    const tdActions = document.createElement('td');
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-secondary';
+    editBtn.style.padding = '4px 8px';
+    editBtn.style.fontSize = '11px';
+    editBtn.textContent = 'แก้ไข';
+    editBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      window.editConfig(c.id, c.type, c.value, c.details || '');
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger';
+    deleteBtn.style.padding = '4px 8px';
+    deleteBtn.style.fontSize = '11px';
+    deleteBtn.textContent = 'ลบ';
+    deleteBtn.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await window.deleteConfig(c.id);
+    });
+
+    tdActions.appendChild(editBtn);
+    tdActions.appendChild(deleteBtn);
+
+    tr.appendChild(tdId);
+    tr.appendChild(tdType);
+    tr.appendChild(tdValue);
+    tr.appendChild(tdDetails);
+    tr.appendChild(tdActions);
     tbody.appendChild(tr);
   });
 }
