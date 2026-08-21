@@ -37,6 +37,25 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   });
 });
 
+// Complete inventory summary for the dashboard, independent of pagination.
+router.get('/summary', verifyToken, staffOnly, (req, res) => {
+  db.all("SELECT status, salvage_status, warranty_end FROM mains WHERE is_deleted = 0", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const counts = {};
+    rows.forEach(row => {
+      counts[row.status] = (counts[row.status] || 0) + 1;
+      if (row.salvage_status && row.salvage_status !== 'None') {
+        counts[row.salvage_status] = (counts[row.salvage_status] || 0) + 1;
+      }
+    });
+    res.json({
+      total: rows.length,
+      counts,
+      expired: rows.filter(row => new Date(row.warranty_end) < new Date()).length
+    });
+  });
+});
+
 // Create New Asset (Admin-only)
 router.post('/', verifyToken, adminOnly, (req, res) => {
   const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, action_by_username } = req.body;
@@ -193,6 +212,37 @@ router.post('/update-status', verifyToken, staffOnly, (req, res) => {
         db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, ?, ?, ?, ?)`, 
           [asset_tag, logDept, logFloor, status, movedDirection, actionUser]);
         res.json({ message: 'Asset status updated', status, location: newLocation });
+      });
+    });
+  });
+});
+
+// Batch status update (Admin-only, maximum five assets, one audit record)
+router.post('/batch-status', verifyToken, adminOnly, (req, res) => {
+  const assetTags = Array.isArray(req.body.asset_tags) ? [...new Set(req.body.asset_tags.map(String))] : [];
+  const { status } = req.body;
+  if (!status || assetTags.length === 0) return res.status(400).json({ error: 'กรุณาเลือกรายการและสถานะใหม่' });
+  if (assetTags.length > 5) return res.status(400).json({ error: 'เปลี่ยนสถานะได้สูงสุด 5 รายการต่อครั้ง' });
+
+  const placeholders = assetTags.map(() => '?').join(',');
+  db.all(`SELECT asset_tag, device_name, location, status FROM mains WHERE asset_tag IN (${placeholders}) AND is_deleted = 0`, assetTags, (err, assets) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (assets.length !== assetTags.length) return res.status(404).json({ error: 'ไม่พบครุภัณฑ์บางรายการในระบบ' });
+    const changes = assets.map(asset => ({ asset_tag: asset.asset_tag, item_name: asset.device_name, department: asset.location, old_status: asset.status, new_status: status }));
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      db.run(`UPDATE mains SET status = ? WHERE asset_tag IN (${placeholders})`, [status, ...assetTags], updateErr => {
+        if (updateErr) {
+          db.run('ROLLBACK');
+          return res.status(500).json({ error: updateErr.message });
+        }
+        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES ('BATCH', 'หลายแผนก', 'หลายชั้น', ?, 'BATCH', ?, ?)`, [status, req.user.username, JSON.stringify({ batch: true, changes })], commitErr => {
+          if (commitErr) {
+            db.run('ROLLBACK');
+            return res.status(500).json({ error: commitErr.message });
+          }
+          db.run('COMMIT', () => res.json({ message: 'เปลี่ยนสถานะหลายรายการสำเร็จ', count: changes.length, changes }));
+        });
       });
     });
   });

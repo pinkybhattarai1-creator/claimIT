@@ -5,6 +5,8 @@ const state = {
   selectedAsset: null,
   sanitizationChecked: false,
   pendingFuzzyAsset: null, // holds a fuzzy match until the user confirms it
+  auditLogs: [],
+  auditFilter: 'recent',
   pagination: {
     page: 1,
     limit: 50,
@@ -46,7 +48,7 @@ function initApp() {
   if (storedUser) {
     state.user = JSON.parse(storedUser);
     showUserNavigation();
-    if (state.user.role === 'admin') {
+    if (state.user.role === 'admin' || state.user.role === 'super_admin') {
       switchView('it');
     } else {
       switchView('ward');
@@ -79,11 +81,15 @@ function setupEventListeners() {
   // Navigation Tabs
   document.getElementById('btn-to-ward').addEventListener('click', () => switchView('ward'));
   document.getElementById('btn-to-it').addEventListener('click', () => {
-    if (state.user && state.user.role === 'admin') {
+    if (state.user && (state.user.role === 'admin' || state.user.role === 'super_admin')) {
       switchView('it');
     } else {
       alert('เฉพาะเจ้าหน้าที่ IT (Admin) เท่านั้นที่สามารถเข้าถึงระบบ IT Portal ได้');
     }
+  });
+
+  document.querySelectorAll('.it-module-btn').forEach(button => {
+    button.addEventListener('click', () => setItModule(button.dataset.itModule));
   });
   
   logoutBtn.addEventListener('click', logout);
@@ -117,12 +123,12 @@ function setupEventListeners() {
   // Manual search (Click)
   document.getElementById('ward-search-btn').addEventListener('click', () => {
     const val = document.getElementById('ward-search-input').value.trim();
-    if (val) lookupAsset(val);
+    if (val) lookupAsset(val, document.getElementById('ward-search-type').value);
   });
   
   document.getElementById('it-search-btn').addEventListener('click', () => {
     const val = document.getElementById('it-search-input').value.trim();
-    if (val) lookupAsset(val);
+    if (val) lookupAsset(val, document.getElementById('it-search-type').value);
   });
 
   // Hardware Scanner Support (Listens for "Enter" key after scan)
@@ -131,7 +137,7 @@ function setupEventListeners() {
       e.preventDefault();
       hideFuzzySuggestion();
       const val = document.getElementById('ward-search-input').value.trim();
-      if (val) lookupAsset(val);
+      if (val) lookupAsset(val, document.getElementById('ward-search-type').value);
     }
   });
 
@@ -140,7 +146,7 @@ function setupEventListeners() {
       e.preventDefault();
       hideFuzzySuggestion();
       const val = document.getElementById('it-search-input').value.trim();
-      if (val) lookupAsset(val);
+      if (val) lookupAsset(val, document.getElementById('it-search-type').value);
     }
   });
 
@@ -250,10 +256,27 @@ function setupEventListeners() {
   document.getElementById('confirm-send-email-btn').addEventListener('click', confirmAndSendEmail);
 
   // Copy Data Event
-  const copyBtn = document.getElementById('btn-copy-data');
-  if (copyBtn) {
-    copyBtn.addEventListener('click', copyAssetDataToClipboard);
-  }
+  document.getElementById('btn-print-selected')?.addEventListener('click', printSelectedAssets);
+  document.getElementById('btn-batch-status')?.addEventListener('click', openBatchStatusModal);
+  document.getElementById('select-all-assets')?.addEventListener('change', event => {
+    document.querySelectorAll('.asset-select').forEach(box => { box.checked = event.target.checked; });
+  });
+  document.querySelectorAll('.admin-table-tab').forEach(button => {
+    button.addEventListener('click', () => setAdminTable(button.dataset.adminTable));
+  });
+  document.querySelectorAll('.audit-tab').forEach(button => {
+    button.addEventListener('click', () => {
+      state.auditFilter = button.dataset.auditFilter;
+      document.querySelectorAll('.audit-tab').forEach(tab => tab.classList.toggle('active', tab === button));
+      populateAuditTable(state.auditLogs);
+    });
+  });
+  document.getElementById('reauth-cancel')?.addEventListener('click', () => closeModal('reauth-modal'));
+  document.getElementById('batch-status-cancel')?.addEventListener('click', () => closeModal('batch-status-modal'));
+  document.getElementById('batch-status-form')?.addEventListener('submit', handleBatchStatus);
+  document.getElementById('btn-open-add-department-modal')?.addEventListener('click', () => { document.getElementById('add-department-modal').hidden = false; });
+  document.getElementById('close-department-modal')?.addEventListener('click', () => closeModal('add-department-modal'));
+  document.getElementById('add-department-form')?.addEventListener('submit', handleAddDepartment);
 
   // Filter & Pagination Events
   const filterStatus = document.getElementById('filter-status');
@@ -282,6 +305,99 @@ function setupEventListeners() {
       }
     });
   }
+}
+
+function closeModal(id) { const modal = document.getElementById(id); if (modal) modal.hidden = true; }
+
+function showThaiAlert(message, { title = 'แจ้งเตือน', confirmText = 'ตกลง', onConfirm = null } = {}) {
+  const modal = document.getElementById('center-alert-modal');
+  document.getElementById('center-alert-title').textContent = title;
+  document.getElementById('center-alert-message').textContent = message;
+  const confirm = document.getElementById('center-alert-confirm');
+  confirm.textContent = confirmText;
+  modal.hidden = false;
+  const close = () => { modal.hidden = true; confirm.onclick = null; };
+  document.getElementById('center-alert-cancel').style.display = 'none';
+  confirm.onclick = async () => { close(); if (onConfirm) await onConfirm(); };
+}
+
+// Keep every existing alert call inside the same Thai centered modal.
+window.alert = message => showThaiAlert(String(message));
+
+function setAdminTable(tableName) {
+  document.querySelectorAll('.admin-table-tab').forEach(button => button.classList.toggle('active', button.dataset.adminTable === tableName));
+  document.querySelectorAll('.admin-table-panel').forEach(panel => {
+    panel.style.display = panel.dataset.adminTablePanel === tableName ? 'block' : 'none';
+  });
+}
+
+function getSelectedAssetTags() {
+  return [...document.querySelectorAll('.asset-select:checked')].map(box => box.value);
+}
+
+function printSelectedAssets() {
+  const tags = getSelectedAssetTags();
+  if (!tags.length) return showThaiAlert('กรุณาเลือกรายการครุภัณฑ์อย่างน้อย 1 รายการก่อนพิมพ์ PDF');
+  if (tags.length > 5) return showThaiAlert('เลือกได้สูงสุด 5 รายการต่อครั้ง');
+  const rows = [...document.querySelectorAll('#it-asset-table-body tr')]
+    .filter(row => tags.includes(row.dataset.assetTag))
+    .map(row => `<tr>${[...row.querySelectorAll('td')].slice(1).map(cell => `<td>${cell.textContent}</td>`).join('')}</tr>`).join('');
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return showThaiAlert('ไม่สามารถเปิดหน้าพิมพ์ได้ กรุณาอนุญาตป๊อปอัป');
+  printWindow.document.write(`<html lang="th"><head><title>รายงานครุภัณฑ์ที่เลือก</title><style>body{font-family:Arial;padding:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:8px;text-align:left}h1{font-size:20px}</style></head><body><h1>รายงานครุภัณฑ์ที่เลือก</h1><table><thead><tr><th>รหัส</th><th>ชื่ออุปกรณ์</th><th>แบรนด์</th><th>สถานที่</th><th>วันหมดประกัน</th><th>มูลค่า</th><th>สถานะ</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+  printWindow.document.close();
+}
+
+function openBatchStatusModal() {
+  const tags = getSelectedAssetTags();
+  if (!tags.length) return showThaiAlert('กรุณาเลือกรายการครุภัณฑ์ก่อนเปลี่ยนสถานะ');
+  if (tags.length > 5) return showThaiAlert('เปลี่ยนสถานะได้สูงสุด 5 รายการต่อครั้ง');
+  document.getElementById('batch-status-count').textContent = `เลือกรายการแล้ว ${tags.length} รายการ ระบบจะบันทึกประวัติเป็นชุดเดียว`;
+  document.getElementById('batch-status-modal').hidden = false;
+}
+
+async function reauthenticate() {
+  const modal = document.getElementById('reauth-modal');
+  modal.hidden = false;
+  document.getElementById('reauth-password').value = '';
+  return new Promise(resolve => {
+    const form = document.getElementById('reauth-form');
+    const cancel = () => { closeModal('reauth-modal'); form.onsubmit = null; resolve(false); };
+    document.getElementById('reauth-cancel').onclick = cancel;
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: state.user.username, password: document.getElementById('reauth-password').value }) });
+      if (!response.ok) return showThaiAlert('รหัสผ่านไม่ถูกต้อง ไม่สามารถดำเนินการได้');
+      closeModal('reauth-modal'); form.onsubmit = null; resolve(true);
+    };
+  });
+}
+
+async function handleBatchStatus(event) {
+  event.preventDefault();
+  const tags = getSelectedAssetTags();
+  if (tags.length > 5) return showThaiAlert('เปลี่ยนสถานะได้สูงสุด 5 รายการต่อครั้ง');
+  if (!(await reauthenticate())) return;
+  const response = await fetch('/api/assets/batch-status', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ asset_tags: tags, status: document.getElementById('batch-status-value').value }) });
+  closeModal('batch-status-modal');
+  if (!response.ok) return showThaiAlert('ไม่สามารถเปลี่ยนสถานะรายการที่เลือกได้');
+  showThaiAlert('เปลี่ยนสถานะรายการที่เลือกและบันทึกประวัติแล้ว', { title: 'สำเร็จ' });
+  refreshData();
+}
+
+async function handleAddDepartment(event) {
+  event.preventDefault();
+  if (!(await reauthenticate())) return;
+  const response = await fetch('/api/departments', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+    building_name: document.getElementById('new-department-building').value.trim(),
+    floor: document.getElementById('new-department-floor').value.trim(),
+    name: document.getElementById('new-department-name').value.trim(),
+    is_technical_area: document.getElementById('new-department-it').checked
+  }) });
+  if (!response.ok) return showThaiAlert('ไม่สามารถเพิ่มแผนกหรือชั้นอาคารได้');
+  closeModal('add-department-modal');
+  showThaiAlert('เพิ่มแผนกและชั้นอาคารแล้ว', { title: 'สำเร็จ' });
+  refreshData();
 }
 
 // Copy Data Logic
@@ -331,10 +447,12 @@ function switchView(viewName) {
     authSection.classList.add('active');
     navTabs.style.display = 'none';
     userBadge.style.display = 'none';
+    document.getElementById('it-module-tabs').style.display = 'none';
   } else if (viewName === 'ward') {
     wardSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
+    document.getElementById('it-module-tabs').style.display = 'none';
     document.getElementById('btn-to-ward').classList.add('active');
     document.getElementById('btn-to-it').classList.remove('active');
     refreshData();
@@ -345,9 +463,25 @@ function switchView(viewName) {
     userBadge.style.display = 'flex';
     document.getElementById('btn-to-it').classList.add('active');
     document.getElementById('btn-to-ward').classList.remove('active');
+    document.getElementById('it-module-tabs').style.display = 'flex';
+    setItModule('dashboard');
     refreshData();
     setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
   }
+}
+
+function setItModule(moduleName) {
+  if (!state.user || !['admin', 'super_admin'].includes(state.user.role)) return;
+  if (moduleName === 'administration') setAdminTable('users');
+  document.querySelectorAll('[data-it-module-section]').forEach(section => {
+    section.style.display = section.dataset.itModuleSection === moduleName
+      ? (section.classList.contains('stats-row') ? 'grid' : 'block')
+      : 'none';
+  });
+  document.querySelectorAll('.it-module-btn').forEach(button => {
+    button.classList.toggle('active', button.dataset.itModule === moduleName);
+  });
+  if (moduleName === 'administration') setAdminTable('users');
 }
 
 // Authentication
@@ -386,12 +520,14 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = state.user.role === 'admin' ? 'IT Admin' : 'Staff';
+  userRoleEl.textContent = state.user.role === 'super_admin' ? 'Super Admin' : state.user.role === 'admin' ? 'IT Admin' : 'Staff';
   const itBtn = document.getElementById('btn-to-it');
-  if (state.user.role === 'admin') {
+  if (state.user.role === 'admin' || state.user.role === 'super_admin') {
     itBtn.style.display = 'flex';
+    document.getElementById('it-module-tabs').style.display = state.activeView === 'it' ? 'flex' : 'none';
   } else {
     itBtn.style.display = 'none';
+    document.getElementById('it-module-tabs').style.display = 'none';
   }
 }
 
@@ -421,12 +557,16 @@ async function refreshData() {
     const assets = Array.isArray(assetsData) ? assetsData : (assetsData.assets || []);
     state.pagination.total = assetsData.total || assets.length;
 
+    const summaryRes = await fetch('/api/assets/summary', { headers: getAuthHeaders() });
+    const summary = summaryRes.ok ? await summaryRes.json() : null;
+
     updatePaginationUI();
     
     const logsRes = await fetch('/api/audit-logs', { headers: getAuthHeaders() });
     const logs = await logsRes.json();
+    state.auditLogs = logs;
 
-    if (state.user && state.user.role === 'admin') {
+    if (state.user && (state.user.role === 'admin' || state.user.role === 'super_admin')) {
       const usersRes = await fetch('/api/users', { headers: getAuthHeaders() });
       if (usersRes.ok) {
         const users = await usersRes.json();
@@ -439,14 +579,22 @@ async function refreshData() {
         populateConfigTable(configs);
         updateDynamicDropdowns(configs);
       }
+      const departmentsRes = await fetch('/api/departments', { headers: getAuthHeaders() });
+      if (departmentsRes.ok) populateDepartmentTable(await departmentsRes.json());
     }
     
-    updateStatistics(assets);
+    updateStatistics(assets, summary);
     populateAssetTable(assets);
     populateAuditTable(logs);
   } catch (error) {
     console.error('Failed to refresh data:', error);
   }
+}
+
+function populateDepartmentTable(departments) {
+  const body = document.getElementById('department-table-body');
+  if (!body) return;
+  body.innerHTML = departments.map(department => `<tr><td>${department.building_name}</td><td>${department.floor}</td><td>${department.name}</td><td>${department.is_technical_area ? 'ใช่' : 'ไม่ใช่'}</td></tr>`).join('');
 }
 
 function updatePaginationUI() {
@@ -474,16 +622,26 @@ function updatePaginationUI() {
   }
 }
 
-function updateStatistics(assets) {
+function updateStatistics(assets, summary = null) {
   const total = state.pagination.total || assets.length;
-  const working = assets.filter(a => a.status === 'Working').length;
-  const broken = assets.filter(a => a.status === 'Broken').length;
-  const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
+  const summaryCounts = summary ? summary.counts : null;
+  const working = summaryCounts ? (summaryCounts.Working || 0) : assets.filter(a => a.status === 'Working').length;
+  const broken = summaryCounts ? (summaryCounts.Broken || 0) : assets.filter(a => a.status === 'Broken').length;
+  const atVendor = summaryCounts ? (summaryCounts['Pending Pickup'] || 0) : assets.filter(a => a.status === 'Pending Pickup').length;
+  const pendingRma = assets.filter(a => ['Pending Pickup', 'Out to Vendor', 'Sanitized'].includes(a.status)).length;
+  const expired = summary ? summary.expired : assets.filter(a => new Date(a.warranty_end) < new Date()).length;
+  const counts = summary ? summary.counts : Object.fromEntries(assets.map(asset => [asset.status, assets.filter(item => item.status === asset.status).length]));
   
   document.getElementById('stat-total-assets').textContent = total;
   document.getElementById('stat-working-assets').textContent = working;
   document.getElementById('stat-broken-assets').textContent = broken;
   document.getElementById('stat-vendor-claims').textContent = atVendor;
+  document.getElementById('stat-rma-assets').textContent = summary ? (counts['Pending Pickup'] || 0) + (counts['Out to Vendor'] || 0) : pendingRma;
+  document.getElementById('stat-expired-assets').textContent = expired;
+  document.getElementById('stat-sanitized-assets').textContent = counts.Sanitized || 0;
+  document.getElementById('stat-pending-sell').textContent = counts['Pending Sell'] || 0;
+  document.getElementById('stat-pending-donation').textContent = counts['Pending Donation'] || 0;
+  document.getElementById('stat-scrapped-assets').textContent = counts.Scrapped || 0;
 }
 
 function getStatusBadgeHTML(asset) {
@@ -522,15 +680,16 @@ function populateAssetTable(assets) {
   tbody.innerHTML = '';
   assets.forEach(asset => {
     const tr = document.createElement('tr');
+    tr.dataset.assetTag = asset.asset_tag;
     tr.style.cursor = 'pointer';
     tr.addEventListener('click', () => {
       document.getElementById('it-search-input').value = asset.asset_tag;
       lookupAsset(asset.asset_tag);
     });
-    
     const priceText = asset.purchase_price ? `฿${asset.purchase_price.toLocaleString()}` : '-';
     
     tr.innerHTML = `
+      <td class="asset-select-cell"><input type="checkbox" class="asset-select" value="${asset.asset_tag}" aria-label="เลือก ${asset.asset_tag}"></td>
       <td><strong>${asset.asset_tag}</strong></td>
       <td>${asset.device_name}</td>
       <td><strong>${asset.brand || '-'}</strong></td>
@@ -539,6 +698,7 @@ function populateAssetTable(assets) {
       <td>${priceText}</td>
       <td>${getStatusBadgeHTML(asset)}</td>
     `;
+    tr.querySelector('.asset-select')?.addEventListener('click', event => event.stopPropagation());
     tbody.appendChild(tr);
   });
 }
@@ -550,7 +710,7 @@ function populateUserTable(users) {
   tbody.innerHTML = '';
   
   // Sort users so Admin is first
-  const sortedUsers = [...users].sort((a, b) => a.role.localeCompare(b.role));
+  const sortedUsers = users.filter(user => !user.username.startsWith('user_lifecycle_')).sort((a, b) => a.role.localeCompare(b.role));
   
   let currentRole = null;
   sortedUsers.forEach(u => {
@@ -558,7 +718,7 @@ function populateUserTable(users) {
       currentRole = u.role;
       const groupTr = document.createElement('tr');
       groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ Administrators' : '👨‍💻 Staff Members'}</td>`;
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'super_admin' ? '👑 Super Admin' : currentRole === 'admin' ? '🛡️ เจ้าหน้าที่ IT / Admin' : '👨‍💻 พนักงานทั่วไป / Staff'}</td>`;
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');
@@ -567,7 +727,7 @@ function populateUserTable(users) {
       <td><strong>${u.username}</strong></td>
       <td>${u.name}</td>
       <td>${u.department}</td>
-      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role.toUpperCase()}</span></td>
+      <td><span class="badge ${u.role === 'admin' || u.role === 'super_admin' ? 'badge-working' : 'badge-vendor'}">${u.role === 'super_admin' ? 'SUPER ADMIN' : u.role === 'admin' ? 'IT ADMIN' : 'STAFF'}</span></td>
       <td>
         ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ลบผู้ใช้</button>` : `<span style="font-size: 11px; color: var(--text-muted);">ระบบหลัก</span>`}
       </td>
@@ -598,8 +758,11 @@ function populateAuditTable(logs) {
   
   tbody.innerHTML = '';
   
-  // Sort by moved_direction or type to group them
-  const sortedLogs = [...logs].sort((a, b) => a.moved_direction.localeCompare(b.moved_direction));
+  let filteredLogs = [...logs];
+  if (state.auditFilter === 'batch') filteredLogs = filteredLogs.filter(log => String(log.details || '').includes('"batch":true'));
+  if (state.auditFilter === 'auth') filteredLogs = filteredLogs.filter(log => log.asset_tag === 'SYSTEM_AUTH');
+  if (state.auditFilter === 'movement') filteredLogs = filteredLogs.filter(log => log.asset_tag !== 'SYSTEM_AUTH' && !String(log.details || '').includes('"batch":true'));
+  const sortedLogs = filteredLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
   let currentDir = null;
 
   sortedLogs.forEach(log => {
@@ -613,15 +776,26 @@ function populateAuditTable(logs) {
 
     const tr = document.createElement('tr');
     const time = new Date(log.timestamp).toLocaleString('th-TH');
+    let itemContext = log.asset_tag;
+    let changeContext = log.status || '-';
+    try {
+      const batch = JSON.parse(log.details || '{}');
+      if (batch.batch) {
+        itemContext = batch.changes.map(change => `${change.item_name} (${change.asset_tag})`).join(', ');
+        changeContext = batch.changes.map(change => `${change.old_status} → ${change.new_status}`).join(' | ');
+      }
+    } catch (error) {
+      // Legacy audit rows contain plain text details.
+    }
     
     let dirClass = 'badge-working';
     if (log.moved_direction === 'OUT') dirClass = 'badge-broken';
     
     tr.innerHTML = `
       <td>${time}</td>
-      <td><strong>${log.asset_tag}</strong></td>
+      <td><strong>${itemContext}</strong></td>
       <td>${log.department_name}</td>
-      <td>${log.status}</td>
+      <td>${changeContext}</td>
       <td><span class="badge ${dirClass}">${log.moved_direction}</span></td>
       <td>${log.action_by_username}</td>
     `;
@@ -676,15 +850,26 @@ function displayLocalParserResults(parsed) {
 }
 
 // Lookup Asset Details
-async function lookupAsset(tag) {
+async function lookupAsset(tag, searchType = 'asset_tag') {
+  state.selectedAsset = null;
+  document.getElementById('ward-details-card').style.display = 'none';
+  document.getElementById('it-details-card').style.display = 'none';
   const parsed = parseAssetTagLocal(tag);
   displayLocalParserResults(parsed);
   hideFuzzySuggestion();
   
   try {
-    const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`, { headers: getAuthHeaders() });
+    let endpoint = `/api/assets/${encodeURIComponent(tag)}`;
+    if (searchType === 'rma') endpoint = `/api/rma-claims?search=${encodeURIComponent(tag)}`;
+    const res = await fetch(endpoint, { headers: getAuthHeaders() });
     if (res.ok) {
-      const asset = await res.json();
+      let asset = await res.json();
+      if (searchType === 'rma') {
+        const rma = Array.isArray(asset) ? asset[0] : null;
+        if (!rma) throw new Error('No matching RMA');
+        const assetRes = await fetch(`/api/assets/${encodeURIComponent(rma.asset_tag)}`, { headers: getAuthHeaders() });
+        asset = await assetRes.json();
+      }
 
       if (asset.is_fuzzy_match) {
         state.pendingFuzzyAsset = asset;
@@ -700,11 +885,15 @@ async function lookupAsset(tag) {
         displayAssetDetails(asset);
       }
     } else {
+      if (state.user?.role !== 'admin') {
+        showThaiAlert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในระบบ`, { title: 'ไม่พบข้อมูล' });
+        return;
+      }
       if (confirm(`ไม่พบรหัสครุภัณฑ์ "${tag}" คุณต้องการเพิ่มข้อมูลครุภัณฑ์ใหม่หรือไม่?`)) {
         document.getElementById('add-asset-modal').style.display = 'flex';
         document.getElementById('new-asset-tag').value = tag;
       } else {
-        alert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`);
+        showThaiAlert(`ไม่พบรหัสครุภัณฑ์ "${tag}" ในฐานข้อมูล แต่ระบบคำนวณแบบ Offline ได้ว่าปีผลิตคือ ${parsed.year}`, { title: 'ไม่พบข้อมูล' });
       }
     }
   } catch (error) {
@@ -903,6 +1092,7 @@ window.handleSalvageAction = async function(salvageStatus) {
 // Form Handlers: Add Asset, Add User, Add Config
 async function handleAddAsset(e) {
   e.preventDefault();
+  if (!(await reauthenticate())) return;
   const payload = {
     asset_tag: document.getElementById('new-asset-tag').value.trim(),
     device_name: document.getElementById('new-device-name').value.trim(),
@@ -940,6 +1130,7 @@ async function handleAddAsset(e) {
 
 async function handleAddUser(e) {
   e.preventDefault();
+  if (!(await reauthenticate())) return;
   const payload = {
     username: document.getElementById('new-username').value.trim(),
     password: document.getElementById('new-password').value,
@@ -971,6 +1162,7 @@ async function handleAddUser(e) {
 
 async function handleAddConfig(e) {
   e.preventDefault();
+  if (!(await reauthenticate())) return;
   const id = document.getElementById('config-id').value;
   const payload = {
     type: document.getElementById('config-type').value,

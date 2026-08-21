@@ -20,6 +20,12 @@
       <div class="nav-tabs" id="nav-tabs" style="display: none;">
         <button class="nav-btn active" id="btn-to-ward">🛡️ พนักงานทั่วไป (Staff Portal)</button>
         <button class="nav-btn" id="btn-to-it">💻 เจ้าหน้าที่ IT (IT Portal)</button>
+        <div class="it-module-tabs" id="it-module-tabs" style="display: none;">
+          <button class="nav-btn it-module-btn active" data-it-module="dashboard">📊 Dashboard</button>
+          <button class="nav-btn it-module-btn" data-it-module="operations">🧰 Operations</button>
+          <button class="nav-btn it-module-btn" data-it-module="administration">⚙️ Administration</button>
+          <button class="nav-btn it-module-btn" data-it-module="audit">📜 Audit</button>
+        </div>
       </div>
       
       <div class="user-badge" id="user-badge" style="display: none;">
@@ -81,6 +87,7 @@
           <div>
             <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
             <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <select id="ward-search-type" class="form-control search-type" aria-label="Search type"><option value="asset_tag">Asset Tag</option><option value="serial_no">Serial Number</option><option value="rma">RMA / Case No.</option></select>
               <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02" autofocus>
               <button class="btn" id="ward-search-btn" style="padding: 10px 18px;">ค้นหา</button>
             </div>
@@ -164,7 +171,7 @@
     <!-- 3. IT STAFF PORTAL (Admin View) -->
     <section id="it-section" class="view-section">
       <!-- Statistics Row -->
-      <div class="stats-row">
+      <div class="stats-row it-module-section" data-it-module-section="dashboard">
         <div class="glass-panel stat-card">
           <div class="stat-title">📦 ทรัพย์สินทั้งหมด</div>
           <div class="stat-num" id="stat-total-assets">0</div>
@@ -185,9 +192,39 @@
           <div class="stat-num" id="stat-vendor-claims" style="color: var(--warning);">0</div>
           <div style="font-size: 11px; color: var(--text-muted);">รอศูนย์มารับอุปกรณ์</div>
         </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">⏳ อยู่ระหว่างส่งเคลม</div>
+          <div class="stat-num" id="stat-rma-assets" style="color: var(--info);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">อยู่ในกระบวนการเคลม</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">⚪ หมดอายุรับประกัน</div>
+          <div class="stat-num" id="stat-expired-assets" style="color: var(--expired);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">นอกระยะรับประกัน</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">🧼 ล้างข้อมูลแล้ว</div>
+          <div class="stat-num" id="stat-sanitized-assets" style="color: var(--info);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">พร้อมเข้าสู่ขั้นตอนเคลม</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">💰 รอขายทอดตลาด</div>
+          <div class="stat-num" id="stat-pending-sell" style="color: var(--warning);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">จำหน่าย / ขาย</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">🎁 รอบริจาค</div>
+          <div class="stat-num" id="stat-pending-donation" style="color: #f472b6;">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">ส่งต่อเพื่อบริจาค</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">🗑️ แทงจำหน่าย</div>
+          <div class="stat-num" id="stat-scrapped-assets" style="color: var(--expired);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">ออกจากทะเบียน</div>
+        </div>
       </div>
 
-      <div class="portal-grid" style="margin-bottom: 30px;">
+      <div class="portal-grid it-module-section" data-it-module-section="operations" style="margin-bottom: 30px;">
         <!-- Left Side: Scanner & Selection -->
         <div class="glass-panel">
           <h3 style="margin-bottom: 16px;">🔍 จัดการและสแกนส่งเคลม (IT Control)</h3>
@@ -195,7 +232,8 @@
           <div>
             <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
             <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03" autofocus>
+              <select id="it-search-type" class="form-control search-type" aria-label="Search type"><option value="asset_tag">Asset Tag</option><option value="serial_no">Serial Number</option><option value="rma">RMA / Case No.</option></select>
+              <input type="text" id="it-search-input" class="form-control scanner-only-input" style="flex: 1;" placeholder="สแกนบาร์โค้ดเท่านั้น — ไม่รองรับการพิมพ์" readonly autofocus>
               <button class="btn" id="it-search-btn" style="padding: 10px 18px;">ค้นหา</button>
             </div>
           </div>
@@ -348,7 +386,7 @@
       </div>
 
       <!-- Asset Inventory list & ISO 27001 logs -->
-      <div class="glass-panel" style="margin-bottom: 30px;">
+      <div class="glass-panel it-module-section" data-it-module-section="operations" style="margin-bottom: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
           <div>
             <h3>📦 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
@@ -364,7 +402,8 @@
               <option value="Pending Donation">รอดำเนินการบริจาค</option>
               <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
             </select>
-            <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (Copy Data)</button>
+            <button class="btn btn-secondary" id="btn-print-selected" style="font-size: 13px; padding: 8px 16px;">🖨️ พิมพ์เอกสาร PDF</button>
+            <button class="btn btn-secondary" id="btn-batch-status" style="font-size: 13px; padding: 8px 16px;">🔁 เปลี่ยนสถานะที่เลือก</button>
             <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่ (Add New Asset)</button>
           </div>
         </div>
@@ -372,6 +411,7 @@
           <table>
             <thead>
               <tr>
+                <th><input type="checkbox" id="select-all-assets" aria-label="เลือกทั้งหมด"></th>
                 <th>รหัสครุภัณฑ์</th>
                 <th>ชื่ออุปกรณ์</th>
                 <th>แบรนด์ (Brand)</th>
@@ -399,7 +439,12 @@
       </div>
 
       <!-- Admin User Management Panel -->
-      <div class="glass-panel" style="margin-bottom: 30px;">
+      <div class="glass-panel it-module-section" data-it-module-section="administration" style="margin-bottom: 30px;">
+        <div class="admin-table-tabs" role="tablist">
+          <button class="nav-btn admin-table-tab active" data-admin-table="users">👥 ผู้ใช้งาน</button>
+          <button class="nav-btn admin-table-tab" data-admin-table="configs">⚙️ แบรนด์ / หมวดหมู่</button>
+          <button class="nav-btn admin-table-tab" data-admin-table="departments">🏥 แผนก / ชั้น</button>
+        </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <div>
             <h3>👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
@@ -407,7 +452,7 @@
           </div>
           <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มผู้ใช้งานใหม่ (Add User)</button>
         </div>
-        <div class="table-container">
+        <div class="table-container admin-table-panel" data-admin-table-panel="users">
           <table>
             <thead>
               <tr>
@@ -424,10 +469,14 @@
             </tbody>
           </table>
         </div>
+        <div class="table-container admin-table-panel" data-admin-table-panel="departments" style="display: none;">
+          <div class="admin-subtable-header"><strong>แผนกและชั้นอาคาร</strong><button class="btn btn-secondary" id="btn-open-add-department-modal">➕ เพิ่มแผนก / ชั้น</button></div>
+          <table><thead><tr><th>อาคาร</th><th>ชั้น</th><th>แผนก / หอผู้ป่วย</th><th>พื้นที่ IT</th></tr></thead><tbody id="department-table-body"></tbody></table>
+        </div>
       </div>
 
       <!-- Admin Configuration Panel -->
-      <div class="glass-panel" style="margin-bottom: 30px;">
+      <div class="glass-panel it-module-section admin-table-panel" data-admin-table-panel="configs" data-it-module-section="administration" style="margin-bottom: 30px; display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <div>
             <h3>⚙️ ตั้งค่าระบบ (System Configurations)</h3>
@@ -453,9 +502,15 @@
         </div>
       </div>
 
-      <div class="glass-panel">
+      <div class="glass-panel it-module-section" data-it-module-section="audit">
         <h3 style="margin-bottom: 8px;">📜 บันทึกรายงานการเคลื่อนย้ายครุภัณฑ์ (Asset Move & RMA Audit Logs)</h3>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">ระบบล็อกการเปลี่ยนแปลงข้อมูลถาวร ไม่สามารถแก้ไขย้อนหลังได้ เพื่อการตรวจสอบความปลอดภัยของข้อมูล</p>
+        <div class="admin-table-tabs audit-tabs" role="tablist">
+          <button class="nav-btn audit-tab active" data-audit-filter="recent">ล่าสุด 5 รายการ</button>
+          <button class="nav-btn audit-tab" data-audit-filter="movement">เคลื่อนย้าย / เคลม</button>
+          <button class="nav-btn audit-tab" data-audit-filter="batch">เปลี่ยนสถานะชุด</button>
+          <button class="nav-btn audit-tab" data-audit-filter="auth">การเข้าสู่ระบบ</button>
+        </div>
         <div class="table-container">
           <table>
             <thead>
@@ -478,6 +533,16 @@
   </main>
 
   <!-- MODAL: ADD ASSET -->
+  <div id="center-alert-modal" class="center-alert-modal" hidden role="alertdialog" aria-modal="true">
+    <div class="glass-panel center-alert-panel"><h3 id="center-alert-title">ClaimIT</h3><p id="center-alert-message"></p><div class="center-alert-actions"><button class="btn btn-secondary" id="center-alert-cancel">ยกเลิก</button><button class="btn" id="center-alert-confirm">ตกลง</button></div></div>
+  </div>
+  <div id="reauth-modal" class="center-alert-modal" hidden role="dialog" aria-modal="true">
+    <form class="glass-panel center-alert-panel" id="reauth-form"><h3>🔐 ยืนยันรหัสผ่านอีกครั้ง</h3><p>การเปลี่ยนข้อมูลสำคัญต้องยืนยันตัวตนก่อนดำเนินการ</p><input type="password" id="reauth-password" class="form-control" placeholder="รหัสผ่านปัจจุบัน" required><div class="center-alert-actions"><button type="button" class="btn btn-secondary" id="reauth-cancel">ยกเลิก</button><button class="btn" type="submit">ยืนยัน</button></div></form>
+  </div>
+  <div id="batch-status-modal" class="center-alert-modal" hidden role="dialog" aria-modal="true">
+    <form class="glass-panel center-alert-panel" id="batch-status-form"><h3>🔁 เปลี่ยนสถานะหลายรายการ</h3><p id="batch-status-count"></p><select id="batch-status-value" class="form-control"><option value="Working">ใช้งานปกติ</option><option value="Broken">ชำรุด / เสียหาย</option><option value="Pending Pickup">รอศูนย์รับอุปกรณ์</option><option value="Scrapped">แทงจำหน่าย</option></select><div class="center-alert-actions"><button type="button" class="btn btn-secondary" id="batch-status-cancel">ยกเลิก</button><button class="btn" type="submit">ยืนยันการเปลี่ยน</button></div></form>
+  </div>
+
   <div id="add-asset-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
     <div class="glass-panel" style="max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -564,13 +629,21 @@
         </div>
         <div class="form-group">
           <label>แผนก / หอผู้ป่วย (Department)</label>
-          <input type="text" id="new-user-dept" class="form-control" placeholder="Ward 20" required>
+          <select id="new-user-dept" class="form-control" required>
+            <option value="">เลือกแผนก / หอผู้ป่วย</option>
+            <option value="ชั้น 1 - OPD">ชั้น 1 - OPD</option>
+            <option value="ชั้น 2 - ER">ชั้น 2 - ER</option>
+            <option value="ชั้น 3 - WARD 20">ชั้น 3 - WARD 20</option>
+            <option value="ชั้น 4 - ICU">ชั้น 4 - ICU</option>
+            <option value="ชั้น 5 - ฝ่าย IT">ชั้น 5 - ฝ่าย IT</option>
+          </select>
         </div>
         <div class="form-group">
           <label>สิทธิ์การใช้งาน (Role)</label>
           <select id="new-user-role" class="form-control" required>
             <option value="staff">Staff (Staff Portal)</option>
             <option value="admin">IT Staff (Admin Portal)</option>
+            <option value="super_admin">Super Admin (จัดการสิทธิ์ชั่วคราว)</option>
           </select>
         </div>
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">สร้างบัญชีผู้ใช้</button>
@@ -606,6 +679,10 @@
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการตั้งค่า</button>
       </form>
     </div>
+  </div>
+
+  <div id="add-department-modal" class="center-alert-modal" hidden>
+    <form class="glass-panel center-alert-panel" id="add-department-form"><h3>➕ เพิ่มแผนก / ชั้นอาคาร</h3><div class="form-group"><label>อาคาร</label><input id="new-department-building" class="form-control" required></div><div class="form-group"><label>ชั้น</label><input id="new-department-floor" class="form-control" required></div><div class="form-group"><label>ชื่อแผนก / หอผู้ป่วย</label><input id="new-department-name" class="form-control" required></div><label><input type="checkbox" id="new-department-it"> เป็นพื้นที่ฝ่าย IT</label><div class="center-alert-actions"><button type="button" class="btn btn-secondary" id="close-department-modal">ยกเลิก</button><button class="btn" type="submit">บันทึก</button></div></form>
   </div>
 
   <!-- MODAL: EMAIL PREVIEW -->
