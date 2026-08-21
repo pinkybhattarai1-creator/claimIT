@@ -3,7 +3,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const { PORT, NODE_ENV } = require('./utils/envValidator');
+const { PORT, NODE_ENV, HOST, SECRET_PORTAL_PATH } = require('./utils/envValidator');
 const { db } = require('./db');
 const { 
   securityHeaders, 
@@ -21,6 +21,25 @@ app.use(corsMiddleware);
 // 2. Body Parsing with Strict Size Limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Secret Portal Middleware
+if (SECRET_PORTAL_PATH) {
+  app.get(`/${SECRET_PORTAL_PATH}`, (req, res) => {
+    res.setHeader('Set-Cookie', `claimit_entry_auth=${SECRET_PORTAL_PATH}; Path=/; HttpOnly; Max-Age=2592000`); // 30 days
+    res.redirect('/');
+  });
+  
+  app.use((req, res, next) => {
+    // Let API and Health endpoints pass
+    if (req.path.startsWith('/api/') || req.path === '/health') return next();
+    // Check cookie
+    const cookies = req.headers.cookie || '';
+    if (!cookies.includes(`claimit_entry_auth=${SECRET_PORTAL_PATH}`)) {
+      return res.status(404).send('Not Found');
+    }
+    next();
+  });
+}
 
 // 3. Static Files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -64,8 +83,11 @@ app.use('/api/email', require('./routes/email'));
 app.use(errorHandler);
 
 // 8. Start Server
-const server = app.listen(PORT, () => {
-  console.log(`[ClaimIT Server] Running securely on port ${PORT} (${NODE_ENV})`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`[ClaimIT Server] Running securely on ${HOST}:${PORT} (${NODE_ENV})`);
+  if (SECRET_PORTAL_PATH) {
+    console.log(`[Secret Portal] Accessible ONLY via: http://${HOST}:${PORT}/${SECRET_PORTAL_PATH}`);
+  }
 });
 
 module.exports = { app, server };

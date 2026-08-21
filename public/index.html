@@ -28,6 +28,7 @@
           <div style="font-size: 13px; font-weight: 600;" id="user-name">Name</div>
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
+        <button class="btn btn-secondary" id="demo-toggle-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 10px; background: transparent; border: 1px solid transparent; color: var(--text-muted); opacity: 0.5;">Demo Mode</button>
         <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">ออกจากระบบ</button>
       </div>
     </div>
@@ -46,7 +47,7 @@
         
         <form id="login-form">
           <div class="form-group">
-            <label for="login-username">ชื่อผู้ใช้งาน (Username)</label>
+            <label for="login-username">ชื่อผู้ใช้งาน (Username) <span id="demo-fill-admin" class="demo-only" style="cursor: pointer; color: var(--primary); font-size: 11px; float: right; display: none;">[Fill Admin]</span> <span id="demo-fill-staff" class="demo-only" style="cursor: pointer; color: var(--success); font-size: 11px; float: right; display: none; margin-right: 8px;">[Fill Staff]</span></label>
             <input type="text" id="login-username" class="form-control" placeholder="ระบุ username (e.g. staff, admin)" required autocomplete="username">
           </div>
           <div class="form-group">
@@ -303,7 +304,7 @@
                   <!-- Populated dynamically -->
                 </select>
               </div>
-              <div id="brand-procedure-panel" style="display: none; margin-bottom: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px;"></div>
+              <div id="brand-procedure-panel" style="display: none; margin-bottom: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.5;"></div>
               <div class="form-group">
                 <label for="claim-rma-no">หมายเลขใบรับงานเคลม (RMA / Case ID)</label>
                 <input type="text" id="claim-rma-no" class="form-control" placeholder="ตัวอย่าง: RMA-9988-77" required>
@@ -373,6 +374,7 @@
               <tr>
                 <th>รหัสครุภัณฑ์</th>
                 <th>ชื่ออุปกรณ์</th>
+                <th>แบรนด์ (Brand)</th>
                 <th>ที่อยู่/จุดติดตั้ง</th>
                 <th>วันหมดอายุรับประกัน</th>
                 <th>มูลค่าประเมิน</th>

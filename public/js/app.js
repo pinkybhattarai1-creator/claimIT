@@ -88,6 +88,32 @@ function setupEventListeners() {
   
   logoutBtn.addEventListener('click', logout);
   
+  // Demo Mode
+  let isDemoMode = false;
+  const demoToggleBtn = document.getElementById('demo-toggle-btn');
+  if (demoToggleBtn) {
+    demoToggleBtn.addEventListener('click', () => {
+      isDemoMode = !isDemoMode;
+      demoToggleBtn.style.opacity = isDemoMode ? '1' : '0.5';
+      demoToggleBtn.style.background = isDemoMode ? 'var(--primary-glow)' : 'transparent';
+      document.querySelectorAll('.demo-only').forEach(el => {
+        el.style.display = isDemoMode ? 'inline-block' : 'none';
+      });
+    });
+  }
+
+  const fillAdmin = document.getElementById('demo-fill-admin');
+  if (fillAdmin) fillAdmin.addEventListener('click', () => {
+    document.getElementById('login-username').value = 'admin';
+    document.getElementById('login-password').value = 'admin123';
+  });
+
+  const fillStaff = document.getElementById('demo-fill-staff');
+  if (fillStaff) fillStaff.addEventListener('click', () => {
+    document.getElementById('login-username').value = 'staff';
+    document.getElementById('login-password').value = 'staff123';
+  });
+  
   // Manual search (Click)
   document.getElementById('ward-search-btn').addEventListener('click', () => {
     const val = document.getElementById('ward-search-input').value.trim();
@@ -439,9 +465,12 @@ function updatePaginationUI() {
   const btnPrev = document.getElementById('btn-prev-page');
   const btnNext = document.getElementById('btn-next-page');
   if (btnPrev && btnNext) {
-    btnPrev.disabled = state.pagination.page <= 1;
     const maxPage = Math.ceil(state.pagination.total / state.pagination.limit);
-    btnNext.disabled = state.pagination.page >= maxPage || maxPage === 0;
+    
+    // Hide prev if on first page
+    btnPrev.style.display = state.pagination.page <= 1 ? 'none' : 'inline-block';
+    // Hide next if on last page or no items
+    btnNext.style.display = (state.pagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
   }
 }
 
@@ -457,7 +486,11 @@ function updateStatistics(assets) {
   document.getElementById('stat-vendor-claims').textContent = atVendor;
 }
 
-function getStatusBadgeHTML(status, salvageStatus) {
+function getStatusBadgeHTML(asset) {
+  const status = asset.status;
+  const salvageStatus = asset.salvage_status;
+  const isExpired = new Date(asset.warranty_end) < new Date();
+
   if (salvageStatus === 'Pending Sell') {
     return `<span class="badge badge-sell">💰 รอขายทอดตลาด</span>`;
   }
@@ -473,8 +506,8 @@ function getStatusBadgeHTML(status, salvageStatus) {
   if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
     return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย (Scrapped)</span>`;
   }
-  if (status === 'Broken') {
-    return `<span class="badge badge-broken">🔴 ชำรุด (Broken)</span>`;
+  if (status === 'Broken' || (isExpired && status !== 'Working' && status !== 'Pending Pickup')) {
+    return `<span class="badge badge-broken">🔴 ชำรุด/หมดประกัน (Danger)</span>`;
   }
   if (status === 'Pending Pickup') {
     return `<span class="badge badge-vendor">🟡 รอศูนย์เข้ามารับ</span>`;
@@ -500,10 +533,11 @@ function populateAssetTable(assets) {
     tr.innerHTML = `
       <td><strong>${asset.asset_tag}</strong></td>
       <td>${asset.device_name}</td>
+      <td><strong>${asset.brand || '-'}</strong></td>
       <td>${asset.location}</td>
       <td>${asset.warranty_end}</td>
       <td>${priceText}</td>
-      <td>${getStatusBadgeHTML(asset.status, asset.salvage_status)}</td>
+      <td>${getStatusBadgeHTML(asset)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -514,7 +548,19 @@ function populateUserTable(users) {
   if (!tbody) return;
 
   tbody.innerHTML = '';
-  users.forEach(u => {
+  
+  // Sort users so Admin is first
+  const sortedUsers = [...users].sort((a, b) => a.role.localeCompare(b.role));
+  
+  let currentRole = null;
+  sortedUsers.forEach(u => {
+    if (currentRole !== u.role) {
+      currentRole = u.role;
+      const groupTr = document.createElement('tr');
+      groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ Administrators' : '👨‍💻 Staff Members'}</td>`;
+      tbody.appendChild(groupTr);
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${u.id}</td>
@@ -551,7 +597,20 @@ function populateAuditTable(logs) {
   if (!tbody) return;
   
   tbody.innerHTML = '';
-  logs.forEach(log => {
+  
+  // Sort by moved_direction or type to group them
+  const sortedLogs = [...logs].sort((a, b) => a.moved_direction.localeCompare(b.moved_direction));
+  let currentDir = null;
+
+  sortedLogs.forEach(log => {
+    if (currentDir !== log.moved_direction) {
+      currentDir = log.moved_direction;
+      const groupTr = document.createElement('tr');
+      groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold;">${currentDir === 'IN' ? '📥 สินค้าเข้า (IN)' : '📤 สินค้าออก (OUT)'}</td>`;
+      tbody.appendChild(groupTr);
+    }
+
     const tr = document.createElement('tr');
     const time = new Date(log.timestamp).toLocaleString('th-TH');
     
@@ -768,7 +827,7 @@ function displayAssetDetails(asset) {
   serialEl.closest('.detail-item').after(quickPanel);
   // --- END WARRANTY QUICK-ACCESS PANEL ---
 
-  document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset.status, asset.salvage_status);
+  document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   
   // Fetch and display claim worthiness calculator evaluation
@@ -1055,13 +1114,24 @@ function populateConfigTable(configs) {
   const tbody = document.getElementById('config-table-body');
   if (!tbody) return;
   tbody.innerHTML = '';
-  configs.forEach(c => {
+  
+  const sortedConfigs = [...configs].sort((a, b) => a.type.localeCompare(b.type));
+  let currentType = null;
+
+  sortedConfigs.forEach(c => {
+    if (currentType !== c.type) {
+      currentType = c.type;
+      const groupTr = document.createElement('tr');
+      groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
+      groupTr.innerHTML = `<td colspan="5" style="font-weight: bold; text-transform: uppercase; color: var(--primary);">${currentType}</td>`;
+      tbody.appendChild(groupTr);
+    }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${c.id}</td>
       <td><strong>${c.type}</strong></td>
       <td>${c.value}</td>
-      <td><div style="max-height: 50px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">${c.details || '-'}</div></td>
+      <td><div style="word-wrap: break-word; white-space: pre-wrap; max-width: 400px;">${c.details || '-'}</div></td>
       <td>
         <button class="btn btn-secondary" onclick="editConfig(${c.id}, '${c.type}', '${c.value}', \`${(c.details||'').replace(/`/g, '\\`')}\`)" style="padding: 4px 8px; font-size: 11px;">แก้ไข</button>
         <button class="btn btn-danger" onclick="deleteConfig(${c.id})" style="padding: 4px 8px; font-size: 11px;">ลบ</button>
