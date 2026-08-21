@@ -63,7 +63,7 @@ function staffOnly(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: 'จำเป็นต้องเข้าสู่ระบบก่อนดำเนินการ' });
   }
-  if (req.user.role === 'staff' || req.user.role === 'admin' || req.user.role === 'super_admin') {
+  if (req.user.role === 'staff' || req.user.role === 'admin') {
     return next();
   }
   return res.status(403).json({ error: 'จำเป็นต้องมีสิทธิ์ระดับเจ้าหน้าที่ขึ้นไป (Staff/Admin access required)' });
@@ -77,7 +77,7 @@ function adminOnly(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: 'จำเป็นต้องเข้าสู่ระบบก่อนดำเนินการ' });
   }
-  if (req.user.role === 'admin' || req.user.role === 'super_admin') {
+  if (req.user.role === 'admin') {
     return next();
   }
   return res.status(403).json({ error: 'เฉพาะผู้ดูแลระบบ IT (Admin) เท่านั้นที่มีสิทธิ์ดำเนินการ' });

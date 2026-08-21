@@ -1,9 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
+const crypto = require('crypto');
 const { db } = require('../db');
 const { evaluateClaimWorthiness } = require('../claim_calculator');
 const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
+
+const newEventCode = () => `MOV-${crypto.randomUUID().toUpperCase()}`;
+function writeMovementEvent({ asset, status, direction, actor, department, floor = '-', operationType = 'STATUS_CHANGE', remark = null, details = null }) {
+  return new Promise((resolve, reject) => {
+    db.run(`INSERT INTO move_log (event_code, asset_tag, serial_no, computer_name, asset_name, quantity, category, brand, model, department_name, floor, status, moved_direction, operation_type, remark, action_by_user_id, action_by_username, details)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [newEventCode(), asset.asset_tag, asset.serial_no, asset.computer_name || null, asset.device_name, asset.category, asset.brand, asset.model, department, floor, status, direction, operationType, remark, actor.id, actor.username, details],
+      function(err) { if (err) return reject(err); resolve(this.lastID); });
+  });
+}
 
 // Get All Assets with optional pagination & filtering (Staff/Admin)
 router.get('/', verifyToken, staffOnly, (req, res) => {
@@ -12,6 +23,7 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   const offset = (page - 1) * limit;
   const statusFilter = req.query.status;
   const categoryFilter = req.query.category;
+  const search = String(req.query.search || '').trim();
   
   let whereClause = "WHERE is_deleted = 0";
   let params = [];
@@ -23,6 +35,11 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   if (categoryFilter) {
     whereClause += " AND category = ?";
     params.push(categoryFilter);
+  }
+  if (search) {
+    const term = `%${search}%`;
+    whereClause += ' AND (asset_tag LIKE ? OR serial_no LIKE ? OR computer_name LIKE ? OR device_name LIKE ? OR brand LIKE ? OR model LIKE ? OR ip_address LIKE ?)';
+    params.push(term, term, term, term, term, term, term);
   }
 
   const query = `SELECT * FROM mains ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`;
@@ -58,9 +75,9 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
 
 // Create New Asset (Admin-only)
 router.post('/', verifyToken, adminOnly, (req, res) => {
-  const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, action_by_username } = req.body;
-  
-  if (!asset_tag || !category || !brand || !model || !serial_no || !device_name || !location || !warranty_start || !warranty_end) {
+  const { asset_tag, category, brand, model, serial_no, device_name, computer_name, ip_address, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no } = req.body;
+  const generatedName = String(device_name || `${category || ''} ${brand || ''} ${model || ''}`).trim();
+  if (!asset_tag || !category || !brand || !model || !serial_no || !generatedName || !location || !warranty_start || !warranty_end) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลครุภัณฑ์ให้ครบถ้วน' });
   }
 
@@ -69,9 +86,9 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   const wMonths = parseInt(warranty_months, 10) || 36;
   const lMonths = parseInt(expected_lifespan_months, 10) || 60;
 
-  db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, salvage_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working', ?, ?, ?, ?, ?, 'None')`,
-    [asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sReq, price, wMonths, lMonths, po_number || '', invoice_no || ''],
+  db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, computer_name, ip_address, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, salvage_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working', ?, ?, ?, ?, ?, 'None')`,
+    [asset_tag, category, brand, model, serial_no, generatedName, computer_name ? String(computer_name).trim() : null, ip_address ? String(ip_address).trim() : null, location, warranty_start, warranty_end, sReq, price, wMonths, lMonths, po_number || '', invoice_no || ''],
     function(err) {
       if (err) {
         if (err.message.includes('UNIQUE')) {
@@ -80,22 +97,22 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
         return res.status(500).json({ error: err.message });
       }
 
-      db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'Fl 1', 'Working', 'IN', ?)`, 
-        [asset_tag, location, action_by_username || req.user.username || 'system']);
-
-      res.json({ id: this.lastID, asset_tag, message: 'ลงทะเบียนครุภัณฑ์ใหม่สำเร็จ' });
+      const asset = { asset_tag, serial_no, computer_name, device_name: generatedName, category, brand, model };
+      writeMovementEvent({ asset, status: 'Working', direction: 'IN', actor: req.user, department: location, operationType: 'REGISTER' })
+        .then(() => res.json({ id: this.lastID, asset_tag, message: 'ลงทะเบียนครุภัณฑ์ใหม่สำเร็จ' }))
+        .catch(logErr => res.status(500).json({ error: logErr.message }));
     }
   );
 });
 
 // Update Asset Details (Admin-only)
 router.put('/:tag', verifyToken, adminOnly, (req, res) => {
-  const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status } = req.body;
+  const { category, brand, model, serial_no, device_name, computer_name, ip_address, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status } = req.body;
   const tag = req.params.tag;
 
-  db.run(`UPDATE mains SET category=?, brand=?, model=?, serial_no=?, device_name=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?, purchase_price=?, warranty_months=?, expected_lifespan_months=?, salvage_status=?
+  db.run(`UPDATE mains SET category=?, brand=?, model=?, serial_no=?, device_name=?, computer_name=?, ip_address=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?, purchase_price=?, warranty_months=?, expected_lifespan_months=?, salvage_status=?
           WHERE asset_tag=? AND is_deleted=0`,
-    [category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, parseFloat(purchase_price)||0, parseInt(warranty_months)||36, parseInt(expected_lifespan_months)||60, salvage_status || 'None', tag],
+    [category, brand, model, serial_no, device_name || `${category} ${brand} ${model}`.trim(), computer_name ? String(computer_name).trim() : null, ip_address ? String(ip_address).trim() : null, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, parseFloat(purchase_price)||0, parseInt(warranty_months)||36, parseInt(expected_lifespan_months)||60, salvage_status || 'None', tag],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ' });
@@ -134,7 +151,7 @@ router.get('/:tag/evaluate', verifyToken, staffOnly, (req, res) => {
 // Lookup Asset by Tag/Serial with Fuzzy Matching Fallback (Staff/Admin)
 router.get('/:tag', verifyToken, staffOnly, (req, res) => {
   const tag = req.params.tag.toUpperCase();
-  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE (m.asset_tag = ? OR m.serial_no = ?) AND m.is_deleted = 0", [tag, tag], (err, row) => {
+  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE (m.asset_tag = ? OR m.serial_no = ? OR m.computer_name = ? OR m.ip_address = ?) AND m.is_deleted = 0", [tag, tag, tag, tag], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (row) {
       res.json(row);
@@ -193,25 +210,19 @@ router.get('/:tag', verifyToken, staffOnly, (req, res) => {
 
 // Update Asset Status (Staff/Admin)
 router.post('/update-status', verifyToken, staffOnly, (req, res) => {
-  const { asset_tag, status, location, action_by_username, department_name, floor } = req.body;
+  const { asset_tag, status } = req.body;
   if (!asset_tag || !status) return res.status(400).json({ error: 'Missing fields' });
-  const actionUser = action_by_username || (req.user ? req.user.username : 'staff');
-
   db.serialize(() => {
     db.get("SELECT * FROM mains WHERE asset_tag = ? AND is_deleted = 0", [asset_tag], (err, asset) => {
       if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
 
-      const newLocation = location || asset.location;
-      db.run("UPDATE mains SET status = ?, location = ? WHERE asset_tag = ?", [status, newLocation, asset_tag], function(err) {
+      db.run("UPDATE mains SET status = ? WHERE asset_tag = ?", [status, asset_tag], function(err) {
         if (err) return res.status(500).json({ error: 'Failed to update asset status' });
 
         const movedDirection = status === 'Working' || status === 'Finished' ? 'IN' : 'OUT';
-        const logDept = department_name || newLocation;
-        const logFloor = floor || 'Unknown';
-
-        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, ?, ?, ?, ?)`, 
-          [asset_tag, logDept, logFloor, status, movedDirection, actionUser]);
-        res.json({ message: 'Asset status updated', status, location: newLocation });
+        writeMovementEvent({ asset, status, direction: movedDirection, actor: req.user, department: asset.location })
+          .then(() => res.json({ message: 'Asset status updated', status, location: asset.location }))
+          .catch(logErr => res.status(500).json({ error: logErr.message }));
       });
     });
   });

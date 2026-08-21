@@ -88,8 +88,8 @@
             <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
             <div style="display: flex; gap: 8px; margin-top: 8px;">
               <select id="ward-search-type" class="form-control search-type" aria-label="Search type"><option value="asset_tag">Asset Tag</option><option value="serial_no">Serial Number</option><option value="rma">RMA / Case No.</option></select>
-              <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02" autofocus>
-              <button class="btn" id="ward-search-btn" style="padding: 10px 18px;">ค้นหา</button>
+              <input type="text" id="ward-search-input" class="form-control scanner-only-input" style="flex: 1;" placeholder="สแกนบาร์โค้ดเท่านั้น" readonly autofocus>
+              <button class="btn" id="ward-search-btn" style="padding: 10px 18px;" disabled>รอการสแกน</button>
             </div>
           </div>
 
@@ -234,7 +234,7 @@
             <div style="display: flex; gap: 8px; margin-top: 8px;">
               <select id="it-search-type" class="form-control search-type" aria-label="Search type"><option value="asset_tag">Asset Tag</option><option value="serial_no">Serial Number</option><option value="rma">RMA / Case No.</option></select>
               <input type="text" id="it-search-input" class="form-control scanner-only-input" style="flex: 1;" placeholder="สแกนบาร์โค้ดเท่านั้น — ไม่รองรับการพิมพ์" readonly autofocus>
-              <button class="btn" id="it-search-btn" style="padding: 10px 18px;">ค้นหา</button>
+              <button class="btn" id="it-search-btn" style="padding: 10px 18px;" disabled>รอการสแกน</button>
             </div>
           </div>
 
@@ -447,10 +447,10 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <div>
-            <h3>👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</p>
+            <h3 id="administration-title">👥 จัดการผู้ใช้งานระบบ</h3>
+            <p id="administration-description" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">บัญชีใหม่เป็นเจ้าหน้าที่ และผู้ดูแลระบบสามารถเลื่อนหรือปรับสิทธิ์ได้</p>
           </div>
-          <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มผู้ใช้งานใหม่ (Add User)</button>
+          <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มเจ้าหน้าที่</button>
         </div>
         <div class="table-container admin-table-panel" data-admin-table-panel="users">
           <table>
@@ -472,8 +472,12 @@
         <div class="table-container admin-table-panel" data-admin-table-panel="departments" style="display: none;">
           <div class="admin-subtable-header"><strong>แผนกและชั้นอาคาร</strong><button class="btn btn-secondary" id="btn-open-add-department-modal">➕ เพิ่มแผนก / ชั้น</button></div>
           <table><thead><tr><th>อาคาร</th><th>ชั้น</th><th>แผนก / หอผู้ป่วย</th><th>พื้นที่ IT</th></tr></thead><tbody id="department-table-body"></tbody></table>
-        </div>
-      </div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <input type="search" id="it-technical-search" class="form-control" placeholder="ค้นหาด้วยชื่อเครื่องหรือ IP เช่น PT3WSOPED26" aria-label="ค้นหาด้วยชื่อเครื่องหรือ IP">
+              <button class="btn btn-secondary" id="it-technical-search-btn">ค้นหาเครื่อง</button>
+            </div>
+          </div>
 
       <!-- Admin Configuration Panel -->
       <div class="glass-panel it-module-section admin-table-panel" data-admin-table-panel="configs" data-it-module-section="administration" style="margin-bottom: 30px; display: none;">
@@ -505,6 +509,12 @@
       <div class="glass-panel it-module-section" data-it-module-section="audit">
         <h3 style="margin-bottom: 8px;">📜 บันทึกรายงานการเคลื่อนย้ายครุภัณฑ์ (Asset Move & RMA Audit Logs)</h3>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">ระบบล็อกการเปลี่ยนแปลงข้อมูลถาวร ไม่สามารถแก้ไขย้อนหลังได้ เพื่อการตรวจสอบความปลอดภัยของข้อมูล</p>
+        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; margin-bottom:16px;">
+          <input type="search" id="audit-search-input" class="form-control" placeholder="ค้นหา Event Code, Tag, Serial, ชื่อเครื่อง, IP, Brand หรือ Model">
+          <input type="date" id="audit-date-from" class="form-control" aria-label="ตั้งแต่วันที่">
+          <input type="date" id="audit-date-to" class="form-control" aria-label="ถึงวันที่">
+          <button class="btn btn-secondary" id="audit-search-btn">ค้นหาประวัติ</button>
+        </div>
         <div class="admin-table-tabs audit-tabs" role="tablist">
           <button class="nav-btn audit-tab active" data-audit-filter="recent">ล่าสุด 5 รายการ</button>
           <button class="nav-btn audit-tab" data-audit-filter="movement">เคลื่อนย้าย / เคลม</button>
@@ -519,8 +529,8 @@
                 <th>รหัสครุภัณฑ์</th>
                 <th>จุดติดตั้ง/ศูนย์เคลม</th>
                 <th>สถานะครุภัณฑ์</th>
-                <th>การเคลื่อยย้าย</th>
-                <th>ผู้บันทึกรายการ</th>
+                <th>ประเภทเหตุการณ์</th>
+                <th>ผู้ดำเนินการ</th>
               </tr>
             </thead>
             <tbody id="audit-table-body">
@@ -555,8 +565,8 @@
           <input type="text" id="new-asset-tag" class="form-control" placeholder="ตัวอย่าง: CIT-2026-MON-01" required>
         </div>
         <div class="form-group">
-          <label>ชื่ออุปกรณ์ (Device Name)</label>
-          <input type="text" id="new-device-name" class="form-control" placeholder="ตัวอย่าง: Dell Monitor 24-inch" required>
+          <label>ชื่ออุปกรณ์สำหรับแสดงผล (ไม่บังคับ)</label>
+          <input type="text" id="new-device-name" class="form-control" placeholder="เว้นว่างเพื่อสร้างจากหมวดหมู่ + ยี่ห้อ + รุ่น">
         </div>
         <div class="form-group">
           <label>หมวดหมู่ (Category)</label>
@@ -582,9 +592,14 @@
           <label>หมายเลขซีเรียล (Serial No.)</label>
           <input type="text" id="new-serial" class="form-control" placeholder="SN12345678" required>
         </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div class="form-group"><label>ชื่อเครื่อง (Computer Name)</label><input type="text" id="new-computer-name" class="form-control" placeholder="PT3WSOPED26"></div>
+          <div class="form-group"><label>IP Address</label><input type="text" id="new-ip-address" class="form-control" placeholder="10.x.x.x"></div>
+        </div>
         <div class="form-group">
           <label>สถานที่ติดตั้ง (Location)</label>
-          <input type="text" id="new-location" class="form-control" placeholder="Ward 20, ER, Technical Support" required>
+          <input type="text" id="new-location" class="form-control" list="location-list" placeholder="ค้นหาอาคาร / ชั้น / แผนก" required>
+          <datalist id="location-list"></datalist>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group">
@@ -611,7 +626,7 @@
   <div id="add-user-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
     <div class="glass-panel" style="max-width: 450px; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3>👤 เพิ่มผู้ใช้งานใหม่ (Add User)</h3>
+        <h3>👤 เพิ่มบัญชีเจ้าหน้าที่</h3>
         <button class="btn btn-secondary" id="close-user-modal-btn" style="padding: 4px 10px;">✕</button>
       </div>
       <form id="add-user-form">
@@ -628,23 +643,14 @@
           <input type="text" id="new-fullname" class="form-control" placeholder="พนักงาน ทั่วไป" required>
         </div>
         <div class="form-group">
-          <label>แผนก / หอผู้ป่วย (Department)</label>
-          <select id="new-user-dept" class="form-control" required>
-            <option value="">เลือกแผนก / หอผู้ป่วย</option>
-            <option value="ชั้น 1 - OPD">ชั้น 1 - OPD</option>
-            <option value="ชั้น 2 - ER">ชั้น 2 - ER</option>
-            <option value="ชั้น 3 - WARD 20">ชั้น 3 - WARD 20</option>
-            <option value="ชั้น 4 - ICU">ชั้น 4 - ICU</option>
-            <option value="ชั้น 5 - ฝ่าย IT">ชั้น 5 - ฝ่าย IT</option>
-          </select>
+          <label>แผนก / หอผู้ป่วย</label>
+          <input id="new-user-dept" class="form-control" list="new-user-dept-list" placeholder="เลือกหรือพิมพ์ชื่อแผนก" required>
+          <datalist id="new-user-dept-list"></datalist>
         </div>
         <div class="form-group">
-          <label>สิทธิ์การใช้งาน (Role)</label>
-          <select id="new-user-role" class="form-control" required>
-            <option value="staff">Staff (Staff Portal)</option>
-            <option value="admin">IT Staff (Admin Portal)</option>
-            <option value="super_admin">Super Admin (จัดการสิทธิ์ชั่วคราว)</option>
-          </select>
+          <label>สิทธิ์เริ่มต้น</label>
+          <input class="form-control" value="เจ้าหน้าที่ (Staff)" readonly>
+          <small style="color: var(--text-muted);">สร้างบัญชีแล้ว ผู้ดูแลระบบจึงสามารถเลื่อนสิทธิ์เป็นผู้ดูแลระบบได้</small>
         </div>
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">สร้างบัญชีผู้ใช้</button>
       </form>

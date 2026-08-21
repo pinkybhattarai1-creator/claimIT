@@ -9,3 +9,5 @@ storage/evidence/*
 !storage/evidence/.gitkeep
 test_evidence.*
 backups/
+work/
+storage/sync-status.json

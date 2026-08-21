@@ -5,7 +5,9 @@ const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
 
 // GET /api/audit-logs (Staff/Admin)
 router.get('/audit-logs', verifyToken, staffOnly, (req, res) => {
-  db.all("SELECT * FROM move_log ORDER BY timestamp DESC", [], (err, rows) => {
+  db.all(`SELECT move_log.*, users.name AS action_by_name
+          FROM move_log LEFT JOIN users ON users.username = move_log.action_by_username
+          ORDER BY move_log.timestamp DESC`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });

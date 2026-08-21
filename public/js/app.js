@@ -48,7 +48,7 @@ function initApp() {
   if (storedUser) {
     state.user = JSON.parse(storedUser);
     showUserNavigation();
-    if (state.user.role === 'admin' || state.user.role === 'super_admin') {
+    if (state.user.role === 'admin') {
       switchView('it');
     } else {
       switchView('ward');
@@ -81,7 +81,7 @@ function setupEventListeners() {
   // Navigation Tabs
   document.getElementById('btn-to-ward').addEventListener('click', () => switchView('ward'));
   document.getElementById('btn-to-it').addEventListener('click', () => {
-    if (state.user && (state.user.role === 'admin' || state.user.role === 'super_admin')) {
+    if (state.user && state.user.role === 'admin') {
       switchView('it');
     } else {
       alert('เฉพาะเจ้าหน้าที่ IT (Admin) เท่านั้นที่สามารถเข้าถึงระบบ IT Portal ได้');
@@ -120,34 +120,14 @@ function setupEventListeners() {
     document.getElementById('login-password').value = 'staff123';
   });
   
-  // Manual search (Click)
-  document.getElementById('ward-search-btn').addEventListener('click', () => {
-    const val = document.getElementById('ward-search-input').value.trim();
-    if (val) lookupAsset(val, document.getElementById('ward-search-type').value);
+  setupScannerOnlyInput('ward');
+  setupScannerOnlyInput('it');
+  document.getElementById('it-technical-search-btn').addEventListener('click', () => {
+    const query = document.getElementById('it-technical-search').value.trim();
+    if (query) lookupAsset(query);
   });
-  
-  document.getElementById('it-search-btn').addEventListener('click', () => {
-    const val = document.getElementById('it-search-input').value.trim();
-    if (val) lookupAsset(val, document.getElementById('it-search-type').value);
-  });
-
-  // Hardware Scanner Support (Listens for "Enter" key after scan)
-  document.getElementById('ward-search-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      hideFuzzySuggestion();
-      const val = document.getElementById('ward-search-input').value.trim();
-      if (val) lookupAsset(val, document.getElementById('ward-search-type').value);
-    }
-  });
-
-  document.getElementById('it-search-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      hideFuzzySuggestion();
-      const val = document.getElementById('it-search-input').value.trim();
-      if (val) lookupAsset(val, document.getElementById('it-search-type').value);
-    }
+  document.getElementById('it-technical-search').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); document.getElementById('it-technical-search-btn').click(); }
   });
 
   // Fuzzy suggestion confirm / dismiss buttons
@@ -329,6 +309,48 @@ function setAdminTable(tableName) {
   document.querySelectorAll('.admin-table-panel').forEach(panel => {
     panel.style.display = panel.dataset.adminTablePanel === tableName ? 'block' : 'none';
   });
+  document.getElementById('audit-search-btn')?.addEventListener('click', loadAuditSearch);
+  document.getElementById('audit-search-input')?.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); loadAuditSearch(); } });
+  const copy = {
+    users: ['👥 จัดการผู้ใช้งานระบบ', 'บัญชีใหม่เป็นเจ้าหน้าที่ และผู้ดูแลระบบสามารถเลื่อนหรือปรับสิทธิ์ได้'],
+    configs: ['⚙️ แบรนด์และหมวดหมู่', 'จัดการแบรนด์ หมวดหมู่ และแนวทางการเคลม'],
+    departments: ['🏥 แผนกและชั้นอาคาร', 'จัดการโครงสร้างอาคาร ชั้น และหน่วยงาน']
+  }[tableName];
+  if (copy) {
+    document.getElementById('administration-title').textContent = copy[0];
+    document.getElementById('administration-description').textContent = copy[1];
+    document.getElementById('btn-open-add-user-modal').style.display = tableName === 'users' ? 'inline-flex' : 'none';
+  }
+}
+
+// Scanner inputs are read-only. A hardware scanner acts like a fast keyboard, so
+// accept only a rapid barcode sequence ending with Enter; ordinary typing/paste is ignored.
+function setupScannerOnlyInput(prefix) {
+  const input = document.getElementById(`${prefix}-search-input`);
+  if (!input) return;
+  let buffer = '';
+  let lastKeyAt = 0;
+  input.addEventListener('keydown', event => {
+    event.preventDefault();
+    const now = Date.now();
+    if (event.key === 'Enter') {
+      const scanned = buffer.trim();
+      buffer = '';
+      input.value = '';
+      if (scanned.length >= 4) {
+        input.value = scanned;
+        hideFuzzySuggestion();
+        lookupAsset(scanned, document.getElementById(`${prefix}-search-type`).value);
+      }
+      return;
+    }
+    if (event.key.length !== 1 || (lastKeyAt && now - lastKeyAt > 80)) buffer = '';
+    if (event.key.length === 1) {
+      buffer += event.key;
+      lastKeyAt = now;
+    }
+  });
+  ['paste', 'drop', 'beforeinput'].forEach(type => input.addEventListener(type, event => event.preventDefault()));
 }
 
 function getSelectedAssetTags() {
@@ -471,7 +493,7 @@ function switchView(viewName) {
 }
 
 function setItModule(moduleName) {
-  if (!state.user || !['admin', 'super_admin'].includes(state.user.role)) return;
+  if (!state.user || state.user.role !== 'admin') return;
   if (moduleName === 'administration') setAdminTable('users');
   document.querySelectorAll('[data-it-module-section]').forEach(section => {
     section.style.display = section.dataset.itModuleSection === moduleName
@@ -520,9 +542,9 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = state.user.role === 'super_admin' ? 'Super Admin' : state.user.role === 'admin' ? 'IT Admin' : 'Staff';
+  userRoleEl.textContent = state.user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่';
   const itBtn = document.getElementById('btn-to-it');
-  if (state.user.role === 'admin' || state.user.role === 'super_admin') {
+  if (state.user.role === 'admin') {
     itBtn.style.display = 'flex';
     document.getElementById('it-module-tabs').style.display = state.activeView === 'it' ? 'flex' : 'none';
   } else {
@@ -563,10 +585,11 @@ async function refreshData() {
     updatePaginationUI();
     
     const logsRes = await fetch('/api/audit-logs', { headers: getAuthHeaders() });
-    const logs = await logsRes.json();
+    const logsPayload = await logsRes.json();
+    const logs = Array.isArray(logsPayload) ? logsPayload : logsPayload.rows;
     state.auditLogs = logs;
 
-    if (state.user && (state.user.role === 'admin' || state.user.role === 'super_admin')) {
+    if (state.user && state.user.role === 'admin') {
       const usersRes = await fetch('/api/users', { headers: getAuthHeaders() });
       if (usersRes.ok) {
         const users = await usersRes.json();
@@ -595,6 +618,11 @@ function populateDepartmentTable(departments) {
   const body = document.getElementById('department-table-body');
   if (!body) return;
   body.innerHTML = departments.map(department => `<tr><td>${department.building_name}</td><td>${department.floor}</td><td>${department.name}</td><td>${department.is_technical_area ? 'ใช่' : 'ไม่ใช่'}</td></tr>`).join('');
+  const list = document.getElementById('new-user-dept-list');
+  const locations = [...new Set(departments.map(d => `${d.building_name} — ชั้น ${d.floor} — ${d.name}`))].sort();
+  if (list) list.innerHTML = locations.map(location => `<option value="${location}"></option>`).join('');
+  const assetList = document.getElementById('location-list');
+  if (assetList) assetList.innerHTML = locations.map(location => `<option value="${location}"></option>`).join('');
 }
 
 function updatePaginationUI() {
@@ -709,8 +737,8 @@ function populateUserTable(users) {
 
   tbody.innerHTML = '';
   
-  // Sort users so Admin is first
-  const sortedUsers = users.filter(user => !user.username.startsWith('user_lifecycle_')).sort((a, b) => a.role.localeCompare(b.role));
+  // Keep the two deliberately separate roles clear: Admins first, then Staff.
+  const sortedUsers = users.filter(user => !user.username.startsWith('user_lifecycle_')).sort((a, b) => ({ admin: 0, staff: 1 }[a.role] ?? 2) - ({ admin: 0, staff: 1 }[b.role] ?? 2) || a.name.localeCompare(b.name));
   
   let currentRole = null;
   sortedUsers.forEach(u => {
@@ -718,7 +746,7 @@ function populateUserTable(users) {
       currentRole = u.role;
       const groupTr = document.createElement('tr');
       groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'super_admin' ? '👑 Super Admin' : currentRole === 'admin' ? '🛡️ เจ้าหน้าที่ IT / Admin' : '👨‍💻 พนักงานทั่วไป / Staff'}</td>`;
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ ผู้ดูแลระบบ (Admin)' : '👨‍💻 เจ้าหน้าที่ (Staff)'}</td>`;
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');
@@ -727,9 +755,10 @@ function populateUserTable(users) {
       <td><strong>${u.username}</strong></td>
       <td>${u.name}</td>
       <td>${u.department}</td>
-      <td><span class="badge ${u.role === 'admin' || u.role === 'super_admin' ? 'badge-working' : 'badge-vendor'}">${u.role === 'super_admin' ? 'SUPER ADMIN' : u.role === 'admin' ? 'IT ADMIN' : 'STAFF'}</span></td>
+      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role === 'admin' ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</span></td>
       <td>
-        ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ลบผู้ใช้</button>` : `<span style="font-size: 11px; color: var(--text-muted);">ระบบหลัก</span>`}
+        <button class="btn btn-secondary" onclick="changeUserRole(${u.id}, '${u.role === 'admin' ? 'staff' : 'admin'}')" style="padding: 4px 8px; font-size: 11px;">${u.role === 'admin' ? 'ปรับเป็นเจ้าหน้าที่' : 'เลื่อนเป็นผู้ดูแล'}</button>
+        ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ระงับบัญชี</button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -752,6 +781,14 @@ window.deleteUser = async function(id) {
   }
 };
 
+window.changeUserRole = async function(id, role) {
+  const message = role === 'admin' ? 'ยืนยันการเลื่อนสิทธิ์ผู้ใช้นี้เป็นผู้ดูแลระบบ?' : 'ยืนยันการปรับสิทธิ์ผู้ใช้นี้เป็นเจ้าหน้าที่? ระบบจะไม่อนุญาตให้ลดสิทธิ์ผู้ดูแลคนสุดท้าย';
+  if (!confirm(message) || !(await reauthenticate())) return;
+  const res = await fetch(`/api/users/${id}/role`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ role }) });
+  if (res.ok) { alert((await res.json()).message); refreshData(); }
+  else { const err = await res.json(); alert(err.error || 'ไม่สามารถปรับสิทธิ์ได้'); }
+};
+
 function populateAuditTable(logs) {
   const tbody = document.getElementById('audit-table-body');
   if (!tbody) return;
@@ -762,7 +799,8 @@ function populateAuditTable(logs) {
   if (state.auditFilter === 'batch') filteredLogs = filteredLogs.filter(log => String(log.details || '').includes('"batch":true'));
   if (state.auditFilter === 'auth') filteredLogs = filteredLogs.filter(log => log.asset_tag === 'SYSTEM_AUTH');
   if (state.auditFilter === 'movement') filteredLogs = filteredLogs.filter(log => log.asset_tag !== 'SYSTEM_AUTH' && !String(log.details || '').includes('"batch":true'));
-  const sortedLogs = filteredLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+  const sortedLogs = filteredLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  if (state.auditFilter !== 'all') sortedLogs.splice(5);
   let currentDir = null;
 
   sortedLogs.forEach(log => {
@@ -770,7 +808,8 @@ function populateAuditTable(logs) {
       currentDir = log.moved_direction;
       const groupTr = document.createElement('tr');
       groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold;">${currentDir === 'IN' ? '📥 สินค้าเข้า (IN)' : '📤 สินค้าออก (OUT)'}</td>`;
+      const directionLabel = currentDir === 'IN' ? '📥 รับเข้า' : currentDir === 'OUT' ? '📤 นำออก / ส่งเคลม' : currentDir === 'USER_ROLE' ? '👥 การจัดการสิทธิ์ผู้ใช้' : '📋 เหตุการณ์ระบบ';
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold;">${directionLabel}</td>`;
       tbody.appendChild(groupTr);
     }
 
@@ -796,11 +835,28 @@ function populateAuditTable(logs) {
       <td><strong>${itemContext}</strong></td>
       <td>${log.department_name}</td>
       <td>${changeContext}</td>
-      <td><span class="badge ${dirClass}">${log.moved_direction}</span></td>
-      <td>${log.action_by_username}</td>
+      <td><span class="badge ${dirClass}">${log.moved_direction === 'USER_ROLE' ? 'จัดการสิทธิ์' : log.moved_direction}</span></td>
+      <td>${log.action_by_name ? `${log.action_by_name} (${log.action_by_username})` : log.action_by_username}</td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+async function loadAuditSearch() {
+  const params = new URLSearchParams({ limit: '200' });
+  const q = document.getElementById('audit-search-input')?.value.trim();
+  const dateFrom = document.getElementById('audit-date-from')?.value;
+  const dateTo = document.getElementById('audit-date-to')?.value;
+  if (q) params.set('q', q);
+  if (dateFrom) params.set('date_from', dateFrom);
+  if (dateTo) params.set('date_to', dateTo);
+  const response = await fetch(`/api/audit-logs?${params}`, { headers: getAuthHeaders() });
+  if (!response.ok) return showThaiAlert('ไม่สามารถค้นหาประวัติได้');
+  const data = await response.json();
+  state.auditLogs = Array.isArray(data) ? data : data.rows;
+  state.auditFilter = 'all';
+  document.querySelectorAll('.audit-tab').forEach(tab => tab.classList.toggle('active', false));
+  populateAuditTable(state.auditLogs);
 }
 
 // Local Tag Parser Heuristic (ISO / Off-grid Offline Parser)
@@ -1093,18 +1149,22 @@ window.handleSalvageAction = async function(salvageStatus) {
 async function handleAddAsset(e) {
   e.preventDefault();
   if (!(await reauthenticate())) return;
+  const category = document.getElementById('new-category').value;
+  const brand = document.getElementById('new-brand').value.trim();
+  const model = document.getElementById('new-model').value.trim();
   const payload = {
     asset_tag: document.getElementById('new-asset-tag').value.trim(),
-    device_name: document.getElementById('new-device-name').value.trim(),
-    category: document.getElementById('new-category').value,
-    brand: document.getElementById('new-brand').value.trim(),
-    model: document.getElementById('new-model').value.trim(),
+    device_name: document.getElementById('new-device-name').value.trim() || `${category} ${brand} ${model}`.trim(),
+    category,
+    brand,
+    model,
     serial_no: document.getElementById('new-serial').value.trim(),
+    computer_name: document.getElementById('new-computer-name').value.trim(),
+    ip_address: document.getElementById('new-ip-address').value.trim(),
     location: document.getElementById('new-location').value.trim(),
     warranty_start: document.getElementById('new-warranty-start').value,
     warranty_end: document.getElementById('new-warranty-end').value,
     sanitization_required: document.getElementById('new-sanitization-req').checked ? 1 : 0,
-    action_by_username: state.user ? state.user.username : 'admin'
   };
 
   try {
@@ -1135,8 +1195,7 @@ async function handleAddUser(e) {
     username: document.getElementById('new-username').value.trim(),
     password: document.getElementById('new-password').value,
     name: document.getElementById('new-fullname').value.trim(),
-    department: document.getElementById('new-user-dept').value.trim(),
-    role: document.getElementById('new-user-role').value
+    department: document.getElementById('new-user-dept').value.trim()
   };
 
   try {
