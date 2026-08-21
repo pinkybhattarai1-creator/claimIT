@@ -1110,6 +1110,25 @@ async function confirmSanitization() {
 
 let vendorProcedures = {}; // Dynamically populated from configurations
 
+function sanitizeBrandProcedure(details) {
+  if (typeof details !== 'string') return '';
+
+  const trimmed = details.trim();
+  if (!trimmed) return '';
+
+  const unsafePatterns = [
+    /style\s*=\s*["']\s*padding\s*:/i,
+    /padding\s*:\s*4px\s*8px/i,
+    /<script[\s\S]*?<\/script>/i
+  ];
+
+  if (unsafePatterns.some(pattern => pattern.test(trimmed))) {
+    return '';
+  }
+
+  return trimmed;
+}
+
 function populateConfigTable(configs) {
   const tbody = document.getElementById('config-table-body');
   if (!tbody) return;
@@ -1152,8 +1171,10 @@ function updateDynamicDropdowns(configs) {
       opt.value = b.value;
       opt.textContent = b.value;
       vendorSelect.appendChild(opt);
-      if (b.details) {
-        vendorProcedures[b.value] = b.details;
+
+      const safeDetails = sanitizeBrandProcedure(b.details);
+      if (safeDetails) {
+        vendorProcedures[b.value] = safeDetails;
       }
     });
     const otherOpt = document.createElement('option');
@@ -1203,8 +1224,10 @@ window.deleteConfig = async function(id) {
 function handleVendorChange(e) {
   const panel = document.getElementById('brand-procedure-panel');
   const vendor = e.target.value;
-  if (vendorProcedures[vendor]) {
-    panel.innerHTML = vendorProcedures[vendor];
+  const safeDetails = sanitizeBrandProcedure(vendorProcedures[vendor] || '');
+
+  if (safeDetails) {
+    panel.innerHTML = safeDetails;
     panel.style.display = 'block';
   } else {
     panel.style.display = 'none';
