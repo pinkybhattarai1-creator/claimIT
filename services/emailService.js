@@ -1,16 +1,14 @@
 /**
  * ClaimIT Email Service
- * Handles backend-controlled HTML templates, SendGrid integration,
+ * Handles backend-controlled HTML templates, Resend integration,
  * and dispatch tracking in SQLite email_logs.
  */
 
-const sgMail = require('@sendgrid/mail');
+const { Resend } = require('resend');
 const { db } = require('../db');
-const { SENDGRID_API_KEY, SENDGRID_FROM } = require('../utils/envValidator');
+const { RESEND_API_KEY, RESEND_FROM } = require('../utils/envValidator');
 
-if (SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-}
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 // Pre-defined Email Templates
 const TEMPLATES = {
@@ -82,11 +80,11 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
   let status = 'NOT_SENT';
   let errorMessage = null;
 
-  if (SENDGRID_API_KEY && recipient) {
+  if (resend && recipient) {
     try {
-      await sgMail.send({
+      await resend.emails.send({
+        from: RESEND_FROM,
         to: recipient,
-        from: SENDGRID_FROM,
         subject,
         html
       });
@@ -97,8 +95,8 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
       console.error('[EMAIL ERROR]', err);
     }
   } else {
-    // In dev or without API key, record as simulated sent/not_sent
-    status = SENDGRID_API_KEY ? 'SENT' : 'NOT_SENT';
+    status = RESEND_API_KEY ? 'SENT' : 'NOT_SENT';
+    console.log(`[EMAIL SIMULATED] To: ${recipient} | Subject: ${subject}`);
   }
 
   // Record log in SQLite

@@ -11,8 +11,8 @@ const PORT = parseInt(process.env.PORT || '8847', 10);
 const JWT_SECRET = process.env.JWT_SECRET;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-const SENDGRID_FROM = process.env.SENDGRID_FROM || 'no-reply@claimit.local';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
 const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10);
 const MAX_CLAIM_ASSETS = parseInt(process.env.MAX_CLAIM_ASSETS || '5', 10);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -42,8 +42,8 @@ module.exports = {
   JWT_SECRET,
   CORS_ORIGIN,
   UPLOAD_DIR,
-  SENDGRID_API_KEY,
-  SENDGRID_FROM,
+  RESEND_API_KEY,
+  RESEND_FROM,
   MAX_FILE_SIZE_MB,
   MAX_CLAIM_ASSETS,
   HOST,
