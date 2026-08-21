@@ -7,8 +7,8 @@ const { verifyToken, adminOnly } = require('../middleware/auth');
 router.get('/', verifyToken, adminOnly, (req, res) => {
   const includeDeleted = req.query.include_deleted === 'true';
   const query = includeDeleted
-    ? "SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users ORDER BY id ASC"
-    : "SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE is_deleted = 0 ORDER BY id ASC";
+    ? "SELECT id, username, role, name, department, is_active, is_deleted FROM users ORDER BY id ASC"
+    : "SELECT id, username, role, name, department, is_active, is_deleted FROM users WHERE is_deleted = 0 ORDER BY id ASC";
 
   db.all(query, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -18,7 +18,7 @@ router.get('/', verifyToken, adminOnly, (req, res) => {
 
 // GET /api/users/:id (Admin-only)
 router.get('/:id', verifyToken, adminOnly, (req, res) => {
-  db.get("SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE id = ?", [req.params.id], (err, row) => {
+  db.get("SELECT id, username, role, name, department, is_active, is_deleted FROM users WHERE id = ?", [req.params.id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: 'User not found' });
     res.json(row);
