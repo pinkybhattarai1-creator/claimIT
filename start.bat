@@ -14,7 +14,8 @@ if exist .env (
 echo Installing dependencies...
 call npm install --silent
 
-echo Starting Node.js server...
-start http://localhost:%PORT:-8847%
+if not defined PORT set PORT=8847
+if not defined SECRET_PORTAL_PATH set SECRET_PORTAL_PATH=pinky
+start "ClaimIT" "http://localhost:%PORT%/%SECRET_PORTAL_PATH%"
 npm start
 pause
