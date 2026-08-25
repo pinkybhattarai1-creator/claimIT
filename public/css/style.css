@@ -717,3 +717,198 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   OFFICIAL HOSPITAL & VENDOR PRINT TEMPLATE STYLES
+   Pixel-Perfect Layouts for Phyathai 3 Hospital, 888 Technology & Talent Tech
+   ========================================================================== */
+
+.a4-printable-paper {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #111827;
+  padding: 14mm 16mm;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  font-family: 'Prompt', 'Sarabun', 'Tahoma', 'Segoe UI', system-ui, sans-serif;
+  font-size: 11.5px;
+  line-height: 1.35;
+  position: relative;
+}
+
+/* Typography & Layout Primitives for Forms */
+.doc-header-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.doc-main-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.01em;
+}
+
+.doc-sub-header {
+  font-size: 10px;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.doc-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #000;
+  margin: 6px 0 3px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.doc-bordered-box {
+  border: 1px solid #1f2937;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  background: #fff;
+}
+
+.doc-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.doc-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.doc-table th {
+  border: 1px solid #1f2937;
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 700;
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.doc-table td {
+  border: 1px solid #1f2937;
+  padding: 4px 6px;
+  color: #111827;
+  font-size: 11px;
+  background: #fff;
+}
+
+.doc-chk {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #1f2937;
+  margin-right: 4px;
+  vertical-align: middle;
+  text-align: center;
+  line-height: 11px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.doc-chk.checked::after {
+  content: "✓";
+}
+
+.doc-dotted-line {
+  border-bottom: 1px dotted #4b5563;
+  display: inline-block;
+  min-width: 80px;
+  padding: 0 4px;
+}
+
+.doc-signature-card {
+  border: 1px solid #1f2937;
+  padding: 8px;
+  text-align: center;
+  min-height: 95px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.doc-signature-title {
+  font-weight: 700;
+  font-size: 11.5px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.doc-legal-clause {
+  font-size: 9.5px;
+  color: #374151;
+  line-height: 1.35;
+  margin: 6px 0;
+  text-align: justify;
+}
+
+/* Print Rules - Hide everything else and show strictly the simulated A4 */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  header, footer, main, .glass-panel:not(.template-modal-container), #print-template-modal > div > div:not(:last-child), #print-template-modal > div > div:first-child, #template-selector, #btn-execute-print, #close-template-modal-btn, #template-quick-edit-drawer {
+    display: none !important;
+  }
+
+  #print-template-modal {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    backdrop-filter: none !important;
+  }
+
+  .template-modal-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #printable-template-paper {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #fff !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+}
+

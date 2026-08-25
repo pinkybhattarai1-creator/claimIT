@@ -153,9 +153,12 @@
           <!-- Claim Worthiness Indicator Banner -->
           <div id="ward-detail-evaluate" style="margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none;"></div>
 
-          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-            <h4 style="font-size: 15px; margin-bottom: 12px;">การดำเนินการสำหรับแผนก (Actions)</h4>
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+            <h4 style="font-size: 15px; margin-bottom: 4px;">การดำเนินการสำหรับแผนก (Actions)</h4>
             <button class="btn btn-danger" id="btn-report-broken" style="width: 100%;">🚨 แจ้งชำรุดเข้าส่วนกลาง (Report Broken)</button>
+            <button id="btn-open-template-modal-ward" class="btn btn-secondary" onclick="openTemplateCenter(document.getElementById('ward-detail-tag').textContent)" style="width: 100%; font-size: 13px;">
+              🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม (Print Service Form)
+            </button>
           </div>
         </div>
       </div>
@@ -267,10 +270,15 @@
           <!-- Claim Worthiness Evaluation Banner -->
           <div id="it-detail-evaluate" style="margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none;"></div>
 
-          <!-- PDF Download -->
-          <button id="btn-download-pdf" class="btn btn-secondary" onclick="downloadPDF(document.getElementById('it-detail-tag').textContent)" style="width:100%; margin-top:12px; font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px;">
-            📄 ดาวน์โหลดรายงาน PDF (Download Claim Report)
-          </button>
+          <!-- PDF & Official Template Buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+            <button id="btn-open-template-modal-it" class="btn" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);">
+              🖨️ แบบฟอร์มพิมพ์ทางการ (Official Forms)
+            </button>
+            <button id="btn-download-pdf" class="btn btn-secondary" onclick="downloadPDF(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px;">
+              📄 ดาวน์โหลด PDF
+            </button>
+          </div>
 
           <!-- SAFEGUARD PANEL (PDPA Sanitization Check) -->
           <div id="sanitize-panel" class="safeguard-box" style="display: none;">
@@ -659,6 +667,86 @@
         </div>
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">บันทึกรับเครื่องคืนและนำเข้าคลังปกติ</button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: OFFICIAL TEMPLATE PRINT & PDF CENTER -->
+  <div id="print-template-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel template-modal-container" style="max-width: 1000px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #1e293b; border-color: rgba(255,255,255,0.15);">
+      
+      <!-- Modal Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.9);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="font-size: 24px;">🖨️</div>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; color: #fff;">ศูนย์แบบฟอร์มเอกสารทางการ (Official Document & Print Center)</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">แบบฟอร์มโรงพยาบาลพญาไท 3 และศูนย์บริการมาตรฐาน พิมพ์คมชัด 100%</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="close-template-modal-btn" style="padding: 6px 12px; font-size: 14px;">✕ ปิด</button>
+      </div>
+
+      <!-- Controls & Template Selector Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 24px; background: rgba(30, 41, 59, 0.8); border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <label style="font-size: 13px; font-weight: 600; color: #93c5fd;">เลือกแบบฟอร์ม (Select Template):</label>
+          <select id="template-selector" class="form-control" style="padding: 6px 14px; font-size: 13px; min-width: 320px; background: #0f172a; border-color: #3b82f6; color: #fff; font-weight: 600;">
+            <option value="repair_order" selected>📑 1. ใบรับงานซ่อม / ใบรับเคลมสินค้า (Hospital Work Order)</option>
+            <option value="claim_888">📑 2. ใบรับเคลม / นำส่งสินค้า (888 Technology Claim Form)</option>
+            <option value="warranty_888">📑 3. ใบรับประกันสินค้า (888 Technology Warranty Certificate)</option>
+            <option value="talent_delivery">📑 4. ใบส่งมอบ / ใบรับประกัน (Talent Technology Form)</option>
+            <option value="claimit_audit">📑 5. รายงานประเมินความคุ้มค่า & PDPA Audit (ClaimIT Report)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" id="btn-toggle-quick-edit" style="font-size: 12px; padding: 8px 14px;">
+            ✏️ ปรับแต่งข้อมูลฟอร์ม
+          </button>
+          <button class="btn" id="btn-execute-print" style="font-size: 13px; padding: 8px 18px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+            🖨️ สั่งพิมพ์เอกสาร / บันทึก PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Edit Drawer (Collapsible) -->
+      <div id="template-quick-edit-drawer" style="display: none; padding: 14px 24px; background: #0f172a; border-bottom: 1px solid var(--border-color); font-size: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เลขที่ Job / อ้างอิง</label>
+            <input type="text" id="edit-job-no" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="PYT68100232">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อผู้ติดต่อ</label>
+            <input type="text" id="edit-contact-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="คุณรมิตา ภูมิแสง">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เบอร์โทรผู้ติดต่อ</label>
+            <input type="text" id="edit-contact-phone" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="097-160-9630">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">อาการเสีย / ปัญหา</label>
+            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ปริ้นเป็นเส้น / สแกนเนอร์ไม่ตอบสนอง">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อช่าง / ผู้ดำเนินการ</label>
+            <input type="text" id="edit-tech-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ช่างเทคนิคไอที ประจำ รพ.">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">วิธีการแก้ไข</label>
+            <input type="text" id="edit-solution" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ทำความสะอาด และเปลี่ยนลูกรอก ให้กับตัวเครื่อง ใช้งานได้ปกติ">
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Scroll Area -->
+      <div style="flex: 1; overflow-y: auto; padding: 24px; background: #334155; display: flex; justify-content: center;">
+        <!-- The simulated A4 Paper Container -->
+        <div id="printable-template-paper" class="a4-printable-paper">
+          <!-- Dynamic Content Injected by JS -->
+        </div>
+      </div>
+
     </div>
   </div>
 

@@ -340,56 +340,76 @@ router.post('/salvage', verifyToken, staffOnly, (req, res) => {
 // PDF Generation for Claim Report (Staff/Admin)
 router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
   const tag = req.params.tag.toUpperCase();
+  const fs = require('fs');
+  const path = require('path');
+
   db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolution_type, r.repair_cost FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE m.asset_tag = ? AND m.is_deleted = 0", [tag], (err, asset) => {
     if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
-    const doc = new PDFDocument({ margin: 40 });
+    const doc = new PDFDocument({ margin: 36, size: 'A4' });
     const filename = `claim_${tag}.pdf`;
     res.setHeader('Content-disposition', 'attachment; filename=' + filename);
     res.setHeader('Content-type', 'application/pdf');
+
+    // Register Thai font if available on host
+    const thaiFontPath = 'C:\\Windows\\Fonts\\tahoma.ttf';
+    const thaiBoldFontPath = 'C:\\Windows\\Fonts\\tahomabd.ttf';
+    if (fs.existsSync(thaiFontPath)) {
+      doc.registerFont('ThaiRegular', thaiFontPath);
+      if (fs.existsSync(thaiBoldFontPath)) {
+        doc.registerFont('ThaiBold', thaiBoldFontPath);
+      } else {
+        doc.registerFont('ThaiBold', thaiFontPath);
+      }
+      doc.font('ThaiRegular');
+    }
+
     doc.pipe(res);
     
     // Header
-    doc.fontSize(22).fillColor('#06b6d4').text('ClaimIT — Hospital Asset Warranty & RMA Report', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(10).fillColor('#64748b').text(`Report Generated: ${new Date().toLocaleString('th-TH')}`, { align: 'center' });
-    doc.moveDown(1.5);
+    const isThai = fs.existsSync(thaiFontPath);
+    const titleFont = isThai ? 'ThaiBold' : 'Helvetica-Bold';
+    const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
+
+    doc.font(titleFont).fontSize(16).fillColor('#0284c7').text('ClaimIT — Hospital Asset Warranty & RMA Report', { align: 'center' });
+    doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: Phyathai 3 Hospital (โรงพยาบาลพญาไท 3) | Generated: ${new Date().toLocaleString('th-TH')}`, { align: 'center' });
+    doc.moveDown(1);
 
     // Section 1: Asset Information
-    doc.fontSize(14).fillColor('#1e293b').text('1. Asset Specifications', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(11).fillColor('#334155');
-    doc.text(`Asset Tag: ${asset.asset_tag}`);
-    doc.text(`Device Name: ${asset.device_name}`);
-    doc.text(`Category: ${asset.category} | Brand: ${asset.brand} | Model: ${asset.model}`);
-    doc.text(`Serial Number: ${asset.serial_no}`);
-    doc.text(`Location: ${asset.location}`);
-    doc.text(`Purchase Price: ฿${(asset.purchase_price || 0).toLocaleString()}`);
-    doc.text(`Warranty Period: ${asset.warranty_start} to ${asset.warranty_end}`);
-    doc.text(`Current Status: ${asset.status} (Salvage: ${asset.salvage_status || 'None'})`);
-    doc.moveDown(1.5);
+    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('1. รายละเอียดครุภัณฑ์ (Asset Specifications)', { underline: true });
+    doc.moveDown(0.3);
+    doc.font(regularFont).fontSize(9.5).fillColor('#334155');
+    doc.text(`รหัสครุภัณฑ์ (Asset Tag): ${asset.asset_tag}`);
+    doc.text(`ชื่ออุปกรณ์ (Device Name): ${asset.device_name}`);
+    doc.text(`หมวดหมู่ / แบรนด์ / รุ่น: ${asset.category} | ${asset.brand} ${asset.model}`);
+    doc.text(`หมายเลขซีเรียล (S/N): ${asset.serial_no}`);
+    doc.text(`จุดติดตั้ง (Location): ${asset.location}`);
+    doc.text(`มูลค่าจัดซื้อ (Purchase Price): ฿${(asset.purchase_price || 0).toLocaleString()}`);
+    doc.text(`ระยะเวลารับประกัน (Warranty): ${asset.warranty_start} ถึง ${asset.warranty_end}`);
+    doc.text(`สถานะปัจจุบัน (Status): ${asset.status} (Salvage: ${asset.salvage_status || 'None'})`);
+    doc.moveDown(1);
 
     // Section 2: PDPA-Aware Data Sanitization Audit Log
-    doc.fontSize(14).fillColor('#1e293b').text('2. PDPA-Aware Storage Sanitization & Security Audit', { underline: true });
-    doc.moveDown(0.5);
-    doc.fontSize(11).fillColor('#334155');
-    doc.text(`Storage Media Sanitization Required: ${asset.sanitization_required ? 'YES' : 'NO'}`);
-    doc.text(`Data Wiped Confirmed: ${asset.data_wiped_confirmed ? 'YES (CONFIRMED)' : 'NO'}`);
-    if (asset.data_wiped_by) doc.text(`Wiped By Technician: ${asset.data_wiped_by}`);
-    if (asset.data_wiped_at) doc.text(`Wiped Timestamp: ${asset.data_wiped_at}`);
-    if (asset.sanitization_note) doc.text(`Sanitization Note: ${asset.sanitization_note}`);
-    doc.moveDown(1.5);
+    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('2. บันทึกความปลอดภัยข้อมูลผู้ป่วย (PDPA Storage Security Audit)', { underline: true });
+    doc.moveDown(0.3);
+    doc.font(regularFont).fontSize(9.5).fillColor('#334155');
+    doc.text(`ต้องทำความสะอาดข้อมูลก่อนส่ง (Sanitization Required): ${asset.sanitization_required ? 'ใช่ (YES)' : 'ไม่ใช่ (NO)'}`);
+    doc.text(`ยืนยันการล้างข้อมูลเรียบร้อย (Data Wiped Confirmed): ${asset.data_wiped_confirmed ? '✓ ยืนยันแล้ว (CONFIRMED)' : 'ยังไม่ดำเนินการ'}`);
+    if (asset.data_wiped_by) doc.text(`ผู้ดำเนินการล้างข้อมูล (Technician): ${asset.data_wiped_by}`);
+    if (asset.data_wiped_at) doc.text(`วัน-เวลาที่ดำเนินการ: ${asset.data_wiped_at}`);
+    if (asset.sanitization_note) doc.text(`บันทึกเพิ่มเติม: ${asset.sanitization_note}`);
+    doc.moveDown(1);
 
     // Section 3: Vendor Claim Details
     if (asset.vendor_name) {
-      doc.fontSize(14).fillColor('#1e293b').text('3. Vendor RMA Service Details', { underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(11).fillColor('#334155');
-      doc.text(`Vendor Center: ${asset.vendor_name}`);
-      doc.text(`RMA / Case Reference: ${asset.vendor_rma_number}`);
-      doc.text(`Dispatch Date: ${asset.claim_date}`);
-      doc.text(`Expected Return: ${asset.expected_return_date}`);
-      if (asset.resolution_type) doc.text(`Resolution Result: ${asset.resolution_type}`);
-      if (asset.repair_cost) doc.text(`Repair Cost: ฿${asset.repair_cost.toLocaleString()}`);
+      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. ข้อมูลการส่งเคลมศูนย์บริการ (Vendor RMA Service Details)', { underline: true });
+      doc.moveDown(0.3);
+      doc.font(regularFont).fontSize(9.5).fillColor('#334155');
+      doc.text(`ศูนย์บริการ (Vendor): ${asset.vendor_name}`);
+      doc.text(`หมายเลขใบรับเคลม (RMA / Case No.): ${asset.vendor_rma_number || 'N/A'}`);
+      doc.text(`วันที่ส่งเคลม (Dispatch Date): ${asset.claim_date || '-'}`);
+      doc.text(`กำหนดส่งคืนโดยประมาณ (Expected Return): ${asset.expected_return_date || '-'}`);
+      if (asset.resolution_type) doc.text(`ผลการซ่อม/เคลม (Resolution): ${asset.resolution_type}`);
+      if (asset.repair_cost) doc.text(`ค่าใช้จ่าย (Cost): ฿${asset.repair_cost.toLocaleString()}`);
     }
 
     doc.end();

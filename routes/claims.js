@@ -144,6 +144,7 @@ router.put('/:id/status', verifyToken, staffOnly, async (req, res, next) => {
 // GET /api/claims/:id/pdf (Download multi-asset claim PDF report)
 router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
   const claimId = req.params.id;
+  const fs = require('fs');
 
   db.get("SELECT * FROM claims WHERE id = ? AND is_deleted = 0", [claimId], (err, claim) => {
     if (err) return next(err);
@@ -157,49 +158,66 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
     `, [claimId], (assetErr, assets) => {
       if (assetErr) return next(assetErr);
 
-      const doc = new PDFDocument({ margin: 40 });
+      const doc = new PDFDocument({ margin: 36, size: 'A4' });
       const filename = `claim_${claim.claim_number}.pdf`;
       res.setHeader('Content-disposition', 'attachment; filename=' + filename);
       res.setHeader('Content-type', 'application/pdf');
+
+      // Register Thai font if available on host
+      const thaiFontPath = 'C:\\Windows\\Fonts\\tahoma.ttf';
+      const thaiBoldFontPath = 'C:\\Windows\\Fonts\\tahomabd.ttf';
+      if (fs.existsSync(thaiFontPath)) {
+        doc.registerFont('ThaiRegular', thaiFontPath);
+        if (fs.existsSync(thaiBoldFontPath)) {
+          doc.registerFont('ThaiBold', thaiBoldFontPath);
+        } else {
+          doc.registerFont('ThaiBold', thaiFontPath);
+        }
+        doc.font('ThaiRegular');
+      }
+
       doc.pipe(res);
 
+      const isThai = fs.existsSync(thaiFontPath);
+      const titleFont = isThai ? 'ThaiBold' : 'Helvetica-Bold';
+      const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
+
       // PDF Title Header
-      doc.fontSize(20).fillColor('#0284c7').text('ClaimIT — Multi-Asset Warranty & RMA Report', { align: 'center' });
-      doc.moveDown(0.3);
-      doc.fontSize(9).fillColor('#64748b').text(`Generated: ${new Date().toLocaleString('th-TH')} | Reference: ${claim.claim_number}`, { align: 'center' });
-      doc.moveDown(1.2);
+      doc.font(titleFont).fontSize(16).fillColor('#0284c7').text('ClaimIT — Multi-Asset Warranty & RMA Report', { align: 'center' });
+      doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: Phyathai 3 Hospital (โรงพยาบาลพญาไท 3) | Generated: ${new Date().toLocaleString('th-TH')} | Ref: ${claim.claim_number}`, { align: 'center' });
+      doc.moveDown(1);
 
       // Section 1: Claim Header Information
-      doc.fontSize(12).fillColor('#0f172a').text('1. Claim Overview', { underline: true });
-      doc.moveDown(0.4);
-      doc.fontSize(10).fillColor('#334155');
-      doc.text(`Claim Number: ${claim.claim_number}`);
-      doc.text(`Vendor / Service Center: ${claim.vendor_name} (RMA No: ${claim.vendor_rma_number || 'N/A'})`);
-      doc.text(`Claim Date: ${claim.claim_date || 'N/A'} | Status: ${claim.status}`);
-      doc.text(`Viability Score: ${claim.viability_score} / 10.0 (${claim.viability_status})`);
-      doc.text(`Created By: ${claim.created_by} | Confirmed By: ${claim.confirmed_by || 'Pending'}`);
-      doc.moveDown(1.2);
+      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('1. ข้อมูลภาพรวมใบส่งเคลม (Claim Overview)', { underline: true });
+      doc.moveDown(0.3);
+      doc.font(regularFont).fontSize(9.5).fillColor('#334155');
+      doc.text(`หมายเลขใบเคลม (Claim Number): ${claim.claim_number}`);
+      doc.text(`ศูนย์บริการ / ผู้จัดจำหน่าย (Vendor): ${claim.vendor_name} (RMA No: ${claim.vendor_rma_number || 'N/A'})`);
+      doc.text(`วันที่ทำรายการ (Claim Date): ${claim.claim_date || 'N/A'} | สถานะ (Status): ${claim.status}`);
+      doc.text(`คะแนนความคุ้มค่า (Viability Score): ${claim.viability_score} / 10.0 (${claim.viability_status})`);
+      doc.text(`ผู้สร้างรายการ (Created By): ${claim.created_by} | ผู้ยืนยัน (Confirmed By): ${claim.confirmed_by || 'Pending'}`);
+      doc.moveDown(1);
 
       // Section 2: Attached Assets (1 to 5)
-      doc.fontSize(12).fillColor('#0f172a').text(`2. Attached Assets (${assets.length} / 5 Max Items)`, { underline: true });
-      doc.moveDown(0.4);
+      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text(`2. รายการครุภัณฑ์ในใบเคลม (${assets.length} / 5 Max Items)`, { underline: true });
+      doc.moveDown(0.3);
 
       assets.forEach((item, idx) => {
-        doc.fontSize(10).fillColor('#1e293b').text(`[Item ${idx + 1}] ${item.asset_tag} - ${item.device_name}`);
-        doc.fontSize(9).fillColor('#475569');
-        doc.text(`   Category: ${item.category} | Brand/Model: ${item.brand} ${item.model} | S/N: ${item.serial_no}`);
-        doc.text(`   Warranty Expiry: ${item.warranty_end} | Sanitization: ${item.data_wiped_confirmed ? 'CONFIRMED' : 'Not Required'}`);
+        doc.font(titleFont).fontSize(9.5).fillColor('#1e293b').text(`[ลำดับ ${idx + 1}] ${item.asset_tag} — ${item.device_name}`);
+        doc.font(regularFont).fontSize(9).fillColor('#475569');
+        doc.text(`   หมวดหมู่: ${item.category} | แบรนด์/รุ่น: ${item.brand} ${item.model} | S/N: ${item.serial_no}`);
+        doc.text(`   วันหมดอายุรับประกัน: ${item.warranty_end} | การล้างข้อมูล (PDPA Sanitization): ${item.data_wiped_confirmed ? '✓ ยืนยันแล้ว' : 'ไม่ต้องดำเนินการ'}`);
         doc.moveDown(0.3);
       });
 
-      doc.moveDown(0.8);
+      doc.moveDown(0.6);
 
       // Section 3: PDPA-Aware Security & Audit Note
-      doc.fontSize(12).fillColor('#0f172a').text('3. PDPA-Aware Handling & Security Audit', { underline: true });
-      doc.moveDown(0.4);
-      doc.fontSize(9).fillColor('#475569');
-      doc.text('All storage media on applicable items have undergone authorization-coded sanitization prior to external transfer.');
-      doc.text('This document serves as an authorized hospital asset tracking and RMA service voucher.');
+      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. มาตรการความปลอดภัยและการตรวจสอบข้อมูล (PDPA Compliance)', { underline: true });
+      doc.moveDown(0.3);
+      doc.font(regularFont).fontSize(8.5).fillColor('#475569');
+      doc.text('ครุภัณฑ์บันทึกข้อมูลหลักทั้งหมดผ่านการยืนยันการล้างข้อมูล (Sanitization Authorization) ก่อนส่งมอบบุคคลภายนอกตามมาตรฐาน ISO/IEC 27001');
+      doc.text('เอกสารฉบับนี้ใช้เป็นหลักฐานและใบส่งมอบงานซ่อมเคลมครุภัณฑ์คอมพิวเตอร์อย่างเป็นทางการของโรงพยาบาลพญาไท 3');
 
       doc.end();
     });
