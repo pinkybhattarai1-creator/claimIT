@@ -5,7 +5,7 @@
  */
 
 const { db } = require('../db');
-const { evaluateClaimWorthiness } = require('../claim_calculator');
+const { evaluateClaimWorthiness, evaluateComprehensiveAsset } = require('../claim_calculator');
 
 const MAX_ASSETS_PER_CLAIM = 5;
 
@@ -281,5 +281,6 @@ module.exports = {
   VALID_STATE_TRANSITIONS,
   calculateServerViability,
   createClaim,
-  transitionClaimStatus
+  transitionClaimStatus,
+  evaluateComprehensiveAsset
 };
