@@ -265,6 +265,11 @@ async function runTests() {
 
     // TEST 6: PDPA Data Sanitization Security Gate
     console.log('\n--- TEST 6: Data Sanitization Security Gate & Wipe Confirmation Code ---');
+    // Ensure test asset starts in unsanitized state for test idempotency
+    const { db } = require('./db');
+    await new Promise(r => db.run("UPDATE mains SET status = 'Broken' WHERE asset_tag = 'CIT-2022-TAB-03'", r));
+    await new Promise(r => db.run("DELETE FROM rma_claims WHERE asset_tag = 'CIT-2022-TAB-03'", r));
+
     // 6.1 Unsanitized claim attempt on sensitive asset blocked by PDPA Gate
     const unsanitizedClaim = await makeRequest('POST', '/api/claims', {
       vendor_name: 'Apple',
@@ -287,6 +292,16 @@ async function runTests() {
       sanitization_note: 'DoD 5220.22-M 3-pass overwrite completed'
     }, staffToken);
     assert(goodWipe.status === 200, 'Sanitization with valid code "WIPED" succeeded (200)');
+
+    // 6.4 Single-Asset RMA Claim with Optional / Blank Expected Pickup Date
+    const rmaNoDate = await makeRequest('POST', '/api/assets/claim', {
+      asset_tag: 'CIT-2022-TAB-03',
+      vendor_name: 'Apple Care Medical',
+      vendor_rma_number: 'APPLE-RMA-2026',
+      expected_return_date: ''
+    }, staffToken);
+    assert(rmaNoDate.status === 200, 'RMA claim without immediate pickup date accepted (200)');
+    assert(rmaNoDate.data.status === 'Pending Pickup', 'Asset placed in Pending Pickup status');
 
     // Also sanitize other demo computer asset for multi-claim testing
     await makeRequest('POST', '/api/assets/sanitize', {

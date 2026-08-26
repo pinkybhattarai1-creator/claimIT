@@ -147,8 +147,8 @@ async function handleClaimInitiate(e) {
   const rmaNumber = document.getElementById('claim-rma-no').value.trim();
   const expectedDate = document.getElementById('claim-expected-date').value;
   
-  if (!vendorName || !rmaNumber || !expectedDate) {
-    showToast('กรุณากรอกข้อมูลการเคลมศูนย์บริการให้ครบถ้วน', 'warning');
+  if (!vendorName || !rmaNumber) {
+    showToast('กรุณาระบุชื่อศูนย์บริการ และหมายเลข RMA ให้ครบถ้วน', 'warning');
     return;
   }
   
@@ -156,7 +156,7 @@ async function handleClaimInitiate(e) {
     asset_tag: state.selectedAsset.asset_tag,
     vendor_name: vendorName,
     vendor_rma_number: rmaNumber,
-    expected_return_date: expectedDate,
+    expected_return_date: expectedDate || '',
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
     sanitization_note: 'Verified data wipe prior to vendor RMA dispatch',
     action_by_username: state.user.username
@@ -164,6 +164,10 @@ async function handleClaimInitiate(e) {
 
   const to = `support@${vendorName.toLowerCase().replace(/\s+/g, '')}.com`;
   const subject = `[ClaimIT] แจ้งส่งซ่อมอุปกรณ์เคลมประกัน - ${vendorName} (RMA: ${rmaNumber})`;
+  const dateText = expectedDate 
+    ? `กำหนดการรับคืนอุปกรณ์โดยประมาณ: ${expectedDate}` 
+    : `กำหนดการเข้ารับ/รับคืน: รอนัดหมายรอบการเข้ารับจากศูนย์บริการ (Pending Pickup / Waiting for vendor schedule)`;
+
   const body = `เรียน ทีมงานศูนย์บริการ ${vendorName},\n\n` +
                `ทางโรงพยาบาลขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
                `รหัสครุภัณฑ์ (Asset Tag): ${state.selectedAsset.asset_tag}\n` +
@@ -171,7 +175,7 @@ async function handleClaimInitiate(e) {
                `ยี่ห้อ/รุ่น: ${state.selectedAsset.brand} ${state.selectedAsset.model}\n` +
                `Serial Number: ${state.selectedAsset.serial_no}\n` +
                `RMA / Case ID: ${rmaNumber}\n\n` +
-               `ทางเราคาดหวังว่าจะได้รับอุปกรณ์คืนภายในวันที่: ${expectedDate}\n\n` +
+               `${dateText}\n\n` +
                `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
 
   document.getElementById('email-preview-to').textContent = to;

@@ -119,25 +119,32 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
         return reject({ status: 404, message: `ไม่พบครุภัณฑ์รหัส: ${missing.join(', ')}` });
       }
 
-      // Check PDPA Sanitization requirement
-      for (const asset of rows) {
-        if (asset.sanitization_required === 1 && asset.status !== 'Sanitized') {
-          return reject({
-            status: 400,
-            code: 'PDPA_SANITIZATION_REQUIRED',
-            message: `PDPA Compliance Violation: ครุภัณฑ์รหัส [${asset.asset_tag}] (${asset.device_name || asset.category}) มีข้อมูลอ่อนไหว ต้องผ่านการล้างข้อมูล (Sanitization) ก่อนส่งเคลม`
-          });
-        }
-      }
+      // Check PDPA Sanitization requirement (via mains status or rma_claims wipe confirmation)
+      db.all(
+        `SELECT asset_tag, data_wiped_confirmed FROM rma_claims WHERE asset_tag IN (${placeholders}) AND is_deleted = 0`,
+        cleanTags,
+        (rmaErr, rmaRows) => {
+          if (rmaErr) return reject({ status: 500, message: 'Database error checking sanitization: ' + rmaErr.message });
+          const wipedTags = new Set((rmaRows || []).filter(r => r.data_wiped_confirmed === 1).map(r => r.asset_tag));
 
-      // 3. Calculate Server-Side Viability
-      const viability = calculateServerViability(rows);
-      const claimDate = new Date().toISOString().split('T')[0];
+          for (const asset of rows) {
+            if (asset.sanitization_required === 1 && asset.status !== 'Sanitized' && !wipedTags.has(asset.asset_tag)) {
+              return reject({
+                status: 400,
+                code: 'PDPA_SANITIZATION_REQUIRED',
+                message: `PDPA Compliance Violation: ครุภัณฑ์รหัส [${asset.asset_tag}] (${asset.device_name || asset.category}) มีข้อมูลอ่อนไหว ต้องผ่านการล้างข้อมูล (Sanitization) ก่อนส่งเคลม`
+              });
+            }
+          }
 
-      // 4. Begin Atomic SQLite Transaction
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION', (beginErr) => {
-          if (beginErr) return reject({ status: 500, message: 'Failed to start transaction' });
+          // 3. Calculate Server-Side Viability
+          const viability = calculateServerViability(rows);
+          const claimDate = new Date().toISOString().split('T')[0];
+
+          // 4. Begin Atomic SQLite Transaction
+          db.serialize(() => {
+            db.run('BEGIN TRANSACTION', (beginErr) => {
+              if (beginErr) return reject({ status: 500, message: 'Failed to start transaction' });
 
           // Insert into claims table
           const insertClaimSql = `
@@ -230,6 +237,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
       });
     });
   });
+});
 }
 
 /**
