@@ -23,36 +23,138 @@ function populateUserTable(users) {
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');
+    const isSelf = state.user && state.user.id === u.id;
+    const activeBadge = u.is_active === 0 ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:10px;">ระงับใช้งาน</span>' : '';
+
+    let actionButtons = `
+      <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 10px;" onclick="openEditUserModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.name)}', '${escapeHtml(u.department)}', '${u.role}')">✏️ แก้ไข</button>
+        <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 10px;" onclick="adminResetPassword(${u.id}, '${escapeHtml(u.username)}')">🔑 รีเซ็ต</button>
+    `;
+
+    if (!isSelf && u.username !== 'admin') {
+      if (u.is_active === 0) {
+        actionButtons += `<button class="btn btn-success" style="padding: 3px 6px; font-size: 10px; background:#16a34a;" onclick="reactivateUser(${u.id})">🔄 เปิดใช้งาน</button>`;
+      } else {
+        actionButtons += `<button class="btn btn-danger" style="padding: 3px 6px; font-size: 10px;" onclick="deleteUser(${u.id})">⛔ ระงับ</button>`;
+      }
+    }
+    actionButtons += `</div>`;
+
     tr.innerHTML = `
       <td>${u.id}</td>
-      <td><strong>${u.username}</strong></td>
-      <td>${u.name}</td>
-      <td>${u.department}</td>
+      <td><strong>${escapeHtml(u.username)}</strong> ${activeBadge}</td>
+      <td>${escapeHtml(u.name)}</td>
+      <td>${escapeHtml(u.department)}</td>
       <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role.toUpperCase()}</span></td>
-      <td>
-        ${u.username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${u.id})" style="padding: 4px 8px; font-size: 11px;">ลบผู้ใช้</button>` : `<span style="font-size: 11px; color: var(--text-muted);">ระบบหลัก</span>`}
-      </td>
+      <td>${actionButtons}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-window.deleteUser = async function(id) {
-  if (!confirm('คุณต้องการลบผู้ใช้นี้ออกจากระบบใช่หรือไม่?')) return;
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.openEditUserModal = function(id, username, name, department, role) {
+  const modal = document.getElementById('edit-user-modal');
+  if (!modal) return;
+  document.getElementById('edit-user-id').value = id;
+  document.getElementById('edit-user-username').value = username;
+  document.getElementById('edit-user-fullname').value = name;
+  document.getElementById('edit-user-department').value = department;
+  document.getElementById('edit-user-role').value = role;
+  modal.style.display = 'flex';
+};
+
+window.adminResetPassword = async function(id, username) {
+  const newPass = prompt(`ระบุรหัสผ่านใหม่สำหรับผู้ใช้ [${username}] (ความยาวอย่างน้อย 6 ตัวอักษร):`);
+  if (!newPass) return;
+  if (newPass.length < 6) {
+    showToast('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร', 'warning');
+    return;
+  }
   try {
-    const res = await fetch(`/api/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`/api/users/${id}/reset-password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ new_password: newPass })
+    });
     if (res.ok) {
-      showToast('ลบผู้ใช้สำเร็จแล้ว', 'success');
+      showToast(`รีเซ็ตรหัสผ่านสำหรับ [${username}] เรียบร้อยแล้ว`, 'success');
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'ไม่สามารถรีเซ็ตรหัสผ่านได้', 'error');
+    }
+  } catch {
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  }
+};
+
+window.reactivateUser = async function(id) {
+  try {
+    const res = await fetch(`/api/users/${id}/reactivate`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      showToast('เปิดใช้งานบัญชีผู้ใช้สำเร็จแล้ว', 'success');
       refreshData();
     } else {
       const err = await res.json();
-      showToast(err.error || 'ไม่สามารถลบผู้ใช้ได้', 'error');
+      showToast(err.error || 'ไม่สามารถเปิดใช้งานบัญชีได้', 'error');
+    }
+  } catch {
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  }
+};
+
+window.deleteUser = async function(id) {
+  if (!confirm('คุณต้องการระงับการใช้งานผู้ใช้นี้ใช่หรือไม่?')) return;
+  try {
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    if (res.ok) {
+      showToast('ระงับการใช้งานผู้ใช้เรียบร้อยแล้ว', 'success');
+      refreshData();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'ไม่สามารถระงับผู้ใช้ได้', 'error');
     }
   } catch (error) {
     console.error('Delete user error:', error);
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 };
+
+async function handleEditUserSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-user-id').value;
+  const payload = {
+    name: document.getElementById('edit-user-fullname').value.trim(),
+    department: document.getElementById('edit-user-department').value.trim(),
+    role: document.getElementById('edit-user-role').value
+  };
+
+  try {
+    const res = await fetch(`/api/users/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      showToast('อัปเดตข้อมูลผู้ใช้งานสำเร็จแล้ว', 'success');
+      document.getElementById('edit-user-modal').style.display = 'none';
+      refreshData();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'ไม่สามารถอัปเดตข้อมูลได้', 'error');
+    }
+  } catch {
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  }
+}
 
 async function handleAddUser(e) {
   e.preventDefault();

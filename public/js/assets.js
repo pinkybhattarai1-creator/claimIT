@@ -235,6 +235,11 @@ function displayAssetDetails(asset) {
   // Fetch and display claim worthiness calculator evaluation
   fetchAndDisplayEvaluation(asset.asset_tag, prefix);
 
+  // Load attached evidence photos/files for IT
+  if (prefix === 'it' && typeof loadAssetEvidence === 'function') {
+    loadAssetEvidence(asset.asset_tag);
+  }
+
   // Toggle Contextual Actions for IT
   if (prefix === 'it') {
     const claimForm = document.getElementById('rma-form-container');

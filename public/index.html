@@ -484,6 +484,20 @@
             </div>
           </div>
 
+          <!-- Evidence Attachments Section -->
+          <div id="asset-evidence-panel" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">📎 ไฟล์หลักฐาน / รูปภาพความเสียหาย (Evidence Attachments)</h4>
+            <div id="asset-evidence-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 12px;">
+              <div style="color: var(--text-muted); font-size: 11px;">ยังไม่มีไฟล์หลักฐานแนบ</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="file" id="asset-evidence-file-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
+              <button type="button" class="btn btn-secondary" id="btn-upload-asset-evidence" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">
+                📤 อัปโหลด
+              </button>
+            </div>
+          </div>
+
           <!-- Resolve and Return button -->
           <div style="margin-top: 20px; display: flex; gap: 10px;">
             <button class="btn" id="btn-resolve" style="width: 100%; display: none; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">✅ ตรวจสอบเครื่องและนำเข้าคลังปกติ (Return to Stock)</button>
@@ -491,11 +505,56 @@
         </div>
       </div>
 
+      <!-- Multi-Asset Claims Management Panel -->
+      <div class="glass-panel" style="margin-bottom: 30px;" id="claims-management-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h3>📦 รายการใบส่งเคลมศูนย์บริการ (Multi-Asset Claims & RMA)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบรวมใบส่งเคลม 1–5 ชิ้น ประเมินความคุ้มค่า และควบคุมวงจรสถานะ</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select id="filter-claim-status" class="form-control" style="padding: 6px 12px; font-size: 13px; min-width: 140px;">
+              <option value="">-- ทุกสถานะเคลม --</option>
+              <option value="DRAFT">DRAFT (ร่าง)</option>
+              <option value="VIABLE">VIABLE (คุ้มค่าส่ง)</option>
+              <option value="CONFIRMED">CONFIRMED (อนุมัติส่ง)</option>
+              <option value="SUBMITTED">SUBMITTED (ส่งศูนย์แล้ว)</option>
+              <option value="VENDOR_RESPONSE">VENDOR_RESPONSE (ศูนย์ตอบกลับ)</option>
+              <option value="RETURNED">RETURNED (รับคืนแล้ว)</option>
+              <option value="CLOSED">CLOSED (ปิดงาน)</option>
+              <option value="CANCELLED">CANCELLED (ยกเลิก)</option>
+            </select>
+            <button class="btn" id="btn-open-new-claim-modal" style="font-size: 13px; padding: 8px 16px; background: linear-gradient(135deg, #0284c7, #2563eb);">
+              ➕ สร้างใบเคลมใหม่ (1-5 รายการ)
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>หมายเลขใบเคลม</th>
+                <th>ศูนย์บริการ (Vendor)</th>
+                <th>จำนวนครุภัณฑ์</th>
+                <th>วันที่ทำรายการ</th>
+                <th>คะแนนความคุ้มค่า</th>
+                <th>สถานะ (Status)</th>
+                <th>ผู้สร้าง</th>
+                <th>การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="claims-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Asset Inventory list & ISO 27001 logs -->
       <div class="glass-panel" style="margin-bottom: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
           <div>
-            <h3>📦 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
+            <h3>📋 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
             <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบจัดการครุภัณฑ์ การจำหน่าย และสถิติสถานะ</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -955,6 +1014,142 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE MULTI-ASSET CLAIM -->
+  <div id="new-multi-claim-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 1500; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>📦 สร้างใบส่งเคลมใหม่ (New Claim Bundle: 1-5 รายการ)</h3>
+        <button class="btn btn-secondary" id="close-new-claim-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="new-multi-claim-form">
+        <div class="form-group">
+          <label for="multi-claim-vendor">ศูนย์บริการ / บริษัทคู่ค้า (Vendor Name) *</label>
+          <select id="multi-claim-vendor" class="form-control" required>
+            <option value="" disabled selected>-- เลือกศูนย์บริการ --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-rma">หมายเลขใบรับงานเคลม (Vendor RMA No. / Case ID)</label>
+          <input type="text" id="multi-claim-rma" class="form-control" placeholder="เช่น RMA-2026-001 (ถ้ามี)">
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-type">ประเภทการส่งเคลม (Claim Type)</label>
+          <select id="multi-claim-type" class="form-control">
+            <option value="WARRANTY">ส่งซ่อมตามประกัน (Warranty Repair)</option>
+            <option value="OUT_OF_WARRANTY">ส่งซ่อมแบบมีค่าใช้จ่าย (Out of Warranty)</option>
+            <option value="REPLACEMENT">ขอเปลี่ยนเครื่องใหม่ (Replacement Request)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ระบุรหัสครุภัณฑ์ที่ต้องการส่งเคลม (1 ถึง 5 รหัสคั่นด้วยเครื่องหมายจุลภาคหรือเว้นวรรค) *</label>
+          <input type="text" id="multi-claim-tags" class="form-control" placeholder="เช่น 032186040006, 031709030031" required>
+          <div style="font-size: 11px; color: #38bdf8; margin-top: 4px;">⚡ ระบบจะประเมินคะแนนความคุ้มค่า (Server-Authoritative Score) อัตโนมัติ</div>
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-notes">หมายเหตุเพิ่มเติม (Notes)</label>
+          <textarea id="multi-claim-notes" class="form-control" rows="2" placeholder="ระบุอาการชำรุด หรือข้อมูลเพื่อแจ้งศูนย์บริการ"></textarea>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 14px; background: linear-gradient(135deg, #0284c7, #2563eb);">
+          🚀 บันทึกและสร้างใบส่งเคลม
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CLAIM DETAILS & STATUS ADVANCEMENT -->
+  <div id="claim-details-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1600; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 id="cd-modal-title">📋 รายละเอียดใบเคลม</h3>
+        <button class="btn btn-secondary" id="close-claim-details-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div><strong>หมายเลข:</strong> <span id="cd-claim-no">-</span></div>
+        <div><strong>ศูนย์บริการ:</strong> <span id="cd-vendor">-</span></div>
+        <div><strong>สถานะปัจจุบัน:</strong> <span id="cd-status" class="badge">-</span></div>
+        <div><strong>คะแนนความคุ้มค่า:</strong> <span id="cd-viability">-</span></div>
+        <div><strong>วันที่ทำรายการ:</strong> <span id="cd-date">-</span></div>
+        <div><strong>ผู้สร้าง:</strong> <span id="cd-created-by">-</span></div>
+      </div>
+
+      <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">ครุภัณฑ์ในใบเคลมนี้ (Attached Assets):</h4>
+      <div class="table-container" style="margin-bottom: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสครุภัณฑ์</th>
+              <th>ชื่ออุปกรณ์</th>
+              <th>สถานะชิ้นงาน</th>
+              <th>ความคุ้มค่า</th>
+            </tr>
+          </thead>
+          <tbody id="cd-assets-table-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">📎 ไฟล์หลักฐานประจำใบเคลม (Evidence Files):</h4>
+      <div id="cd-evidence-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 12px;">
+        <div style="color: var(--text-muted); font-size: 11px;">ไม่มีไฟล์แนบ</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+        <input type="file" id="cd-evidence-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
+        <button type="button" class="btn btn-secondary" id="cd-btn-upload-evidence" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">
+          📤 อัปโหลดหลักฐาน
+        </button>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 14px;">
+        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--warning);">⚡ เปลี่ยนสถานะใบเคลม (Status Transition):</h4>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="cd-status-actions">
+          <!-- Status buttons rendered dynamically depending on current state -->
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+        <button type="button" class="btn" id="cd-btn-download-pdf" style="background: linear-gradient(135deg, #0284c7, #2563eb);">
+          📄 ดาวน์โหลด PDF ใบเคลมทางการ
+        </button>
+        <button type="button" class="btn btn-secondary" id="close-claim-details-modal-btn2">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT USER (Admin) -->
+  <div id="edit-user-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1500; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 450px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>✏️ แก้ไขข้อมูลผู้ใช้งาน</h3>
+        <button class="btn btn-secondary" id="close-edit-user-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="edit-user-form">
+        <input type="hidden" id="edit-user-id">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="edit-user-username" class="form-control" readonly style="background: rgba(0,0,0,0.2);">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล</label>
+          <input type="text" id="edit-user-fullname" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>แผนก (Department)</label>
+          <input type="text" id="edit-user-department" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>สิทธิ์การใช้งาน (Role)</label>
+          <select id="edit-user-role" class="form-control" required>
+            <option value="staff">Staff (พนักงานวอร์ด/ไอทีทั่วไป)</option>
+            <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการแก้ไข</button>
+      </form>
     </div>
   </div>
 

@@ -118,6 +118,7 @@ async function refreshData() {
     
     updateStatistics(assets);
     populateAssetTable(assets);
+    if (typeof loadClaimsList === 'function') loadClaimsList();
   } catch (error) {
     console.error('Failed to refresh data:', error);
   }
@@ -423,6 +424,31 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Multi-Asset Claims & Modal Events
+  document.getElementById('btn-open-new-claim-modal')?.addEventListener('click', openNewClaimModal);
+  document.getElementById('close-new-claim-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('new-multi-claim-modal').style.display = 'none';
+  });
+  document.getElementById('new-multi-claim-form')?.addEventListener('submit', handleNewMultiClaimSubmit);
+  document.getElementById('filter-claim-status')?.addEventListener('change', () => loadClaimsList());
+
+  document.getElementById('close-claim-details-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('claim-details-modal').style.display = 'none';
+  });
+  document.getElementById('close-claim-details-modal-btn2')?.addEventListener('click', () => {
+    document.getElementById('claim-details-modal').style.display = 'none';
+  });
+
+  // Evidence Upload Events
+  document.getElementById('btn-upload-asset-evidence')?.addEventListener('click', uploadActiveAssetEvidence);
+  document.getElementById('cd-btn-upload-evidence')?.addEventListener('click', uploadActiveClaimEvidence);
+
+  // Edit User Modal Events
+  document.getElementById('close-edit-user-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('edit-user-modal').style.display = 'none';
+  });
+  document.getElementById('edit-user-form')?.addEventListener('submit', handleEditUserSubmit);
 
   // Initialize Modular Sub-systems
   setupQuickSidebar();
