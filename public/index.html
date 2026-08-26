@@ -703,6 +703,16 @@
             <input type="date" id="new-warranty-end" class="form-control" required>
           </div>
         </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>ราคาจัดซื้อ (บาท)</label>
+            <input type="number" id="new-price" class="form-control" placeholder="0.00" min="0" step="100">
+          </div>
+          <div class="form-group">
+            <label>เลขที่ใบสั่งซื้อ / PO / สัญญา</label>
+            <input type="text" id="new-po-number" class="form-control" placeholder="เช่น PO-680012">
+          </div>
+        </div>
         <div class="form-group">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
             <input type="checkbox" id="new-sanitization-req" checked style="width: 18px; height: 18px;">

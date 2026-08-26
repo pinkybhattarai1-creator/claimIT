@@ -4,25 +4,7 @@
  * vendor procedures, claim initiation, and email previews.
  */
 
-let vendorProcedures = {}; // Dynamically populated from configurations
 let pendingClaimData = null;
-
-function sanitizeBrandProcedure(details) {
-  if (typeof details !== 'string') return '';
-  const trimmed = details.trim();
-  if (!trimmed) return '';
-
-  const unsafePatterns = [
-    /style\s*=\s*["']\s*padding\s*:/i,
-    /padding\s*:\s*4px\s*8px/i,
-    /<script[\s\S]*?<\/script>/i
-  ];
-
-  if (unsafePatterns.some(pattern => pattern.test(trimmed))) {
-    return '';
-  }
-  return trimmed;
-}
 
 // Action Handlers - Status Transitions
 async function updateAssetStatus(newStatus, customDetails) {
@@ -243,9 +225,10 @@ async function confirmAndSendEmail() {
     });
 
     if (claimRes.ok) {
-      showToast(`ส่งเคลมและเปิดใบงาน RMA สำเร็จ! (${emailStatus})`, 'success', 5000);
-      document.getElementById('email-preview-modal').style.display = 'none';
-      document.getElementById('claim-modal').style.display = 'none';
+      const emailModal = document.getElementById('email-preview-modal');
+      if (emailModal) emailModal.style.display = 'none';
+      const claimFormContainer = document.getElementById('rma-form-container');
+      if (claimFormContainer) claimFormContainer.style.display = 'none';
       lookupAsset(state.selectedAsset.asset_tag);
       refreshData();
     } else {

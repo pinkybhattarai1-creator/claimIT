@@ -234,49 +234,65 @@ function displayAssetDetails(asset) {
 
   // Toggle Contextual Actions for IT
   if (prefix === 'it') {
-    const btnSendClaim = document.getElementById('btn-action-send-claim');
-    const btnResolve = document.getElementById('btn-action-resolve-rma');
-    const sanitizationGate = document.getElementById('sanitization-gate-panel');
+    const claimForm = document.getElementById('rma-form-container');
+    const sanitizePanel = document.getElementById('sanitize-panel');
+    const btnResolve = document.getElementById('btn-resolve');
+    const btnReportBroken = document.getElementById('btn-report-broken');
     
-    // Hide actions by default
-    btnSendClaim.style.display = 'none';
-    btnResolve.style.display = 'none';
-    sanitizationGate.style.display = 'none';
+    if (btnResolve) btnResolve.style.display = 'none';
+    if (btnReportBroken) btnReportBroken.style.display = 'none';
+    if (sanitizePanel) sanitizePanel.style.display = 'none';
+    if (claimForm) claimForm.style.display = 'none';
 
     // Show/hide vendor procedures guide
-    const guideBox = document.getElementById('vendor-guide-box');
-    const guideContent = document.getElementById('vendor-guide-content');
+    const guideBox = document.getElementById('brand-procedure-panel');
     const brand = asset.brand ? asset.brand.trim() : '';
 
-    if (vendorProcedures[brand]) {
-      guideContent.innerHTML = vendorProcedures[brand];
-      guideBox.style.display = 'block';
-    } else {
-      guideBox.style.display = 'none';
+    if (guideBox) {
+      if (vendorProcedures[brand]) {
+        guideBox.innerHTML = vendorProcedures[brand];
+        guideBox.style.display = 'block';
+      } else {
+        guideBox.style.display = 'none';
+      }
     }
 
-    // Security PDPA Sanitization Gate Check
-    if (asset.sanitization_required) {
-      sanitizationGate.style.display = 'block';
-      const isWiped = asset.rma_data_wiped_confirmed || asset.status === 'Sanitized';
-      document.getElementById('sanitization-status-badge').innerHTML = isWiped ? 
-        '<span class="badge badge-working">✅ ผ่านการล้างข้อมูลความปลอดภัยแล้ว (Sanitized)</span>' : 
-        '<span class="badge badge-broken">⚠️ ต้องทำการล้างข้อมูลความปลอดภัยก่อนส่งเคลม (PDPA Gate)</span>';
+    if (asset.status === 'Working') {
+      if (btnReportBroken) btnReportBroken.style.display = 'block';
+    } else if (asset.status === 'Broken') {
+      if (btnResolve) {
+        btnResolve.style.display = 'block';
+        btnResolve.textContent = '✅ รับเครื่องคืนจากซ่อม/เคลม (Return to Stock)';
+      }
       
-      const btnConfirmSanitize = document.getElementById('btn-confirm-sanitize');
-      btnConfirmSanitize.disabled = isWiped;
-      btnConfirmSanitize.textContent = isWiped ? 'ยืนยันความปลอดภัยเรียบร้อยแล้ว' : '🔒 ยืนยันการล้างข้อมูล (Wipe Data)';
-    }
-
-    if (asset.status === 'Broken' || asset.status === 'Sanitized') {
-      const isWiped = !asset.sanitization_required || asset.rma_data_wiped_confirmed || asset.status === 'Sanitized';
-      if (isWiped) {
-        btnSendClaim.style.display = 'block';
-        document.getElementById('claim-tag-input').value = asset.asset_tag;
+      if (asset.sanitization_required) {
+        const isWiped = asset.rma_data_wiped_confirmed || asset.status === 'Sanitized';
+        if (!isWiped) {
+          if (sanitizePanel) {
+            sanitizePanel.style.display = 'block';
+            state.sanitizationChecked = false;
+            const chk = document.getElementById('sanitize-chk');
+            if (chk) chk.classList.remove('checked');
+          }
+        } else {
+          if (claimForm) {
+            claimForm.style.display = 'block';
+            const tagInput = document.getElementById('claim-tag-input');
+            if (tagInput) tagInput.value = asset.asset_tag;
+          }
+        }
+      } else {
+        if (claimForm) {
+          claimForm.style.display = 'block';
+          const tagInput = document.getElementById('claim-tag-input');
+          if (tagInput) tagInput.value = asset.asset_tag;
+        }
       }
     } else if (asset.status === 'Pending Pickup') {
-      btnResolve.style.display = 'block';
-      btnResolve.textContent = '✅ รับเครื่องคืนจากศูนย์บริการ (Complete RMA)';
+      if (btnResolve) {
+        btnResolve.style.display = 'block';
+        btnResolve.textContent = '✅ รับเครื่องคืนจากศูนย์บริการ (Complete RMA)';
+      }
     }
   }
 }
@@ -356,11 +372,12 @@ async function handleAddAsset(e) {
     location: document.getElementById('new-location').value.trim(),
     warranty_start: document.getElementById('new-warranty-start').value,
     warranty_end: document.getElementById('new-warranty-end').value,
-    purchase_price: parseFloat(document.getElementById('new-price').value) || 0,
-    warranty_months: parseInt(document.getElementById('new-warranty-months').value) || 36,
-    expected_lifespan_months: parseInt(document.getElementById('new-lifespan-months').value) || 60,
-    po_number: document.getElementById('new-po-number').value.trim(),
-    invoice_no: document.getElementById('new-invoice-no').value.trim(),
+    purchase_price: parseFloat(document.getElementById('new-price')?.value) || 0,
+    warranty_months: parseInt(document.getElementById('new-warranty-months')?.value, 10) || 36,
+    expected_lifespan_months: 60,
+    po_number: document.getElementById('new-po-number')?.value?.trim() || '',
+    invoice_no: '',
+    sanitization_required: document.getElementById('new-sanitization-req')?.checked ? 1 : 0,
     status: 'Working'
   };
 

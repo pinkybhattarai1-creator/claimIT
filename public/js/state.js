@@ -93,3 +93,23 @@ window.setWardIssue = function(issueText) {
     input.focus();
   }
 };
+
+// Vendor Procedures Cache (populated dynamically from configurations)
+let vendorProcedures = {};
+
+function sanitizeBrandProcedure(details) {
+  if (typeof details !== 'string') return '';
+  const trimmed = details.trim();
+  if (!trimmed) return '';
+
+  const unsafePatterns = [
+    /style\s*=\s*["']\s*padding\s*:/i,
+    /padding\s*:\s*4px\s*8px/i,
+    /<script[\s\S]*?<\/script>/i
+  ];
+
+  if (unsafePatterns.some(pattern => pattern.test(trimmed))) {
+    return '';
+  }
+  return trimmed;
+}
