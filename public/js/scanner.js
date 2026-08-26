@@ -12,6 +12,25 @@ function hideFuzzySuggestion() {
   if (itBanner) itBanner.style.display = 'none';
 }
 
+// Audio Feedback for Barcode Scanning (Subtle Hospital Standard Beep)
+function playScanBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+  } catch {}
+}
+
 // Local Tag Parser Heuristic (ISO / Off-grid Offline Parser)
 function parseAssetTagLocal(rawText) {
   const yearMatch = rawText.match(/\b(20\d{2})\b/);
@@ -63,6 +82,9 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
   const input = document.getElementById(inputId);
   const scannerOnlyChk = document.getElementById(isScannerOnlyId);
   if (!input) return;
+
+  // Auto-select text on focus so subsequent barcode scans cleanly overwrite
+  input.addEventListener('focus', () => input.select());
 
   let lastKeystrokeTime = 0;
   let burstTimer = null;

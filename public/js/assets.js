@@ -229,6 +229,9 @@ function displayAssetDetails(asset) {
   document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   
+  // Audio beep confirmation on successful scan
+  if (typeof playScanBeep === 'function') playScanBeep();
+
   // Fetch and display claim worthiness calculator evaluation
   fetchAndDisplayEvaluation(asset.asset_tag, prefix);
 

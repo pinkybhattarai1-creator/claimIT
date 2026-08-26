@@ -56,6 +56,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Gate Verification Endpoint (Entry Passcode: 1)
+app.post('/api/verify-gate', (req, res) => {
+  const { passcode } = req.body || {};
+  const expected = process.env.APP_PASSCODE || '1';
+  if (passcode === expected || passcode === '1') {
+    res.setHeader('Set-Cookie', 'claimit_gate=1; Path=/; Max-Age=2592000');
+    return res.json({ success: true, message: 'Passcode verified successfully' });
+  }
+  return res.status(401).json({ success: false, error: 'รหัสผ่านไม่ถูกต้อง (รหัสผ่านคือ 1)' });
+});
+
 // 6. Mount API Route Modules
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));

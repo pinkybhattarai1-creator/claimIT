@@ -1112,4 +1112,16 @@ footer {
   border-color: #38bdf8;
 }
 
+/* ─── PRINT CLEANUP ─────────────────────────────────────────────────── */
+@media print {
+  #security-gate-modal,
+  #quick-sidebar,
+  header,
+  footer,
+  #toast-container {
+    display: none !important;
+  }
+}
+
+
 

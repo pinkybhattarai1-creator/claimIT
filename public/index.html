@@ -9,6 +9,29 @@
 </head>
 <body>
 
+  <!-- ENTRY SECURITY GATE (Password: 1) -->
+  <div id="security-gate-modal" style="display: none; position: fixed; inset: 0; background: radial-gradient(circle at center, #1e293b, #0f172a); z-index: 99999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 440px; width: 100%; text-align: center; padding: 36px 28px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid rgba(56, 189, 248, 0.3);">
+      <div style="font-size: 48px; margin-bottom: 12px;">🏥 🔐</div>
+      <h2 style="font-size: 21px; font-weight: 800; color: #fff; margin-bottom: 6px;">ระบบ ClaimIT โรงพยาบาล</h2>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">กรุณากรอกรหัสผ่านเพื่อปลดล็อกเข้าใช้งานระบบ</p>
+      
+      <form id="security-gate-form">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <input type="password" id="gate-passcode-input" class="form-control" placeholder="ระบุรหัสผ่าน (รหัสผ่านคือ 1)" style="font-size: 22px; text-align: center; letter-spacing: 6px; padding: 12px; border-color: rgba(56, 189, 248, 0.5); background: rgba(0,0,0,0.4);" autofocus autocomplete="off">
+        </div>
+        <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);">
+          🔓 ปลดล็อกเข้าใช้งาน (Unlock)
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; padding: 10px 14px; background: rgba(56, 189, 248, 0.08); border-radius: 8px; font-size: 12px; color: #7dd3fc; line-height: 1.5;">
+        💡 <strong>รหัสผ่านสำหรับเข้าใช้งาน:</strong> คือเลข <code>1</code><br>
+        (กรอกเพียงครั้งเดียว ระบบจะจดจำอุปกรณ์นี้ไว้)
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header>
     <div class="nav-container">
