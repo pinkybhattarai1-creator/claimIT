@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableDelayedExpansion
 title ClaimIT - Hospital IT Claim System
 color 0A
 

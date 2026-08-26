@@ -4,7 +4,7 @@
  * state machine transitions, and atomic database transactions.
  */
 
-const { db } = require('../db');
+const { db, recordAuditLog } = require('../db');
 const { evaluateClaimWorthiness, evaluateComprehensiveAsset } = require('../claim_calculator');
 
 const MAX_ASSETS_PER_CLAIM = 5;
@@ -191,13 +191,17 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
                   return reject({ status: 500, message: 'Failed to update asset statuses' });
                 }
 
-                // Insert Audit Logs
+                // Insert Audit Logs with guaranteed unique codes
                 for (const asset of rows) {
-                  db.run(
-                    `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details)
-                     VALUES (?, ?, 'Claim Dept', 'Pending Pickup', 'OUT', ?, ?)`,
-                    [asset.asset_tag, vendor_name || 'Vendor', createdBy, `Claim Created: ${claimNum} (Score: ${viability.score})`]
-                  );
+                  recordAuditLog(db, {
+                    asset_tag: asset.asset_tag,
+                    department_name: vendor_name || 'Vendor',
+                    floor: 'Claim Dept',
+                    status: 'Pending Pickup',
+                    moved_direction: 'OUT',
+                    action_by_username: createdBy,
+                    details: `สร้างใบส่งเคลม: ${claimNum} (Viability Score: ${viability.score})`
+                  });
                 }
 
                 db.run('COMMIT', (commitErr) => {
@@ -256,12 +260,16 @@ function transitionClaimStatus({ claim_id, new_status, user, notes }) {
         function(updateErr) {
           if (updateErr) return reject({ status: 500, message: updateErr.message });
 
-          // Record audit log
-          db.run(
-            `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details)
-             VALUES (?, 'Claim Dept', 'IT Admin', ?, 'STATE_CHANGE', ?, ?)`,
-            [claim.claim_number, new_status, user ? user.username : 'system', `Claim status changed from ${currentStatus} to ${new_status}`]
-          );
+          // Record audit log with guaranteed unique tracking code
+          recordAuditLog(db, {
+            asset_tag: claim.claim_number,
+            department_name: 'Claim Dept',
+            floor: 'IT Admin',
+            status: new_status,
+            moved_direction: 'STATE_CHANGE',
+            action_by_username: user ? user.username : 'system',
+            details: `เปลี่ยนสถานะใบเคลม: จาก ${currentStatus} เป็น ${new_status}`
+          });
 
           resolve({
             id: claim_id,

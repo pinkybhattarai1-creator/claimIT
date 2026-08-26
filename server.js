@@ -76,6 +76,7 @@ app.use('/api/configurations', require('./routes/configurations'));
 app.use('/api/assets', require('./routes/assets'));
 app.use('/api/claims', require('./routes/claims'));
 app.use('/api/evidence', require('./routes/evidence'));
+app.use('/api/export', require('./routes/export'));
 app.use('/api', require('./routes/audit'));
 const { performBackup } = require('./scripts/backup');
 

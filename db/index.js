@@ -54,14 +54,53 @@ function migrateColumns() {
     { table: 'rma_claims', col: 'replacement_serial_no', def: 'TEXT' },
     { table: 'rma_claims', col: 'repair_cost', def: 'REAL DEFAULT 0' },
     { table: 'move_log', col: 'details', def: 'TEXT' },
+    { table: 'move_log', col: 'log_code', def: 'TEXT' },
     { table: 'configurations', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' }
   ];
 
   migrations.forEach(m => {
     db.run(`ALTER TABLE ${m.table} ADD COLUMN ${m.col} ${m.def}`, () => {
-      // Ignore if column already exists
+      if (m.col === 'log_code') {
+        db.run("CREATE INDEX IF NOT EXISTS idx_move_log_code ON move_log(log_code);");
+        db.run("UPDATE move_log SET log_code = 'CHG-LEGACY-' || id WHERE log_code IS NULL OR log_code = '';");
+      }
     });
   });
+  // Fallback backfill for existing databases
+  db.run("UPDATE move_log SET log_code = 'CHG-LEGACY-' || id WHERE log_code IS NULL OR log_code = '';", () => {});
+}
+
+// Generate guaranteed-unique change tracking code
+const crypto = require('crypto');
+function generateLogCode() {
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `CHG-${dateStr}-${rand}`;
+}
+
+// Standardized Audit Log Recorder ensuring guaranteed unique tracking code
+function recordAuditLog(database, { asset_tag, department_name, floor, status, moved_direction, action_by_username, details }, callback) {
+  const targetDb = database || db;
+  const logCode = generateLogCode();
+  const sql = `
+    INSERT INTO move_log (log_code, asset_tag, department_name, floor, status, moved_direction, action_by_username, details)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  const params = [
+    logCode,
+    asset_tag || 'GENERAL',
+    department_name || 'IT Support',
+    floor || 'Floor 1',
+    status || 'Recorded',
+    moved_direction || 'IN',
+    action_by_username || 'system',
+    details || ''
+  ];
+
+  targetDb.run(sql, params, function(err) {
+    if (callback) callback(err, { id: this ? this.lastID : null, log_code: logCode });
+  });
+  return logCode;
 }
 
 // Initialize Database Tables and Seed Data
@@ -192,6 +231,7 @@ function initializeDatabase() {
     // 8. Move Log Table (Audit trail)
     db.run(`CREATE TABLE IF NOT EXISTS move_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      log_code TEXT UNIQUE,
       asset_tag TEXT NOT NULL,
       department_name TEXT NOT NULL,
       floor TEXT NOT NULL,
@@ -337,5 +377,7 @@ module.exports = {
   hashPassword,
   verifyPassword,
   initializeDatabase,
-  runInTransaction
+  runInTransaction,
+  generateLogCode,
+  recordAuditLog
 };

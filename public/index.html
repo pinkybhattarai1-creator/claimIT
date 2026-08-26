@@ -28,11 +28,82 @@
           <div style="font-size: 13px; font-weight: 600;" id="user-name">Name</div>
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
-        <button class="btn btn-secondary" id="demo-toggle-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 10px; background: transparent; border: 1px solid transparent; color: var(--text-muted); opacity: 0.5;">Demo Mode</button>
-        <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">ออกจากระบบ</button>
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน / Quick Sidebar</button>
+        <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
+        <button class="btn btn-secondary" id="demo-toggle-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px; background: transparent; border: 1px solid transparent; color: var(--text-muted); opacity: 0.5;">Demo Mode</button>
+        <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">ออกจากระบบ</button>
       </div>
     </div>
   </header>
+
+  <!-- Quick-Check Sidebar (Accessible anytime) -->
+  <aside id="quick-sidebar" class="quick-sidebar">
+    <div class="quick-sidebar-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📌</span>
+        <strong style="font-size: 14px; color: #fff;">ข้อมูลด่วน (Quick Hub)</strong>
+      </div>
+      <button class="btn btn-secondary" id="close-sidebar-btn" style="padding: 4px 10px; font-size: 12px;">✕</button>
+    </div>
+    <div class="quick-sidebar-body">
+      <!-- Panel 1: Today's Case Volume -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📊 กิจกรรมวันนี้ (Today's Cases)</span>
+          <span id="sidebar-volume-badge" class="audit-volume-badge audit-volume-normal">0 รายการ</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;" id="sidebar-volume-desc">
+          กำลังโหลดข้อมูลสถิติ...
+        </div>
+        <button class="btn btn-secondary" id="btn-sidebar-view-today" style="width: 100%; font-size: 12px; padding: 6px;">
+          🔍 กรองเฉพาะกิจกรรมวันนี้
+        </button>
+      </div>
+
+      <!-- Panel 2: Recent Scans -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>⚡ สแกนล่าสุด (Recent Scans)</span>
+          <span style="font-size: 10px; color: var(--text-muted);">5 รายการ</span>
+        </div>
+        <div id="sidebar-recent-scans" style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+          <div style="color: var(--text-muted); font-size: 11px;">ยังไม่มีประวัติการสแกนในเซสชันนี้</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Vendor Claim & Support Hotlines -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📞 เบอร์ติดต่อศูนย์เคลม (Hotlines)</span>
+        </div>
+        <div style="font-size: 11.5px; line-height: 1.7; color: var(--text-muted);">
+          <div>💻 <strong>Dell Support:</strong> <a href="tel:026707250" style="color: #38bdf8;">02-670-7250</a></div>
+          <div>💻 <strong>Lenovo Support:</strong> <a href="tel:1800011936" style="color: #38bdf8;">1800-011-936</a></div>
+          <div>💻 <strong>Acer Call Center:</strong> <a href="tel:021539600" style="color: #38bdf8;">02-153-9600</a></div>
+          <div>🏷️ <strong>IDA RMA Service:</strong> support@idagroup.co.th</div>
+          <div>🖨️ <strong>TSC Barcode Printer:</strong> ติดต่อ Line Service</div>
+          <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); color: #34d399;">
+            🛡️ <strong>IT Helpdesk รพ.:</strong> โทรภายใน 4401 - 4403
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Quick Excel Export -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📥 ส่งออกข้อมูล (Quick Export)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn" id="btn-sidebar-export-excel" style="font-size: 12px; padding: 8px; width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
+            📊 ดาวน์โหลด Excel ทั้งหมด (.xls)
+          </button>
+          <button class="btn btn-secondary" id="btn-sidebar-export-csv" style="font-size: 12px; padding: 6px; width: 100%;">
+            📄 ดาวน์โหลด CSV ครุภัณฑ์ (.csv)
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- Main Workspace -->
   <main>
@@ -79,10 +150,19 @@
           <h3 style="margin-bottom: 16px;">📸 สแกนโค้ดครุภัณฑ์ (Scan Tag)</h3>
           
           <div>
-            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02" autofocus>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 13px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกนบาร์โค้ด</label>
+              <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ป้องกันการพิมพ์ตกหล่น รับเฉพาะการสแกนความเร็วสูงจากหัวอ่าน">
+                <input type="checkbox" id="ward-scanner-only-mode">
+                <span>🔒 สแกนเนอร์เท่านั้น (Anti-Typo)</span>
+              </label>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="ward-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2024-AIO-02 (สแกนหรือระบุรหัส)" autofocus>
               <button class="btn" id="ward-search-btn" style="padding: 10px 18px;">ค้นหา</button>
+            </div>
+            <div id="ward-scanner-status" style="font-size: 11px; color: #38bdf8; margin-top: 6px;">
+              ⚡ ตรวจจับอัตโนมัติ: สแกนปุ๊บ ค้นหาทันที (ช่วงความยาวรหัส 6 – 30 ตัวอักษร)
             </div>
           </div>
 
@@ -153,12 +233,25 @@
           <!-- Claim Worthiness Indicator Banner -->
           <div id="ward-detail-evaluate" style="margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none;"></div>
 
-          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-            <h4 style="font-size: 15px; margin-bottom: 4px;">การดำเนินการสำหรับแผนก (Actions)</h4>
-            <button class="btn btn-danger" id="btn-report-broken" style="width: 100%;">🚨 แจ้งชำรุดเข้าส่วนกลาง (Report Broken)</button>
-            <button id="btn-open-template-modal-ward" class="btn btn-secondary" onclick="openTemplateCenter(document.getElementById('ward-detail-tag').textContent)" style="width: 100%; font-size: 13px;">
-              🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม (Print Service Form)
-            </button>
+          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <div style="margin-bottom: 12px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;">
+              <label style="font-size: 12px; color: #fca5a5; font-weight: 600; display: block; margin-bottom: 6px;">ระบุอาการเสีย / ข้อผิดพลาด:</label>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                <button type="button" class="preset-tag" onclick="setWardIssue('เครื่องเปิดไม่ติด / ไฟไม่เข้า')">⚡ เปิดไม่ติด</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('จอฟ้า / จอมืด / ภาพลาย')">🖥️ จอดับ/จอฟ้า</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('หัวอ่านสแกนเนอร์ไม่ตอบสนอง')">🏷️ สแกนไม่ติด</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('พิมพ์เป็นเส้น / กระดาษติด')">🖨️ เครื่องพิมพ์ขัดข้อง</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('เชื่อมต่อเครือข่ายไม่ได้')">🌐 เชื่อมเน็ตไม่ได้</button>
+              </div>
+              <input type="text" id="ward-issue-input" class="form-control" style="font-size: 12px; padding: 8px;" placeholder="ระบุอาการเสียเพิ่มเติม...">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-danger" id="btn-report-broken" style="width: 100%; font-size: 14px; padding: 12px;">🚨 แจ้งชำรุดเข้าส่วนกลาง (Report Broken)</button>
+              <button id="btn-open-template-modal-ward" class="btn btn-secondary" onclick="openTemplateCenter(document.getElementById('ward-detail-tag').textContent)" style="width: 100%; font-size: 13px;">
+                🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม (Print Service Form)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -196,10 +289,19 @@
           <h3 style="margin-bottom: 16px;">🔍 จัดการและสแกนส่งเคลม (IT Control)</h3>
           
           <div>
-            <label style="font-size: 14px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกน (Barcode Scanner)</label>
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03" autofocus>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 13px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกนบาร์โค้ด</label>
+              <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ป้องกันการพิมพ์ตกหล่น รับเฉพาะการสแกนความเร็วสูงจากหัวอ่าน">
+                <input type="checkbox" id="it-scanner-only-mode">
+                <span>🔒 สแกนเนอร์เท่านั้น (Anti-Typo)</span>
+              </label>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03 (สแกนหรือระบุรหัส)" autofocus>
               <button class="btn" id="it-search-btn" style="padding: 10px 18px;">ค้นหา</button>
+            </div>
+            <div id="it-scanner-status" style="font-size: 11px; color: #38bdf8; margin-top: 6px;">
+              ⚡ ตรวจจับอัตโนมัติ: สแกนปุ๊บ ค้นหาทันที (ช่วงความยาวรหัส 6 – 30 ตัวอักษร)
             </div>
           </div>
 
@@ -372,7 +474,10 @@
               <option value="Pending Donation">รอดำเนินการบริจาค</option>
               <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
             </select>
-            <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (Copy Data)</button>
+            <button class="btn" id="btn-export-excel-main" style="font-size: 13px; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+              📊 ส่งออก Excel ทั้งหมด (Export All)
+            </button>
+            <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (TSV)</button>
             <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่ (Add New Asset)</button>
           </div>
         </div>
@@ -387,6 +492,7 @@
                 <th>วันหมดอายุรับประกัน</th>
                 <th>มูลค่าประเมิน</th>
                 <th>สถานะ</th>
+                <th>เอกสาร</th>
               </tr>
             </thead>
             <tbody id="it-asset-table-body">
@@ -461,19 +567,64 @@
         </div>
       </div>
 
+      <!-- Audit Logs Panel with Rich Time-Span & Volume Controls -->
       <div class="glass-panel">
-        <h3 style="margin-bottom: 8px;">📜 บันทึกรายงานการเคลื่อนย้ายครุภัณฑ์ (Asset Move & RMA Audit Logs)</h3>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">ระบบล็อกการเปลี่ยนแปลงข้อมูลถาวร ไม่สามารถแก้ไขย้อนหลังได้ เพื่อการตรวจสอบความปลอดภัยของข้อมูล</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <h3 style="margin-bottom: 4px;">📜 บันทึกรายงานการเคลื่อนย้ายและประวัติการเปลี่ยนแปลง (Audit Trail)</h3>
+            <p style="font-size: 13px; color: var(--text-muted);">ระบบล็อกประวัติการเปลี่ยนแปลงถาวร ทุกรายการมีรหัสติดตามเฉพาะตัว (Tracking Code) ไม่ซ้ำกัน</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-export-audit-csv" style="font-size: 12px; padding: 6px 14px;">
+            📥 ส่งออกบันทึกเป็น Excel/CSV
+          </button>
+        </div>
+
+        <!-- Daily Case Volume Indicator Banner -->
+        <div id="audit-volume-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 22px;">📊</span>
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #fff;" id="audit-volume-text">สถิติกิจกรรมวันนี้: กำลังโหลด...</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="audit-peak-text">ตรวจสอบจำนวนเคสในแต่ละวันเพื่อตรวจจับกิจกรรมผิดปกติ</div>
+            </div>
+          </div>
+          <span id="audit-volume-badge-main" class="audit-volume-badge audit-volume-normal">0 รายการวันนี้</span>
+        </div>
+
+        <!-- Time Span & Search Filter Toolbar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <div class="time-span-btn-group" id="audit-time-span-group">
+            <button type="button" class="time-span-btn active" data-span="all">ทั้งหมด (All)</button>
+            <button type="button" class="time-span-btn" data-span="today">📅 วันนี้ (Today)</button>
+            <button type="button" class="time-span-btn" data-span="yesterday">เมื่อวาน</button>
+            <button type="button" class="time-span-btn" data-span="7days">ย้อนหลัง 7 วัน</button>
+            <button type="button" class="time-span-btn" data-span="30days">30 วัน</button>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted);">
+              <span>จาก:</span>
+              <input type="date" id="audit-start-date" class="form-control" style="padding: 4px 8px; font-size: 12px; width: 130px;">
+              <span>ถึง:</span>
+              <input type="date" id="audit-end-date" class="form-control" style="padding: 4px 8px; font-size: 12px; width: 130px;">
+              <button class="btn btn-secondary" id="btn-filter-date-range" style="padding: 5px 10px; font-size: 12px;">กรอง</button>
+            </div>
+            <input type="text" id="audit-search-input" class="form-control" style="padding: 6px 12px; font-size: 12px; width: 180px;" placeholder="🔍 ค้นหารหัส/ผู้บันทึก...">
+          </div>
+        </div>
+
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>วัน-เวลาบันทึก (Timestamp)</th>
+                <th>รหัสติดตาม (Code)</th>
+                <th>วัน-เวลาบันทึก</th>
                 <th>รหัสครุภัณฑ์</th>
                 <th>จุดติดตั้ง/ศูนย์เคลม</th>
                 <th>สถานะครุภัณฑ์</th>
-                <th>การเคลื่อยย้าย</th>
+                <th>การเคลื่อนย้าย</th>
                 <th>ผู้บันทึกรายการ</th>
+                <th>รายละเอียด</th>
               </tr>
             </thead>
             <tbody id="audit-table-body">
@@ -491,6 +642,9 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3>➕ เพิ่มรายการครุภัณฑ์ใหม่</h3>
         <button class="btn btn-secondary" id="close-asset-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div id="add-asset-dup-warning" style="display: none; padding: 10px 14px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; font-size: 12px; color: #fca5a5; margin-bottom: 14px;">
+        ⚠️ ตรวจพบข้อมูลซ้ำ: <span id="add-asset-dup-msg"></span>
       </div>
       <form id="add-asset-form">
         <div class="form-group">
@@ -529,13 +683,23 @@
           <label>สถานที่ติดตั้ง (Location)</label>
           <input type="text" id="new-location" class="form-control" placeholder="Ward 20, ER, Technical Support" required>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
           <div class="form-group">
             <label>วันเริ่มรับประกัน</label>
             <input type="date" id="new-warranty-start" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>วันสิ้นสุดรับประกัน</label>
+            <label>ระยะเวลาประกัน</label>
+            <select id="new-warranty-months" class="form-control">
+              <option value="12">1 ปี (12 ด.)</option>
+              <option value="24">2 ปี (24 ด.)</option>
+              <option value="36" selected>3 ปี (36 ด.)</option>
+              <option value="48">4 ปี (48 ด.)</option>
+              <option value="60">5 ปี (60 ด.)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>วันหมดอายุประกัน (คำนวณอัตโนมัติ)</label>
             <input type="date" id="new-warranty-end" class="form-control" required>
           </div>
         </div>
@@ -545,7 +709,7 @@
             <span>ต้องทำความสะอาดข้อมูล (PDPA Storage Device)</span>
           </label>
         </div>
-        <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกครุภัณฑ์ใหม่</button>
+        <button type="submit" class="btn" id="btn-submit-add-asset" style="width: 100%; margin-top: 16px;">บันทึกครุภัณฑ์ใหม่</button>
       </form>
     </div>
   </div>
@@ -758,6 +922,19 @@
     </div>
   </footer>
 
+  <!-- Notification Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Modular Architecture Scripts -->
+  <script src="js/state.js"></script>
+  <script src="js/templates.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/claims.js"></script>
+  <script src="js/audit.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

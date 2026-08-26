@@ -1,9 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
-const { db } = require('../db');
+const { db, recordAuditLog } = require('../db');
 const { evaluateClaimWorthiness } = require('../claim_calculator');
 const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
+const { sendNotificationEmail } = require('../services/emailService');
+
+// Live Anti-Error Duplicate Tag / Serial Checker (Staff/Admin)
+router.get('/check-tag/:tag', verifyToken, staffOnly, (req, res) => {
+  const query = req.params.tag.trim();
+  db.get(
+    "SELECT id, asset_tag, serial_no, device_name, location, status FROM mains WHERE (UPPER(asset_tag) = UPPER(?) OR UPPER(serial_no) = UPPER(?)) AND is_deleted = 0",
+    [query, query],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (row) {
+        return res.json({ exists: true, asset: row });
+      }
+      res.json({ exists: false });
+    }
+  );
+});
 
 // Get All Assets with optional pagination & filtering (Staff/Admin)
 router.get('/', verifyToken, staffOnly, (req, res) => {
@@ -39,7 +56,7 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
 
 // Create New Asset (Admin-only)
 router.post('/', verifyToken, adminOnly, (req, res) => {
-  const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, action_by_username } = req.body;
+  const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, action_by_username, recipient_email } = req.body;
   
   if (!asset_tag || !category || !brand || !model || !serial_no || !device_name || !location || !warranty_start || !warranty_end) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลครุภัณฑ์ให้ครบถ้วน' });
@@ -49,6 +66,7 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   const price = parseFloat(purchase_price) || 0;
   const wMonths = parseInt(warranty_months, 10) || 36;
   const lMonths = parseInt(expected_lifespan_months, 10) || 60;
+  const actionUser = action_by_username || (req.user ? req.user.username : 'admin');
 
   db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, salvage_status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working', ?, ?, ?, ?, ?, 'None')`,
@@ -61,10 +79,36 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
         return res.status(500).json({ error: err.message });
       }
 
-      db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'Fl 1', 'Working', 'IN', ?)`, 
-        [asset_tag, location, action_by_username || req.user.username || 'system']);
+      const logCode = recordAuditLog(db, {
+        asset_tag,
+        department_name: location,
+        floor: 'Floor 1',
+        status: 'Working',
+        moved_direction: 'IN',
+        action_by_username: actionUser,
+        details: `ลงทะเบียนครุภัณฑ์ใหม่: ${device_name} (${brand} ${model})`
+      });
 
-      res.json({ id: this.lastID, asset_tag, message: 'ลงทะเบียนครุภัณฑ์ใหม่สำเร็จ' });
+      // Dispatch automated email notification upon asset addition
+      sendNotificationEmail({
+        templateName: 'ASSET_ADDED',
+        recipient: recipient_email || process.env.NOTIFY_EMAIL || 'admin@claimit.local',
+        data: {
+          asset_tag,
+          device_name,
+          category,
+          brand,
+          model,
+          serial_no,
+          location,
+          warranty_start,
+          warranty_end,
+          log_code: logCode,
+          created_by: actionUser
+        }
+      }).catch(emailErr => console.error('[ASSET EMAIL DISPATCH ERROR]', emailErr));
+
+      res.json({ id: this.lastID, asset_tag, log_code: logCode, message: 'ลงทะเบียนครุภัณฑ์ใหม่สำเร็จและบันทึกประวัติความปลอดภัยเรียบร้อย' });
     }
   );
 });
@@ -73,22 +117,47 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
 router.put('/:tag', verifyToken, adminOnly, (req, res) => {
   const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status } = req.body;
   const tag = req.params.tag;
+  const actionUser = req.user ? req.user.username : 'admin';
 
   db.run(`UPDATE mains SET category=?, brand=?, model=?, serial_no=?, device_name=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?, purchase_price=?, warranty_months=?, expected_lifespan_months=?, salvage_status=?
           WHERE asset_tag=? AND is_deleted=0`,
     [category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, parseFloat(purchase_price)||0, parseInt(warranty_months)||36, parseInt(expected_lifespan_months)||60, salvage_status || 'None', tag],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ' });
+
+      const logCode = recordAuditLog(db, {
+        asset_tag: tag,
+        department_name: location || 'IT Dept',
+        floor: 'Floor 1',
+        status: status || 'Working',
+        moved_direction: 'IN',
+        action_by_username: actionUser,
+        details: `อัปเดตข้อมูลครุภัณฑ์: ${device_name || tag}`
+      });
+
+      res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ', log_code: logCode });
     }
   );
 });
 
 // Soft Delete Asset (Admin-only)
 router.delete('/:tag', verifyToken, adminOnly, (req, res) => {
-  db.run("UPDATE mains SET is_deleted = 1 WHERE asset_tag = ?", [req.params.tag], function(err) {
+  const tag = req.params.tag;
+  const actionUser = req.user ? req.user.username : 'admin';
+  db.run("UPDATE mains SET is_deleted = 1 WHERE asset_tag = ?", [tag], function(err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'ลบรายการครุภัณฑ์สำเร็จ' });
+
+    const logCode = recordAuditLog(db, {
+      asset_tag: tag,
+      department_name: 'IT Admin',
+      floor: 'Floor 1',
+      status: 'Deleted',
+      moved_direction: 'OUT',
+      action_by_username: actionUser,
+      details: 'ลบรายการครุภัณฑ์ (Soft Delete)'
+    });
+
+    res.json({ message: 'ลบรายการครุภัณฑ์สำเร็จ', log_code: logCode });
   });
 });
 
@@ -190,9 +259,17 @@ router.post('/update-status', verifyToken, staffOnly, (req, res) => {
         const logDept = department_name || newLocation;
         const logFloor = floor || 'Unknown';
 
-        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, ?, ?, ?, ?)`, 
-          [asset_tag, logDept, logFloor, status, movedDirection, actionUser]);
-        res.json({ message: 'Asset status updated', status, location: newLocation });
+        const logCode = recordAuditLog(db, {
+          asset_tag,
+          department_name: logDept,
+          floor: logFloor,
+          status,
+          moved_direction: movedDirection,
+          action_by_username: actionUser,
+          details: `เปลี่ยนสถานะเป็น: ${status} (จุดติดตั้ง: ${newLocation})`
+        });
+
+        res.json({ message: 'Asset status updated', status, location: newLocation, log_code: logCode });
       });
     });
   });
@@ -226,9 +303,18 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
         if (err) return res.status(500).json({ error: 'Failed to confirm sanitization' });
         
         db.run(`UPDATE mains SET status = 'Sanitized' WHERE asset_tag = ?`, [asset_tag]);
-        db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, 'Technical Support', 'Fl 4', 'Sanitized', 'IN', ?)`, 
-          [asset_tag, actionUser]);
-        res.json({ message: 'การลบข้อมูล (PDPA Sanitization) เสร็จสิ้นและบันทึกประวัติสำเร็จ', data_wiped_by: actionUser, data_wiped_at: now });
+        
+        const logCode = recordAuditLog(db, {
+          asset_tag,
+          department_name: 'Technical Support',
+          floor: 'Fl 4',
+          status: 'Sanitized',
+          moved_direction: 'IN',
+          action_by_username: actionUser,
+          details: `PDPA Sanitization: ${note}`
+        });
+
+        res.json({ message: 'การลบข้อมูล (PDPA Sanitization) เสร็จสิ้นและบันทึกประวัติสำเร็จ', data_wiped_by: actionUser, data_wiped_at: now, log_code: logCode });
       }
     );
   });
@@ -270,9 +356,17 @@ router.post('/claim', verifyToken, staffOnly, (req, res) => {
             db.run("UPDATE mains SET status = 'Pending Pickup' WHERE asset_tag = ?", [asset_tag], function(updateErr) {
               if (updateErr) return res.status(500).json({ error: 'Failed to update asset status' });
 
-              db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'External', 'Pending Pickup', 'OUT', ?)`, 
-                [asset_tag, vendor_name, actionUser]);
-              res.json({ message: 'บันทึกส่งเคลมศูนย์บริการสำเร็จ', asset_tag, status: 'Pending Pickup', data_wiped_by: actionUser, data_wiped_at: now, sanitization_note: note });
+              const logCode = recordAuditLog(db, {
+                asset_tag,
+                department_name: vendor_name,
+                floor: 'External',
+                status: 'Pending Pickup',
+                moved_direction: 'OUT',
+                action_by_username: actionUser,
+                details: `ส่งเคลมศูนย์บริการ: ${vendor_name} (RMA No: ${vendor_rma_number})`
+              });
+
+              res.json({ message: 'บันทึกส่งเคลมศูนย์บริการสำเร็จ', asset_tag, status: 'Pending Pickup', data_wiped_by: actionUser, data_wiped_at: now, sanitization_note: note, log_code: logCode });
             });
           }
         );
@@ -302,10 +396,17 @@ router.post('/resolve-claim', verifyToken, staffOnly, (req, res) => {
         db.run(`UPDATE rma_claims SET status = 'Returned', resolved_date = ?, resolution_type = ?, replacement_serial_no = ?, repair_cost = ? WHERE asset_tag = ? AND is_deleted = 0`,
           [resolvedDate, resolution_type, newSerial, parseFloat(repair_cost)||0, asset_tag], function(rmaErr) {
             
-            db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, ?, 'Fl 1', ?, 'IN', ?)`,
-              [asset_tag, asset.location, newStatus, actionUser]);
+            const logCode = recordAuditLog(db, {
+              asset_tag,
+              department_name: asset.location,
+              floor: 'Fl 1',
+              status: newStatus,
+              moved_direction: 'IN',
+              action_by_username: actionUser,
+              details: `รับเครื่องคืนจากศูนย์: ${resolution_type} (ค่าซ่อม: ฿${parseFloat(repair_cost)||0})`
+            });
 
-            res.json({ message: `รับอุปกรณ์คืนเรียบร้อยแล้ว สถานะ: [${newStatus}]`, asset_tag, status: newStatus, resolvedDate });
+            res.json({ message: `รับอุปกรณ์คืนเรียบร้อยแล้ว สถานะ: [${newStatus}]`, asset_tag, status: newStatus, resolvedDate, log_code: logCode });
         });
       });
     });
@@ -329,10 +430,17 @@ router.post('/salvage', verifyToken, staffOnly, (req, res) => {
     db.run("UPDATE mains SET salvage_status = ?, status = ? WHERE asset_tag = ? AND is_deleted = 0", [salvage_status, newAssetStatus, asset_tag], function(err) {
       if (err) return res.status(500).json({ error: err.message });
 
-      db.run(`INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES (?, 'Salvage Dept', 'Warehouse', ?, 'OUT', ?)`,
-        [asset_tag, newAssetStatus, actionUser]);
+      const logCode = recordAuditLog(db, {
+        asset_tag,
+        department_name: 'Salvage Dept',
+        floor: 'Warehouse',
+        status: newAssetStatus,
+        moved_direction: 'OUT',
+        action_by_username: actionUser,
+        details: `จัดการแทงจำหน่าย/บริจาค: ${salvage_status}`
+      });
 
-      res.json({ message: `อัปเดตสถานะการขาย/บริจาคเป็น [${salvage_status}] สำเร็จ`, asset_tag, salvage_status, status: newAssetStatus });
+      res.json({ message: `อัปเดตสถานะการขาย/บริจาคเป็น [${salvage_status}] สำเร็จ`, asset_tag, salvage_status, status: newAssetStatus, log_code: logCode });
     });
   });
 });

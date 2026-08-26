@@ -64,6 +64,28 @@ const TEMPLATES = {
         </ul>
       </div>
     `
+  }),
+
+  ASSET_ADDED: (data) => ({
+    subject: `[ClaimIT] บันทึกครุภัณฑ์ใหม่ในระบบ: ${data.asset_tag} — ${data.device_name || data.category}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #0284c7; margin-top: 0;">📦 บันทึกครุภัณฑ์ใหม่เข้าระบบสำเร็จ</h2>
+        <p>เรียน ฝ่ายเทคโนโลยีสารสนเทศ / ผู้ดูแลระบบ,</p>
+        <p>มีการลงทะเบียนครุภัณฑ์คอมพิวเตอร์และเครือข่ายรายการใหม่เข้าสู่คลังระบบ ClaimIT เรียบร้อยแล้ว:</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>รหัสครุภัณฑ์ (Asset Tag):</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #0284c7;">${data.asset_tag}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>ชื่ออุปกรณ์:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.device_name || '-'}</td></tr>
+          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>หมวดหมู่ / แบรนด์ / รุ่น:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.category} | ${data.brand} ${data.model}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>Serial Number:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.serial_no}</td></tr>
+          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>สถานที่ติดตั้ง:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.location}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>ระยะเวลารับประกัน:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.warranty_start} ถึง ${data.warranty_end}</td></tr>
+          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>รหัสตรวจสอบการเปลี่ยนแปลง:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0; font-family: monospace;">${data.log_code || '-'}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>ผู้บันทึกรายการ:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.created_by || 'system'}</td></tr>
+        </table>
+        <p style="color: #64748b; font-size: 13px;">ระบบ ClaimIT โรงพยาบาลพญาไท 3 — บันทึกประวัติและตรวจสอบย้อนหลังได้ทุกรายการ</p>
+      </div>
+    `
   })
 };
 
