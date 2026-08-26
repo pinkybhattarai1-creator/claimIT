@@ -129,10 +129,21 @@
           <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">เข้าสู่ระบบ (Sign In)</button>
         </form>
         
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 12px; text-align: center; color: var(--text-muted);">
-          <p style="font-weight: bold; margin-bottom: 8px;">บัญชีทดสอบที่จัดเตรียมไว้ให้ (Demo Credentials):</p>
-          <p>🧑‍💼 พนักงานทั่วไป (Staff): <code>staff</code> / <code>staff123</code></p>
-          <p>💻 เจ้าหน้าที่ไอทีระบบ: <code>admin</code> / <code>admin123</code></p>
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-align: center;">
+            🚀 เข้าใช้งานด่วนด้วย 1-Click (Quick Login สำหรับทดสอบ):
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button type="button" id="btn-quick-staff" class="btn btn-secondary" style="font-size: 12px; padding: 10px; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; text-align: center;">
+              🧑‍💼 Staff (พนักงานวอร์ด)
+            </button>
+            <button type="button" id="btn-quick-admin" class="btn btn-secondary" style="font-size: 12px; padding: 10px; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; text-align: center;">
+              💻 IT Admin (ฝ่ายไอที)
+            </button>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 10px;">
+            หรือใช้รหัสผ่าน: <code>staff</code> / <code>staff123</code> และ <code>admin</code> / <code>admin123</code>
+          </div>
         </div>
       </div>
     </section>

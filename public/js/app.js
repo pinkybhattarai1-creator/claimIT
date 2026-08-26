@@ -193,6 +193,24 @@ function setupEventListeners() {
     document.getElementById('login-username').value = 'staff';
     document.getElementById('login-password').value = 'staff123';
   });
+
+  const quickStaff = document.getElementById('btn-quick-staff');
+  if (quickStaff) {
+    quickStaff.addEventListener('click', () => {
+      document.getElementById('login-username').value = 'staff';
+      document.getElementById('login-password').value = 'staff123';
+      loginForm?.requestSubmit();
+    });
+  }
+
+  const quickAdmin = document.getElementById('btn-quick-admin');
+  if (quickAdmin) {
+    quickAdmin.addEventListener('click', () => {
+      document.getElementById('login-username').value = 'admin';
+      document.getElementById('login-password').value = 'admin123';
+      loginForm?.requestSubmit();
+    });
+  }
   
   // Manual Search Buttons
   const wardSearchBtn = document.getElementById('ward-search-btn');

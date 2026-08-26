@@ -22,22 +22,10 @@ app.use(corsMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Secret Portal Middleware
+// Optional vanity alias route
 if (SECRET_PORTAL_PATH) {
   app.get(`/${SECRET_PORTAL_PATH}`, (req, res) => {
-    res.setHeader('Set-Cookie', `claimit_entry_auth=${SECRET_PORTAL_PATH}; Path=/; HttpOnly; Max-Age=2592000`); // 30 days
     res.redirect('/');
-  });
-  
-  app.use((req, res, next) => {
-    // Let API and Health endpoints pass
-    if (req.path.startsWith('/api/') || req.path === '/health') return next();
-    // Check cookie
-    const cookies = req.headers.cookie || '';
-    if (!cookies.includes(`claimit_entry_auth=${SECRET_PORTAL_PATH}`)) {
-      return res.status(404).send('Not Found');
-    }
-    next();
   });
 }
 
@@ -96,10 +84,19 @@ app.use(errorHandler);
 
 // 8. Start Server
 const server = app.listen(PORT, HOST, () => {
-  console.log(`[ClaimIT Server] Running securely on ${HOST}:${PORT} (${NODE_ENV})`);
-  if (SECRET_PORTAL_PATH) {
-    console.log(`[Secret Portal] Accessible ONLY via: http://${HOST}:${PORT}/${SECRET_PORTAL_PATH}`);
-  }
+  const hostLabel = (HOST === '0.0.0.0' || HOST === '127.0.0.1') ? 'localhost' : HOST;
+  console.log(`[ClaimIT Server] Running securely on http://${hostLabel}:${PORT} (${NODE_ENV})`);
+  try {
+    const os = require('os');
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          console.log(`[ClaimIT Network] 📱 สำหรับเพื่อนร่วมงานเข้าใช้งานผ่านเครือข่าย: http://${net.address}:${PORT}`);
+        }
+      }
+    }
+  } catch {}
 });
 
 module.exports = { app, server };
