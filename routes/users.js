@@ -32,6 +32,10 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลผู้ใช้งานให้ครบถ้วน' });
   }
 
+  if (String(password).length < 6) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+  }
+
   const hashedPassword = hashPassword(password);
   db.run(`INSERT INTO users (username, password, role, name, department, is_active, is_deleted) VALUES (?, ?, ?, ?, ?, 1, 0)`,
     [username, hashedPassword, role, name, department],
@@ -66,10 +70,22 @@ router.put('/:id', verifyToken, adminOnly, (req, res) => {
 
 // DELETE /api/users/:id - Deactivate User (Admin-only)
 router.delete('/:id', verifyToken, adminOnly, (req, res) => {
-  db.run("UPDATE users SET is_deleted = 1, is_active = 0 WHERE id = ?", [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
-    res.json({ message: 'ระงับการใช้งานผู้ใช้งานสำเร็จ (Deactivated)' });
+  const targetId = parseInt(req.params.id, 10);
+  if (req.user && req.user.id === targetId) {
+    return res.status(400).json({ error: 'ไม่อนุญาตให้ระงับหรือลบบัญชีผู้ใช้งานของตนเอง (Cannot delete own account)' });
+  }
+
+  db.get("SELECT COUNT(*) as active_admins FROM users WHERE role = 'admin' AND is_active = 1 AND is_deleted = 0 AND id != ?", [targetId], (cntErr, cntRow) => {
+    if (cntErr) return res.status(500).json({ error: cntErr.message });
+    if (!cntRow || cntRow.active_admins < 1) {
+      return res.status(400).json({ error: 'ไม่สามารถลบผู้ดูแลระบบคนสุดท้ายได้ ระบบต้องมีผู้ดูแลระบบที่ใช้งานอยู่อย่างน้อย 1 คน' });
+    }
+
+    db.run("UPDATE users SET is_deleted = 1, is_active = 0 WHERE id = ?", [targetId], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+      res.json({ message: 'ระงับการใช้งานผู้ใช้งานสำเร็จ (Deactivated)' });
+    });
   });
 });
 
@@ -85,8 +101,8 @@ router.post('/:id/reactivate', verifyToken, adminOnly, (req, res) => {
 // POST /api/users/:id/reset-password - Admin Reset Password (Admin-only)
 router.post('/:id/reset-password', verifyToken, adminOnly, (req, res) => {
   const { new_password } = req.body;
-  if (!new_password) {
-    return res.status(400).json({ error: 'กรุณาระบุ new_password ใหม่' });
+  if (!new_password || String(new_password).length < 6) {
+    return res.status(400).json({ error: 'กรุณาระบุ new_password ความยาวอย่างน้อย 6 ตัวอักษร' });
   }
 
   const hashedPassword = hashPassword(new_password);

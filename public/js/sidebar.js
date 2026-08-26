@@ -25,9 +25,42 @@ function setupQuickSidebar() {
     closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
   }
 
+  async function downloadAuthenticatedFile(url, defaultFilename, progressMsg) {
+    if (!state.user || !state.user.token) {
+      showToast('กรุณาเข้าสู่ระบบก่อนดาวน์โหลดเอกสาร', 'warning');
+      return;
+    }
+    if (progressMsg) showToast(progressMsg, 'info', 2500);
+    try {
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `ดาวน์โหลดล้มเหลว (รหัส: ${res.status})`);
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('content-disposition');
+      let filename = defaultFilename;
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename=["']?([^"';]+)["']?/);
+        if (match && match[1]) filename = decodeURIComponent(match[1]);
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      showToast(`ดาวน์โหลด ${filename} สำเร็จเรียบร้อยแล้ว`, 'success', 3000);
+    } catch (err) {
+      console.error('Download error:', err);
+      showToast(err.message || 'ไม่สามารถดาวน์โหลดไฟล์ได้', 'error');
+    }
+  }
+
   function downloadExcel() {
-    showToast('กำลังส่งออก Microsoft Excel ทั้งระบบ (.xls)...', 'info');
-    window.location.href = '/api/export/excel';
+    downloadAuthenticatedFile('/api/export/excel', `claimit_database_${new Date().toISOString().slice(0,10)}.xls`, 'กำลังส่งออก Microsoft Excel ทั้งระบบ (.xls)...');
   }
 
   if (exportExcelBtn) exportExcelBtn.addEventListener('click', downloadExcel);
@@ -36,15 +69,13 @@ function setupQuickSidebar() {
 
   if (exportCsvBtn) {
     exportCsvBtn.addEventListener('click', () => {
-      showToast('กำลังดาวน์โหลด CSV ข้อมูลครุภัณฑ์...', 'info');
-      window.location.href = '/api/export/assets.csv';
+      downloadAuthenticatedFile('/api/export/assets.csv', `claimit_assets_${new Date().toISOString().slice(0,10)}.csv`, 'กำลังดาวน์โหลด CSV ข้อมูลครุภัณฑ์...');
     });
   }
 
   if (exportAuditCsvBtn) {
     exportAuditCsvBtn.addEventListener('click', () => {
-      showToast('กำลังดาวน์โหลดรายงานบันทึกประวัติ...', 'info');
-      window.location.href = '/api/export/excel';
+      downloadAuthenticatedFile('/api/export/excel', `claimit_audit_report_${new Date().toISOString().slice(0,10)}.xls`, 'กำลังดาวน์โหลดรายงานบันทึกประวัติ...');
     });
   }
 

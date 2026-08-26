@@ -76,11 +76,13 @@ app.use('/api/assets', require('./routes/assets'));
 app.use('/api/claims', require('./routes/claims'));
 app.use('/api/evidence', require('./routes/evidence'));
 app.use('/api/export', require('./routes/export'));
+app.use('/api/email', require('./routes/email'));
 app.use('/api', require('./routes/audit'));
 const { performBackup } = require('./scripts/backup');
+const { verifyToken, adminOnly } = require('./middleware/auth');
 
-// Admin Backup Trigger Endpoint
-app.post('/api/backup', (req, res) => {
+// Admin Backup Trigger Endpoint (Protected by RBAC)
+app.post('/api/backup', verifyToken, adminOnly, (req, res) => {
   performBackup()
     .then(result => {
       res.json({ message: 'Backup created successfully', fileName: result.fileName });

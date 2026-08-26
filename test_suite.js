@@ -212,6 +212,10 @@ async function runTests() {
     }, adminToken);
     assert(editUserRes.status === 200, 'Admin successfully updated user details (200)');
 
+    // Admin trying to deactivate self blocked by safeguard
+    const selfDeleteRes = await makeRequest('DELETE', `/api/users/1`, null, adminToken);
+    assert(selfDeleteRes.status === 400, 'Admin deactivating own account blocked by system safeguard (400)');
+
     // Deactivate user
     const deactUserRes = await makeRequest('DELETE', `/api/users/${createdUserId}`, null, adminToken);
     assert(deactUserRes.status === 200, 'Admin successfully deactivated user (200)');
@@ -374,11 +378,25 @@ async function runTests() {
     assert(auditRes.status === 200, 'Audit logs retrieved successfully (200)');
     assert(Array.isArray(auditRes.data) && auditRes.data.length > 0, `Audit logs recorded (${auditRes.data.length} entries)`);
 
-    // TEST 12: Automated SQLite Database Backup
-    console.log('\n--- TEST 12: Automated SQLite Database Backup ---');
+    // TEST 12: Automated SQLite Database Backup & Authorization
+    console.log('\n--- TEST 12: Automated SQLite Database Backup & Email Route ---');
+    const unauthBackup = await makeRequest('POST', '/api/backup', null);
+    assert(unauthBackup.status === 401, 'Unauthenticated backup request blocked (401)');
+
+    const staffBackup = await makeRequest('POST', '/api/backup', null, staffToken);
+    assert(staffBackup.status === 403, 'Staff backup request blocked by RBAC (403)');
+
     const backupRes = await makeRequest('POST', '/api/backup', null, adminToken);
-    assert(backupRes.status === 200, 'Database backup triggered via maintenance API (200)');
+    assert(backupRes.status === 200, 'Admin database backup triggered via maintenance API (200)');
     assert(backupRes.data.fileName && backupRes.data.fileName.startsWith('claimit_backup_'), 'Backup filename properly formatted');
+
+    // Email dispatch test
+    const emailRes = await makeRequest('POST', '/api/email/send', {
+      to: 'nurse@hospital.local',
+      subject: 'ClaimIT Test Notification',
+      html: '<p>Hospital equipment notification</p>'
+    }, staffToken);
+    assert(emailRes.status === 200, 'Mounted /api/email/send dispatches successfully (200)');
 
     console.log('\n===============================================================');
     console.log('🎉 ALL 12 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');

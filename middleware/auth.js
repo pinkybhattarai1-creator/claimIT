@@ -7,17 +7,22 @@ const { db } = require('../db');
  * Validates presence, signature, expiration, and active database status.
  */
 function verifyToken(req, res, next) {
+  let token = null;
   const authHeader = req.headers['authorization'];
-  if (!authHeader) {
+  if (authHeader) {
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer') {
+      token = parts[1];
+    } else {
+      return res.status(401).json({ error: 'รูปแบบ Authorization Header ไม่ถูกต้อง (Format: Bearer <token>)' });
+    }
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'ไม่พบ Token ยืนยันตัวตน (Authentication token required)' });
   }
-
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return res.status(401).json({ error: 'รูปแบบ Authorization Header ไม่ถูกต้อง (Format: Bearer <token>)' });
-  }
-
-  const token = parts[1];
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {

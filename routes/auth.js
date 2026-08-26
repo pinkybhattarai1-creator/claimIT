@@ -77,21 +77,43 @@ router.post('/login', loginLimiter, (req, res) => {
   );
 });
 
-// POST /api/auth/change-password (Self password change for authenticated users)
-router.post('/change-password', (req, res) => {
+// POST /api/auth/change-password (Self password change with brute-force protection)
+router.post('/change-password', loginLimiter, (req, res) => {
   const { username, current_password, new_password } = req.body;
   if (!username || !current_password || !new_password) {
     return res.status(400).json({ error: 'กรุณาระบุ username, current_password และ new_password ให้ครบถ้วน' });
   }
 
+  if (String(new_password).length < 6) {
+    return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+  }
+
   const cleanUsername = String(username).trim();
+
+  // If token is present, ensure caller is altering their own account (or is admin)
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.username !== cleanUsername && decoded.role !== 'admin') {
+        return res.status(403).json({ error: 'ท่านไม่มีสิทธิ์เปลี่ยนรหัสผ่านของผู้ใช้อื่น' });
+      }
+    } catch {
+      return res.status(401).json({ error: 'Token ยืนยันตัวตนไม่ถูกต้องหรือหมดอายุ' });
+    }
+  }
 
   db.get("SELECT * FROM users WHERE username = ? AND is_deleted = 0", [cleanUsername], (err, user) => {
     if (err) return res.status(500).json({ error: 'Database error' });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      logAuthEvent(cleanUsername, 'PASSWORD_CHANGE_FAILED', 'User not found', req);
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const isCurrentValid = verifyPassword(current_password, user.password);
     if (!isCurrentValid) {
+      logAuthEvent(cleanUsername, 'PASSWORD_CHANGE_FAILED', 'Incorrect current password', req);
       return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
     }
 

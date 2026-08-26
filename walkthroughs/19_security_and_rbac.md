@@ -7,12 +7,13 @@
 ## ภาพรวมความปลอดภัย
 
 ClaimIT ออกแบบตามหลัก Defense in Depth:
-1. JWT Authentication (Stateless)
+1. JWT Authentication (Stateless, 8 ชั่วโมง)
 2. RBAC (Role-Based Access Control)
-3. Security Middleware (Rate Limiting, CORS, Headers)
-4. PDPA Safeguard
-5. IDOR Protection
-6. Immutable Audit Trail
+3. Security Gate (Passcode: 1 — Cookie 30 วัน)
+4. Security Middleware (Rate Limiting, CORS, Headers)
+5. PDPA Safeguard + PDPA Gate
+6. IDOR Protection
+7. Immutable Audit Trail
 
 ---
 
@@ -22,12 +23,12 @@ ClaimIT ออกแบบตามหลัก Defense in Depth:
   Authorization: Bearer <jwt_token>
 
 - Token สร้างจาก JWT_SECRET ใน .env
-- อายุ Token: 24 ชั่วโมง
+- อายุ Token: 8 ชั่วโมง (expiresIn: '8h')
 - ไม่ใช้ Hardcoded Fallback Secret
-- หาก TOKEN_SECRET ไม่ตั้งค่า ระบบหยุดทันที (startup validation)
+- หาก JWT_SECRET ไม่ตั้งค่า → startup หยุดทันที
 
 Login (POST /api/auth/login):
-  Response: { token: "eyJ...", user: { id, username, role, name } }
+  Response: { token: "eyJ...", user: { id, username, role, name, department } }
 
 ---
 
@@ -35,7 +36,7 @@ Login (POST /api/auth/login):
 
 | Role | สิทธิ์ |
 |---|---|
-| staff | อ่าน assets, สแกน, แจ้งชำรุด, ดู audit, ดาวน์โหลด |
+| staff | อ่าน assets, สแกน, แจ้งชำรุด, ดู audit, ดาวน์โหลด, ส่งเคลม |
 | admin | ทุกอย่างของ staff + สร้าง/แก้ไข/ลบ assets, users, configs, claims |
 
 Middleware:
@@ -43,52 +44,106 @@ Middleware:
 - staffOnly: ต้อง login (role ใดก็ได้)
 - adminOnly: ต้องเป็น admin เท่านั้น
 
----
-
-## 3. Security Middleware
-
-ไฟล์: middleware/security.js
-
-- Rate Limiting: จำกัด request ต่อ IP (ป้องกัน brute force)
-- CORS: กำหนด Origin ที่อนุญาต
-- Security Headers: X-Frame-Options, X-Content-Type, CSP ฯลฯ
-- Helmet.js: ตั้งค่า HTTP Security Headers อัตโนมัติ
+Staff กดปุ่ม IT Portal → แสดง Toast Warning (ไม่ redirect)
 
 ---
 
-## 4. Password Security
+## 3. Security Gate
+
+ก่อนหน้า Login มี Passcode Gate:
+- รหัสเริ่มต้น: 1 (กำหนดใน .env ด้วย APP_PASSCODE)
+- POST /api/verify-gate → ตั้ง Cookie claimit_gate=1 (30 วัน)
+- หากผ่านแล้ว ไม่ต้องกรอกซ้ำจนกว่า Cookie หมดอายุ
+
+---
+
+## 4. Rate Limiting
+
+ระบบทำเอง (ไม่ใช้ library ภายนอก) — Sliding Window In-Memory:
+
+| Limiter | Window | Max Requests | ผลลัพธ์เมื่อเกิน |
+|---|---|---|---|
+| loginLimiter | 15 นาที | 15 ครั้ง | error 429 + ภาษาไทย |
+| apiLimiter | 1 นาที | 300 ครั้ง | error 429 + ภาษาไทย |
+
+Headers ที่ส่งกลับ:
+- X-RateLimit-Limit
+- X-RateLimit-Remaining
+- X-RateLimit-Reset
+
+---
+
+## 5. Security Headers (ไม่ใช้ Helmet library)
+
+ระบบเขียน middleware เอง:
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: SAMEORIGIN
+- X-XSS-Protection: 1; mode=block
+- Referrer-Policy: strict-origin-when-cross-origin
+- Strict-Transport-Security (Production เท่านั้น)
+- Content-Security-Policy: default-src 'self' (+ inline styles)
+- ลบ X-Powered-By header
+
+---
+
+## 6. Password Security
 
 - bcryptjs Cost Factor 10
 - ไม่เก็บ plain text
-- Admin สามารถ reset ได้ผ่าน /api/users/:id/reset-password
-- ผู้ใช้ไม่สามารถ reset password ตัวเองได้ (ต้องขอ Admin)
+- Legacy pbkdf2 hash → migrate ไป bcrypt อัตโนมัติเมื่อ login สำเร็จ
+- เปลี่ยนรหัสผ่านตัวเอง: POST /api/auth/change-password (ต้องรู้รหัสเดิม)
+- Admin Reset: POST /api/users/:id/reset-password (ไม่ต้องรู้รหัสเดิม)
 
 ---
 
-## 5. Environment Variables Validation
+## 7. Environment Variables Validation
 
 ไฟล์: utils/envValidator.js
 
-เมื่อ startup ระบบตรวจสอบ:
-- JWT_SECRET ต้องไม่ว่าง
-- หาก NODE_ENV = production และ JWT_SECRET อ่อนแอ → แจ้งเตือน
+เมื่อ startup ระบบตรวจสอบและ export:
+- PORT, NODE_ENV, HOST
+- JWT_SECRET (บังคับ — หากว่างระบบหยุด)
+- CORS_ORIGIN
+- SECRET_PORTAL_PATH (ชื่อ URL alias ลับ)
 
 ---
 
-## 6. Database Security
+## 8. Database Security
 
-- SQLite WAL Mode: ป้องกัน data corruption
-- Foreign Keys: เปิดใช้งาน
-- Parameterized Queries: ป้องกัน SQL Injection ทุก query
-- Soft Delete: ข้อมูลไม่ถูกลบถาวร (is_deleted flag)
+- SQLite WAL Mode (journal_mode = WAL)
+- Foreign Keys เปิดใช้งาน (PRAGMA foreign_keys = ON)
+- Parameterized Queries ทุก query (ป้องกัน SQL Injection)
+- Soft Delete ทุก table (is_deleted flag)
 
 ---
 
-## 7. สิทธิ์ตาม API Endpoint
+## 9. SECRET_PORTAL_PATH (Hidden URL)
+
+ถ้าตั้งค่า SECRET_PORTAL_PATH ใน .env:
+  http://[server]/[secret-path] → redirect ไป /
+
+ใช้เป็น "hidden door" สำหรับ staff ที่รู้ URL
+
+---
+
+## 10. Audit Logging ของ Auth Events
+
+ทุก Login Success/Fail/Block บันทึกใน move_log:
+- asset_tag: SYSTEM_AUTH
+- moved_direction: AUTH
+- details: LOGIN_SUCCESS / LOGIN_FAILED / LOGIN_BLOCKED / PASSWORD_CHANGE
+- department_name: IP Address ของผู้ใช้
+
+---
+
+## สิทธิ์ตาม API Endpoint
 
 | Endpoint | Method | สิทธิ์ |
 |---|---|---|
+| /health | GET | Public |
+| /api/verify-gate | POST | Public |
 | /api/auth/login | POST | Public |
+| /api/auth/change-password | POST | Public (ต้องรู้รหัสเดิม) |
 | /api/assets | GET | Staff+ |
 | /api/assets | POST | Admin |
 | /api/assets/:tag | PUT/DELETE | Admin |
@@ -98,9 +153,13 @@ Middleware:
 | /api/users/:id | PUT/DELETE | Admin |
 | /api/configurations | GET | Staff+ |
 | /api/configurations | POST/PUT/DELETE | Admin |
+| /api/departments | GET | Authenticated |
+| /api/departments | POST/PUT/DELETE | Admin |
 | /api/audit-logs | GET | Staff+ |
 | /api/export/excel | GET | Staff+ |
-| /api/evidence/:id/file | GET | Staff+ (ownership check) |
+| /api/evidence/upload | POST | Staff+ |
+| /api/evidence/:id/view | GET | Staff+ (+ ownership check) |
+| /api/backup | POST | Open (add auth if needed) |
 
 ---
 
