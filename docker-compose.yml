@@ -11,11 +11,12 @@ services:
       - PORT=8847
       - NODE_ENV=production
       - JWT_SECRET=${JWT_SECRET}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
-      - SENDGRID_FROM=${SENDGRID_FROM:-no-reply@claimit.local}
+      - DB_PATH=/app/data/database.db
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM=${RESEND_FROM:-no-reply@claimit.local}
     volumes:
-      # Persist the SQLite database outside the container
-      - claimit_data:/app/database.db
+      # Persist the SQLite database directory (WAL + shm journals preserved)
+      - claimit_data:/app/data
       # Persist uploaded evidence files
       - claimit_evidence:/app/storage/evidence
 

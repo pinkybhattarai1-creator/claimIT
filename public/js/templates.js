@@ -76,12 +76,12 @@ function initAndShowTemplateModal() {
 
   const editContact = document.getElementById('edit-contact-name');
   if (editContact) {
-    editContact.value = state.user ? (state.user.name || 'คุณรมิตา ภูมิแสง') : 'คุณรมิตา ภูมิแสง';
+    editContact.value = (state.user && state.user.name) ? state.user.name : 'เจ้าหน้าที่ไอที ประจำโรงพยาบาล';
   }
 
   const editPhone = document.getElementById('edit-contact-phone');
   if (editPhone) {
-    editPhone.value = '097-160-9630';
+    editPhone.value = '02-467-1111 ต่อ 1234';
   }
 
   const editProb = document.getElementById('edit-problem-desc');

@@ -486,11 +486,13 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     res.setHeader('Content-disposition', 'attachment; filename=' + filename);
     res.setHeader('Content-type', 'application/pdf');
 
-    // Register Thai font if available on host
-    const thaiFontPath = 'C:\\Windows\\Fonts\\tahoma.ttf';
-    const thaiBoldFontPath = 'C:\\Windows\\Fonts\\tahomabd.ttf';
-    if (fs.existsSync(thaiFontPath)) {
+    // Register Thai font if available (cross-platform bundled or OS)
+    const { resolveFontPath } = require('../utils/fontResolver');
+    const thaiFontPath = resolveFontPath();
+    const isThai = !!thaiFontPath;
+    if (isThai) {
       doc.registerFont('ThaiRegular', thaiFontPath);
+      const thaiBoldFontPath = thaiFontPath.replace('tahoma.ttf', 'tahomabd.ttf');
       if (fs.existsSync(thaiBoldFontPath)) {
         doc.registerFont('ThaiBold', thaiBoldFontPath);
       } else {
@@ -502,7 +504,6 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     doc.pipe(res);
     
     // Header
-    const isThai = fs.existsSync(thaiFontPath);
     const titleFont = isThai ? 'ThaiBold' : 'Helvetica-Bold';
     const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
 

@@ -1,5 +1,8 @@
 FROM node:18-alpine
 
+# Install fonts and tools for cross-platform PDF generation
+RUN apk add --no-cache fontconfig ttf-dejavu
+
 # Set working directory
 WORKDIR /app
 
