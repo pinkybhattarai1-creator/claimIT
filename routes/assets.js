@@ -54,6 +54,34 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   });
 });
 
+// GET /api/assets/summary (Staff/Admin) - Accurate database-wide inventory metrics
+router.get('/summary', verifyToken, staffOnly, (req, res) => {
+  const sql = `
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'Working' THEN 1 ELSE 0 END) as working,
+      SUM(CASE WHEN status = 'Broken' THEN 1 ELSE 0 END) as broken,
+      SUM(CASE WHEN status = 'Pending Pickup' THEN 1 ELSE 0 END) as pending_pickup,
+      SUM(CASE WHEN status = 'Scrapped' OR salvage_status = 'Scrapped' THEN 1 ELSE 0 END) as scrapped,
+      SUM(CASE WHEN salvage_status IN ('Pending Sell', 'Sold') THEN 1 ELSE 0 END) as salvage_sell,
+      SUM(CASE WHEN salvage_status IN ('Pending Donation', 'Donated') THEN 1 ELSE 0 END) as salvage_donation
+    FROM mains
+    WHERE is_deleted = 0
+  `;
+  db.get(sql, [], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({
+      total: (row && row.total) || 0,
+      working: (row && row.working) || 0,
+      broken: (row && row.broken) || 0,
+      pending_pickup: (row && row.pending_pickup) || 0,
+      scrapped: (row && row.scrapped) || 0,
+      salvage_sell: (row && row.salvage_sell) || 0,
+      salvage_donation: (row && row.salvage_donation) || 0
+    });
+  });
+});
+
 // Create New Asset (Admin-only)
 router.post('/', verifyToken, adminOnly, (req, res) => {
   const { asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, action_by_username, recipient_email } = req.body;

@@ -233,9 +233,9 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
 }
 
 /**
- * Perform a strict state transition on a claim
+ * Perform a strict state transition on a claim and synchronize attached asset states
  */
-function transitionClaimStatus({ claim_id, new_status, user, notes }) {
+function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_type, replacement_serial_no, repair_cost }) {
   return new Promise((resolve, reject) => {
     db.get("SELECT * FROM claims WHERE id = ? AND is_deleted = 0", [claim_id], (err, claim) => {
       if (err || !claim) {
@@ -253,33 +253,119 @@ function transitionClaimStatus({ claim_id, new_status, user, notes }) {
       }
 
       const confirmedBy = new_status === 'CONFIRMED' ? (user ? user.username : 'staff') : claim.confirmed_by;
+      const resolvedDate = (new_status === 'RETURNED' || new_status === 'CLOSED') ? new Date().toISOString().split('T')[0] : claim.resolved_date;
+      const resType = resolution_type || claim.resolution_type;
+      const repCost = (repair_cost !== undefined && repair_cost !== null) ? parseFloat(repair_cost) : claim.repair_cost;
+      const repSerial = replacement_serial_no || claim.replacement_serial_no;
 
-      db.run(
-        `UPDATE claims SET status = ?, confirmed_by = ?, notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [new_status, confirmedBy, notes, claim_id],
-        function(updateErr) {
-          if (updateErr) return reject({ status: 500, message: updateErr.message });
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION', (beginErr) => {
+          if (beginErr) return reject({ status: 500, message: beginErr.message });
 
-          // Record audit log with guaranteed unique tracking code
-          recordAuditLog(db, {
-            asset_tag: claim.claim_number,
-            department_name: 'Claim Dept',
-            floor: 'IT Admin',
-            status: new_status,
-            moved_direction: 'STATE_CHANGE',
-            action_by_username: user ? user.username : 'system',
-            details: `เปลี่ยนสถานะใบเคลม: จาก ${currentStatus} เป็น ${new_status}`
+          const updateClaimSql = `
+            UPDATE claims 
+            SET status = ?, confirmed_by = ?, notes = COALESCE(?, notes),
+                resolved_date = ?, resolution_type = ?, replacement_serial_no = ?, repair_cost = ?,
+                updated_at = CURRENT_TIMESTAMP 
+            WHERE id = ?
+          `;
+
+          db.run(updateClaimSql, [
+            new_status, confirmedBy, notes, resolvedDate, resType, repSerial, repCost, claim_id
+          ], function(updateErr) {
+            if (updateErr) {
+              db.run('ROLLBACK');
+              return reject({ status: 500, message: updateErr.message });
+            }
+
+            // Fetch attached assets
+            db.all("SELECT asset_tag FROM claim_assets WHERE claim_id = ?", [claim_id], (fetchErr, assets) => {
+              if (fetchErr) {
+                db.run('ROLLBACK');
+                return reject({ status: 500, message: fetchErr.message });
+              }
+
+              const assetTags = (assets || []).map(a => a.asset_tag);
+
+              let itemStatus = 'Pending Pickup';
+              let mainAssetStatus = null;
+
+              if (new_status === 'SUBMITTED') {
+                itemStatus = 'At Vendor';
+              } else if (new_status === 'VENDOR_RESPONSE') {
+                itemStatus = 'Under Repair';
+              } else if (new_status === 'RETURNED' || new_status === 'CLOSED') {
+                itemStatus = 'Returned';
+                mainAssetStatus = (resType === 'Scrapped') ? 'Scrapped' : 'Working';
+              } else if (new_status === 'REJECTED') {
+                itemStatus = 'Rejected';
+                mainAssetStatus = 'Broken';
+              } else if (new_status === 'CANCELLED') {
+                itemStatus = 'Cancelled';
+                mainAssetStatus = 'Working';
+              }
+
+              // Update claim_assets table
+              db.run("UPDATE claim_assets SET item_status = ? WHERE claim_id = ?", [itemStatus, claim_id], (caErr) => {
+                if (caErr) {
+                  db.run('ROLLBACK');
+                  return reject({ status: 500, message: caErr.message });
+                }
+
+                // If mains status should change, synchronize mains table
+                if (mainAssetStatus && assetTags.length > 0) {
+                  const placeholders = assetTags.map(() => '?').join(',');
+                  db.run(
+                    `UPDATE mains SET status = ? WHERE asset_tag IN (${placeholders})`,
+                    [mainAssetStatus, ...assetTags],
+                    (mainsErr) => {
+                      if (mainsErr) {
+                        db.run('ROLLBACK');
+                        return reject({ status: 500, message: mainsErr.message });
+                      }
+
+                      finishTransition();
+                    }
+                  );
+                } else {
+                  finishTransition();
+                }
+
+                function finishTransition() {
+                  // Record audit log with guaranteed unique tracking code
+                  recordAuditLog(db, {
+                    asset_tag: claim.claim_number,
+                    department_name: 'Claim Dept',
+                    floor: 'IT Admin',
+                    status: new_status,
+                    moved_direction: 'STATE_CHANGE',
+                    action_by_username: user ? user.username : 'system',
+                    details: `เปลี่ยนสถานะใบเคลม: จาก ${currentStatus} เป็น ${new_status} (ครุภัณฑ์: ${assetTags.length} รายการ -> ${mainAssetStatus || itemStatus})`
+                  });
+
+                  db.run('COMMIT', (commitErr) => {
+                    if (commitErr) {
+                      db.run('ROLLBACK');
+                      return reject({ status: 500, message: commitErr.message });
+                    }
+
+                    resolve({
+                      id: claim_id,
+                      claim_number: claim.claim_number,
+                      previous_status: currentStatus,
+                      status: new_status,
+                      confirmed_by: confirmedBy,
+                      item_status: itemStatus,
+                      asset_status: mainAssetStatus,
+                      asset_count: assetTags.length
+                    });
+                  });
+                }
+              });
+            });
           });
-
-          resolve({
-            id: claim_id,
-            claim_number: claim.claim_number,
-            previous_status: currentStatus,
-            status: new_status,
-            confirmed_by: confirmedBy
-          });
-        }
-      );
+        });
+      });
     });
   });
 }

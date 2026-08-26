@@ -343,6 +343,31 @@ async function runTests() {
     const transInvalid = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'CLOSED' }, staffToken);
     assert(transInvalid.status === 400, 'Arbitrary invalid state transition blocked by backend (400)');
 
+    // 8.1 Test Asset State Synchronization on Claim Cancellation
+    const syncClaim = await makeRequest('POST', '/api/claims', {
+      vendor_name: 'Dell Service',
+      asset_tags: ['031709030031']
+    }, staffToken);
+    assert(syncClaim.status === 201, 'Test sync claim created (201)');
+    const syncClaimId = syncClaim.data.claim.id;
+
+    // Check asset is Pending Pickup
+    const checkBeforeCancel = await makeRequest('GET', '/api/assets/031709030031', null, staffToken);
+    assert(checkBeforeCancel.data.status === 'Pending Pickup', 'Asset status set to Pending Pickup upon claim creation');
+
+    // Cancel the claim
+    const cancelRes = await makeRequest('PUT', `/api/claims/${syncClaimId}/status`, { status: 'CANCELLED' }, staffToken);
+    assert(cancelRes.status === 200, 'Claim transitioned to CANCELLED (200)');
+
+    // Verify asset status was synchronized back to Working
+    const checkAfterCancel = await makeRequest('GET', '/api/assets/031709030031', null, staffToken);
+    assert(checkAfterCancel.data.status === 'Working', 'Asset status synchronized back to Working upon claim cancellation');
+
+    // 8.2 Test Database-Wide Inventory Summary Endpoint
+    const summaryRes = await makeRequest('GET', '/api/assets/summary', null, staffToken);
+    assert(summaryRes.status === 200, 'Inventory summary endpoint returned 200');
+    assert(typeof summaryRes.data.total === 'number' && typeof summaryRes.data.working === 'number', 'Inventory summary contains accurate counts');
+
     // TEST 9: Evidence Upload, Storage & IDOR Protection
     console.log('\n--- TEST 9: Private Evidence Storage & IDOR Access Control ---');
     const testImagePath = path.join(__dirname, 'test_evidence.png');

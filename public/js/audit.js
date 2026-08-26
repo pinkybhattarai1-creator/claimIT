@@ -156,17 +156,33 @@ function populateAuditTable(logs) {
   });
 }
 
-function updateStatistics(assets) {
-  const total = state.pagination.total || assets.length;
-  const working = assets.filter(a => a.status === 'Working').length;
-  const broken = assets.filter(a => a.status === 'Broken').length;
-  const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
-  
+async function updateStatistics(fallbackAssets) {
   const totalEl = document.getElementById('stat-total-assets');
   const workEl = document.getElementById('stat-working-assets');
   const brokenEl = document.getElementById('stat-broken-assets');
   const vendorEl = document.getElementById('stat-vendor-claims');
 
+  try {
+    const res = await fetch('/api/assets/summary', { headers: getAuthHeaders() });
+    if (res.ok) {
+      const summary = await res.json();
+      if (totalEl) totalEl.textContent = summary.total;
+      if (workEl) workEl.textContent = summary.working;
+      if (brokenEl) brokenEl.textContent = summary.broken;
+      if (vendorEl) vendorEl.textContent = summary.pending_pickup;
+      return;
+    }
+  } catch (e) {
+    console.warn('Could not fetch asset summary, using fallback:', e);
+  }
+
+  // Fallback to local array
+  const assets = fallbackAssets || [];
+  const total = state.pagination.total || assets.length;
+  const working = assets.filter(a => a.status === 'Working').length;
+  const broken = assets.filter(a => a.status === 'Broken').length;
+  const atVendor = assets.filter(a => a.status === 'Pending Pickup').length;
+  
   if (totalEl) totalEl.textContent = total;
   if (workEl) workEl.textContent = working;
   if (brokenEl) brokenEl.textContent = broken;

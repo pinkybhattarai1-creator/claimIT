@@ -119,14 +119,17 @@ router.get('/:id', verifyToken, staffOnly, (req, res, next) => {
 // PUT /api/claims/:id/status (Enforce valid state transition)
 router.put('/:id/status', verifyToken, staffOnly, async (req, res, next) => {
   try {
-    const { status, notes } = req.body;
+    const { status, notes, resolution_type, replacement_serial_no, repair_cost } = req.body;
     if (!status) return res.status(400).json({ error: 'กรุณาระบุสถานะใหม่ (new status required)' });
 
     const result = await transitionClaimStatus({
       claim_id: req.params.id,
       new_status: status,
       user: req.user,
-      notes
+      notes,
+      resolution_type,
+      replacement_serial_no,
+      repair_cost
     });
 
     res.json({
