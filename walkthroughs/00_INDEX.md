@@ -32,18 +32,26 @@
 
 ---
 
-## 🏥 ภาพรวมระบบ (System Overview)
+## 🏥 ภาพรวมระบบและโครงสร้างสิทธิ์ (System Overview & Roles)
 
-ClaimIT ออกแบบมาเพื่อรองรับกระบวนการงานจริงของฝ่าย IT Support โรงพยาบาล:
+ClaimIT ออกแบบมาเพื่อกระบวนการทำงานจริงของฝ่ายเทคโนโลยีสารสนเทศ (IT Department) โรงพยาบาล:
 
-    Hospital Staff (พนักงานทั่วไปและเจ้าหน้าที่ทุกแผนก)
-      สแกนบาร์โค้ด → แจ้งชำรุด → พิมพ์แบบฟอร์มส่งซ่อม
+    IT Field Staff (ช่างไอทีภาคสนาม / On-site Support)
+      เปิดผ่าน iPhone/มือถือ หรือคอมพิวเตอร์ → สแกนบาร์โค้ด / ถ่ายรูปความเสียหาย → ตรวจเช็คประกัน (พ.ศ./ค.ศ.) → แจ้งซ่อม / ขอยืมเครื่องสำรอง
 
-    IT Staff (เจ้าหน้าที่ไอที)
-      รับแจ้ง → ล้างข้อมูล (PDPA) → สร้างใบเคลม → ส่งศูนย์บริการ → รับเครื่องคืน → ปิดงาน
+    IT Admin / Supervisor (ผู้ดูแลระบบและหัวหน้าไอที)
+      รับแจ้งซ่อม → ตรวจสอบความคุ้มค่า (Viability Score) → ล้างข้อมูล PDPA → ออกใบเคลม RMA (1-5 รายการ) → ประสานงานศูนย์ซ่อม → ปิดงานเคลม
 
-    Admin (หัวหน้า IT / ผู้ดูแลระบบ)
-      จัดการผู้ใช้ → กำหนดการตั้งค่า → ดู Audit Trail → Export รายงาน
+    System Management (ผู้บริหารระบบ)
+      จัดการบัญชีผู้ใช้ (RBAC) → ตั้งค่าหมวดหมู่/แบรนด์ → ดู Audit Trail แบบ Real-time → ส่งออก Excel/TSV → สำรองฐานข้อมูลอัตโนมัติ
+
+---
+
+## 🌿 โครงสร้าง Git Branches บน GitHub
+
+- **`finalhtinmc`** *(Current Production Release)*: โค้ดหลักระบบ ClaimIT v1.0 แบบ Clean Core (Non-AI), ไม่มีโค้ดทดสอบ, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone, และไร้ Outer Scroller
+- **`main`** *(Production Master)*: รวมโค้ดหลักของ `finalhtinmc` สำหรับ Production Deployment
+- **`finalhtinmc-experiment`** *(Experimental AI Branch)*: สาขาสำหรับทดลองระบบปัญญาประดิษฐ์ Multi-provider AI (Groq Cloud, OpenRouter, Google Gemini, OCR และ Vision Inspection)
 
 ---
 
