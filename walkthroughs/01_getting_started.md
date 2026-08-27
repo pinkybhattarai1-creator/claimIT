@@ -34,15 +34,20 @@ ClaimIT คือระบบบริหารจัดการการรั
 2. กรอก Username และ Password หรือกดปุ่ม **เข้าสู่ระบบด่วน 1-Click (Fast Login)**
 3. มีปุ่มกดเข้าสู่ระบบด่วน 8 บัญชีแบ่งตามบทบาท:
    - **4 เจ้าหน้าที่ไอที (Admins)**:
-     - `admin` (Technical Support Head)
-     - `it_somchai` (นายสมชาย ชาญวิทย์ - Senior IT Support)
-     - `it_wichai` (นายวิชัย สุขเกษม - Systems Administrator)
-     - `it_natthaporn` (น.ส.ณัฐพร รวดเร็ว - Claim Specialist)
-   - **4 เจ้าหน้าที่ประจำแผนก (Staff)**:
-     - `staff` (เจ้าหน้าที่เวชระเบียนทั่วไป)
-     - `staff_icu` (พว.สายใจ ใฝ่บริการ - พยาบาล ICU)
-     - `staff_er` (นพ.เกียรติศักดิ์ มุ่งมั่น - แพทย์ห้องฉุกเฉิน ER)
-     - `staff_opd` (นางสาวอรทัย ยิ้มแย้ม - เจ้าหน้าที่ OPD)
+     - `admin` (Admin 1 - Technical Support Head)
+     - `admin2` (Admin 2 - Senior IT Support)
+     - `admin3` (Admin 3 - Systems & Network IT)
+     - `admin4` (Admin 4 - Hardware & Claim IT)
+   - **4 ช่างไอทีภาคสนาม (Staff)**:
+     - `staff` (Staff 1 - IT Field Technician)
+     - `staff2` (Staff 2 - IT On-site Support)
+     - `staff3` (Staff 3 - IT Mobile Support / iPhone)
+     - `staff4` (Staff 4 - IT Ward Support Staff)
+
+4. **การเชื่อมต่อผ่าน iPhone / มือถือใน รพ.**:
+   - แถบใต้ฟอร์มล็อกอินจะแสดง URL เชื่อมต่อผ่านเครือข่าย รพ. อัตโนมัติ (เช่น `http://10.33.43.xx:8847`)
+   - มีปุ่ม [📋 คัดลอก] เพื่อนำไปเปิดใน Safari / Chrome บน iPhone ได้ทันที
+   - สามารถกด [⚙️ เปลี่ยน IP] เพื่อระบุ IP Address เองได้หากใช้วงเครือข่ายเฉพาะ
 
 ข้อสำคัญ:
 - Token หมดอายุใน 8 ชั่วโมง
