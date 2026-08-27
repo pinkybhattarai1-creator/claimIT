@@ -102,13 +102,25 @@ const server = app.listen(PORT, HOST, () => {
   try {
     const os = require('os');
     const nets = os.networkInterfaces();
+    const hospitalIps = [];
+    const otherIps = [];
     for (const name of Object.keys(nets)) {
       for (const net of nets[name]) {
         if (net.family === 'IPv4' && !net.internal) {
-          console.log(`[ClaimIT Network] 📱 สำหรับเพื่อนร่วมงานเข้าใช้งานผ่านเครือข่าย: http://${net.address}:${PORT}`);
+          if (net.address.startsWith('10.33.') || net.address.startsWith('10.')) {
+            hospitalIps.push(net.address);
+          } else {
+            otherIps.push(net.address);
+          }
         }
       }
     }
+    hospitalIps.forEach(ip => {
+      console.log(`[ClaimIT Network] 🏥 พร้อมใช้งานผ่านเครือข่ายโรงพยาบาล (Hospital Intranet): http://${ip}:${PORT}`);
+    });
+    otherIps.forEach(ip => {
+      console.log(`[ClaimIT Network] 📱 เข้าใช้งานผ่านเครือข่าย: http://${ip}:${PORT}`);
+    });
   } catch {}
 });
 

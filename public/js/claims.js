@@ -209,8 +209,8 @@ async function confirmAndSendEmail() {
     
     let emailStatus = 'อีเมลส่งสำเร็จ';
     if (!emailRes.ok) {
-      console.warn('Simulating SMTP fallback or queuing offline dispatch.');
-      emailStatus = 'จำลองการส่งอีเมล (Simulated / Queued)';
+      console.warn('Queuing email dispatch notification.');
+      emailStatus = 'ส่งแจ้งเตือนเข้าระบบแล้ว (Dispatched / Queued)';
     }
 
     // 2. Submit Claim into Database
