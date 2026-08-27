@@ -1,4 +1,4 @@
-﻿# 01 — เริ่มต้นใช้งาน ClaimIT (Getting Started)
+# 01 — เริ่มต้นใช้งาน ClaimIT (Getting Started)
 
 กลุ่มผู้ใช้: ทุกคน (Staff & Admin) | เวลาอ่าน: ~5 นาที
 
@@ -34,7 +34,7 @@ ClaimIT คือระบบบริหารจัดการการรั
 2. กรอก Username และ Password
 3. กด "เข้าสู่ระบบ (Sign In)"
 
-บัญชีทดสอบ (Demo Credentials):
+บัญชีผู้ใช้เริ่มต้นระบบ (Initial System Accounts):
 | บัญชี           | Username | Password  | สิทธิ์       |
 |-----------------|----------|-----------|--------------|
 | พนักงานทั่วไป  | staff    | staff123  | Staff Portal |

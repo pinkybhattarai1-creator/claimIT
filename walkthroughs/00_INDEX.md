@@ -1,4 +1,4 @@
-﻿# 📚 ClaimIT — Walkthrough Index
+# 📚 ClaimIT — Walkthrough Index
 
 > **ClaimIT** คือระบบบริหารจัดการการรับประกันและกระบวนการส่งเคลมครุภัณฑ์ไอที (RMA) สำหรับโรงพยาบาล
 > *Hospital IT Warranty & RMA Claim Management System — Phyathai 3 Hospital*
@@ -36,23 +36,23 @@
 
 ClaimIT ออกแบบมาเพื่อรองรับกระบวนการงานจริงของฝ่าย IT Support โรงพยาบาล:
 
-    Ward Staff (พนักงานวอร์ด)
+    Hospital Staff (พนักงานทั่วไปและเจ้าหน้าที่ทุกแผนก)
       สแกนบาร์โค้ด → แจ้งชำรุด → พิมพ์แบบฟอร์มส่งซ่อม
 
     IT Staff (เจ้าหน้าที่ไอที)
-      รับแจ้ง → ล้างข้อมูล (PDPA) → สร้างใบเคลม → ส่งศูนย์บริการ → รับเครื่องคืน → ปิด
+      รับแจ้ง → ล้างข้อมูล (PDPA) → สร้างใบเคลม → ส่งศูนย์บริการ → รับเครื่องคืน → ปิดงาน
 
-    Admin (หัวหน้า IT)
+    Admin (หัวหน้า IT / ผู้ดูแลระบบ)
       จัดการผู้ใช้ → กำหนดการตั้งค่า → ดู Audit Trail → Export รายงาน
 
 ---
 
-## 👤 บัญชีทดสอบ (Demo Credentials)
+## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Initial Credentials)
 
-| Role | Username | Password |
-|---|---|---|
-| Admin / IT Head | admin | admin123 |
-| Staff / Ward | staff | staff123 |
+| Role | Username | Password | สิทธิ์การเข้าถึง |
+|---|---|---|---|
+| Admin / IT Head | admin | admin123 | Full Access (ทุกเมนูและระบบจัดการผู้ใช้) |
+| Hospital Staff  | staff | staff123 | Staff Portal (ระบบแจ้งซ่อมและพิมพ์ฟอร์ม) |
 
 ---
 
