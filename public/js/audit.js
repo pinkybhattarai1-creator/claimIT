@@ -131,8 +131,14 @@ function populateAuditTable(logs) {
   }
 
   logs.forEach(log => {
-    const tr = document.createElement('tr');
-    const time = new Date(log.timestamp).toLocaleString('th-TH');
+    const d = new Date(log.timestamp);
+    const ceYear = d.getFullYear();
+    const beYear = ceYear + 543;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const time = `${day}/${month}/${beYear} (${ceYear}) ${hours}:${mins}`;
     
     let dirClass = 'badge-working';
     if (log.moved_direction === 'OUT') dirClass = 'badge-broken';

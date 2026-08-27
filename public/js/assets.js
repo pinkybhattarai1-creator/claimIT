@@ -294,6 +294,10 @@ function displayAssetDetails(asset) {
 
   document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
+  if (prefix === 'ward') {
+    const placeholder = document.getElementById('ward-empty-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+  }
   
   // Audio beep confirmation on successful scan
   if (typeof playScanBeep === 'function') playScanBeep();
