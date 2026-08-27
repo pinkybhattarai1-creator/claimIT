@@ -78,14 +78,12 @@ POST /api/auth/change-password
 Body: { username, current_password, new_password }
 ผู้ใช้สามารถเปลี่ยนรหัสผ่านตัวเองได้โดยไม่ต้องขอ Admin
 
----
+## เข้าสู่ระบบด่วนตามสิทธิ์ (Fast Login Buttons)
 
-## Demo Mode
-
-ปุ่ม "Demo Mode" ที่ Header (สีจาง) เมื่อเปิดจะแสดงปุ่ม:
-- [Fill Admin] — กรอก admin/admin123 อัตโนมัติ
-- [Fill Staff] — กรอก staff/staff123 อัตโนมัติ
-กดแล้ว submit ทันทีก็ได้ (Quick Login Buttons)
+หน้าเข้าสู่ระบบมีปุ่ม Fast Login เพื่อความสะดวกในการสลับสิทธิ์การทำงาน:
+- 👑 เข้าสู่ระบบ IT Admin (ผู้ดูแลระบบ)
+- 🛡️ เข้าสู่ระบบพนักงานทั่วไป (เจ้าหน้าที่ประจำแผนก)
+คลิกเพื่อเข้าสู่ระบบตามสิทธิ์ที่ต้องการทันที
 
 ---
 
