@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "test": "node test_suite.js",
     "test:email": "node scripts/test_email.js",
+    "test:ai": "node scripts/test_ai.js",
     "backup": "node scripts/backup.js"
   },
   "dependencies": {
