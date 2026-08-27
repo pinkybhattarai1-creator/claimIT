@@ -41,12 +41,13 @@
       </div>
       
       <div class="user-badge" id="user-badge" style="display: none;">
-        <div class="user-avatar">U</div>
-        <div style="text-align: left;">
+        <div class="user-avatar" id="user-avatar" style="cursor: pointer;" title="คลิกเพื่อแก้ไขข้อมูลของคุณ">U</div>
+        <div style="text-align: left; cursor: pointer;" id="user-profile-info" title="คลิกเพื่อแก้ไขข้อมูลของคุณ">
           <div style="font-size: 13px; font-weight: 600;" id="user-name">Name</div>
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
-        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน / Quick Sidebar</button>
+        <button class="btn btn-secondary" id="btn-edit-profile" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="แก้ไขชื่อและแผนกของคุณ">✏️ แก้ไขชื่อ</button>
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน</button>
         <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
         <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">ออกจากระบบ</button>
       </div>
@@ -146,17 +147,43 @@
           <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">เข้าสู่ระบบ (Sign In)</button>
         </form>
         
-        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-align: center;">
-            🚀 เข้าสู่ระบบด่วนตามสิทธิ์ (Fast Login):
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-align: center;">
+            🚀 เข้าสู่ระบบด่วน 1-Click (เลือก 4 เจ้าหน้าที่ IT หรือ 4 เจ้าหน้าที่ประจำแผนก):
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button type="button" id="btn-quick-staff" class="btn btn-secondary" style="font-size: 12px; padding: 10px; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; text-align: center;">
-              🧑‍💼 Staff (พนักงานทั่วไป/ทุกแผนก)
-            </button>
-            <button type="button" id="btn-quick-admin" class="btn btn-secondary" style="font-size: 12px; padding: 10px; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa; text-align: center;">
-              💻 IT Admin (ฝ่ายไอที)
-            </button>
+            <!-- IT Admins (4 accounts) -->
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <div style="font-size: 11px; font-weight: 700; color: #60a5fa; margin-bottom: 2px;">💻 ฝ่ายไอที (4 Admins):</div>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;">
+                👑 <strong>admin</strong> (หัวหน้าไอที)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_somchai', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                💻 <strong>it_somchai</strong> (ช่างอาวุโส)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_wichai', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                🖥️ <strong>it_wichai</strong> (ดูแลระบบ)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_natthaporn', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                🏷️ <strong>it_natthaporn</strong> (ฝ่ายเคลม)
+              </button>
+            </div>
+            <!-- Staff (4 accounts) -->
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <div style="font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 2px;">🧑‍💼 ประจำแผนก (4 Staff):</div>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7;">
+                📋 <strong>staff</strong> (เวชระเบียน)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_icu', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                🏥 <strong>staff_icu</strong> (วอร์ด ICU)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_er', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                🚑 <strong>staff_er</strong> (ฉุกเฉิน ER)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_opd', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                🩺 <strong>staff_opd</strong> (คลินิก OPD)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -192,7 +219,7 @@
 
         <!-- Compact Presets Inline Strip -->
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color); flex-wrap: wrap;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">⚡ คลิกจำลองสแกน:</span>
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">⚡ รหัสยอดนิยม:</span>
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2024-AIO-02')" style="font-size: 11.5px; padding: 4px 10px;">💻 HP ProOne (ต้อนรับ)</button>
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2022-TAB-03')" style="font-size: 11.5px; padding: 4px 10px;">📱 iPad Air (ICU)</button>
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2023-SCN-01')" style="font-size: 11.5px; padding: 4px 10px;">🏷️ Zebra Scanner</button>
@@ -213,13 +240,111 @@
         </div>
       </div>
 
-      <!-- Staff Portal Initial Placeholder (Zero long scrolling, neat container) -->
-      <div id="ward-empty-placeholder" class="glass-panel" style="text-align: center; padding: 50px 20px; border: 1px dashed rgba(255,255,255,0.15); margin-bottom: 20px;">
-        <div style="font-size: 40px; margin-bottom: 12px;">🛡️ 🏥</div>
-        <h3 style="font-size: 18px; color: #fff; margin-bottom: 6px;">ระบบแจ้งซ่อมครุภัณฑ์สำหรับพนักงานทั่วไปและทุกแผนก</h3>
-        <p style="font-size: 13px; color: var(--text-muted); max-width: 540px; margin: 0 auto 12px; line-height: 1.6;">
-          สแกนบาร์โค้ดบนตัวอุปกรณ์ หรือคลิกปุ่มลัดด้านบน เพื่อตรวจสอบการรับประกันและแจ้งซ่อมส่งตรงถึงแผนกไอทีทันที
-        </p>
+      <!-- Staff Portal Initial Hub (Rich, mostly buttons, zero scrolling) -->
+      <div id="ward-empty-placeholder" class="glass-panel" style="padding: 22px; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="font-size: 32px; margin-bottom: 6px;">🛡️ 🏥</div>
+          <h3 style="font-size: 17px; color: #fff; margin-bottom: 4px;">ศูนย์บริการและแจ้งซ่อมครุภัณฑ์ไอทีประจำแผนก</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); max-width: 580px; margin: 0 auto; line-height: 1.5;">
+            สแกนบาร์โค้ดบนตัวอุปกรณ์ หรือเลือกบริการด่วนด้านล่างเพื่อประสานงานกับศูนย์ไอทีได้ทันที
+          </p>
+        </div>
+
+        <!-- Staff Sub-Views Buttons Strip -->
+        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-scan" onclick="switchStaffSubView('scan')" style="padding: 7px 15px; font-size: 12.5px; background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.4); color: #fff;">
+            📸 สแกนตรวจเช็ค & แจ้งซ่อม
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-tracker" onclick="switchStaffSubView('tracker')" style="padding: 7px 15px; font-size: 12.5px;">
+            📑 ติดตามงานซ่อมของแผนก
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-loaner" onclick="switchStaffSubView('loaner')" style="padding: 7px 15px; font-size: 12.5px;">
+            🔄 ขอยืมอุปกรณ์สำรองฉุกเฉิน
+          </button>
+        </div>
+
+        <!-- Sub-View 1: Quick Services Buttons (Embedded inside scan view) -->
+        <div id="staff-sub-pane-scan">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 6px;">
+            <!-- Quick PM 6-Month Inspection -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">🛠️</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">ตรวจเช็คบำรุงรักษา (PM)</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">แจ้งเจ้าหน้าที่ IT เข้าตรวจสภาพอุปกรณ์ตามรอบ 6 เดือน</div>
+              <button type="button" class="btn btn-secondary" onclick="requestStaffPM()" style="width: 100%; font-size: 11.5px; padding: 7px;">
+                🗓️ ขอรับการตรวจเช็ค 6 เดือน
+              </button>
+            </div>
+
+            <!-- Quick Loaner Requisition -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">🔄</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">เบิกอุปกรณ์สำรองฉุกเฉิน</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">ขอยืมเครื่อง PC หรือ Scanner ทดแทนชั่วคราว</div>
+              <button type="button" class="btn btn-secondary" onclick="switchStaffSubView('loaner')" style="width: 100%; font-size: 11.5px; padding: 7px;">
+                ⚡ ขอยืมเครื่องสำรองด่วน
+              </button>
+            </div>
+
+            <!-- IT Helpdesk Contacts -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">📞</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">สายด่วน IT Support</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">ติดต่อช่างไอทีเวรประจำวัน รพ.</div>
+              <div style="display: flex; gap: 6px; justify-content: center;">
+                <a href="tel:4401" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4401</a>
+                <a href="tel:4402" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4402</a>
+                <a href="tel:4403" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4403</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-View 2: Department Repair Tracker Table -->
+        <div id="staff-sub-pane-tracker" style="display: none; margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 13px; font-weight: 600; color: #fff;">📑 รายการครุภัณฑ์และใบเคลมที่แผนกกำลังส่งซ่อม:</div>
+            <button type="button" class="btn btn-secondary" onclick="loadStaffTracker()" style="font-size: 11.5px; padding: 4px 10px;">🔄 รีเฟรชข้อมูล</button>
+          </div>
+          <div class="table-container" style="max-height: calc(100vh - 360px);">
+            <table>
+              <thead>
+                <tr>
+                  <th>รหัสครุภัณฑ์ / ใบเคลม</th>
+                  <th>ชื่ออุปกรณ์</th>
+                  <th>สถานที่/แผนก</th>
+                  <th>วันที่แจ้ง (พ.ศ. / ค.ศ.)</th>
+                  <th>สถานะงานซ่อม</th>
+                  <th>แบบฟอร์ม</th>
+                </tr>
+              </thead>
+              <tbody id="staff-tracker-tbody">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">กำลังโหลดข้อมูลงานซ่อม...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sub-View 3: Emergency Loaner Unit Buttons -->
+        <div id="staff-sub-pane-loaner" style="display: none; margin-top: 10px;">
+          <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; text-align: center;">
+            🔄 เลือกประเภทอุปกรณ์สำรองที่ต้องการขอยืมฉุกเฉิน (คลิกส่งคำขอทันที):
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('คอมพิวเตอร์ All-in-One สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.3);">
+              💻 ขอยืม AIO PC สำรอง
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('หัวอ่านบาร์โค้ด Zebra สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+              🏷️ ขอยืมเครื่องสแกนสำรอง
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('เครื่องพิมพ์ฉลากยา/สติกเกอร์สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
+              🖨️ ขอยืมเครื่องพิมพ์สติกเกอร์
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('แท็บเล็ต iPad สำหรับงาน Ward สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
+              📱 ขอยืมแท็บเล็ตสำรอง
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Asset Details Card (Compact 2-Column Layout, fits comfortably on screen) -->
@@ -275,9 +400,9 @@
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
-              <button class="btn btn-danger" id="btn-report-broken" style="width: 100%; font-size: 13.5px; padding: 11px;">🚨 แจ้งชำรุดเข้าส่วนกลาง (Report Broken)</button>
+              <button class="btn btn-danger" id="btn-report-broken" style="width: 100%; font-size: 13.5px; padding: 11px;">🚨 แจ้งชำรุดเข้าส่วนกลาง</button>
               <button id="btn-open-template-modal-ward" class="btn btn-secondary" onclick="openTemplateCenter(document.getElementById('ward-detail-tag').textContent)" style="width: 100%; font-size: 12.5px; padding: 9px;">
-                🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม (Print Service Form)
+                🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม
               </button>
             </div>
           </div>
@@ -575,15 +700,17 @@
               <option value="Working">ปกติ (Working)</option>
               <option value="Broken">ชำรุด (Broken)</option>
               <option value="Pending Pickup">รอศูนย์มารับ</option>
+              <option value="expiring_6m">⚠️ ใกล้หมดประกันใน 6 เดือน</option>
+              <option value="expired">หมดประกันแล้ว (Expired)</option>
               <option value="Pending Sell">รอขายทอดตลาด</option>
               <option value="Pending Donation">รอดำเนินการบริจาค</option>
               <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
             </select>
             <button class="btn" id="btn-export-excel-main" style="font-size: 13px; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
-              📊 ส่งออก Excel ทั้งหมด (Export All)
+              📊 ส่งออก Excel ทั้งหมด
             </button>
             <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (TSV)</button>
-            <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่ (Add New Asset)</button>
+            <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่</button>
           </div>
         </div>
         <div class="table-container">
@@ -594,7 +721,7 @@
                 <th>ชื่ออุปกรณ์</th>
                 <th>แบรนด์ (Brand)</th>
                 <th>ที่อยู่/จุดติดตั้ง</th>
-                <th>วันหมดอายุรับประกัน</th>
+                <th>วันหมดอายุรับประกัน (พ.ศ. / ค.ศ.)</th>
                 <th>มูลค่าประเมิน</th>
                 <th>สถานะ</th>
                 <th>เอกสาร</th>
@@ -806,6 +933,8 @@
           <div class="form-group">
             <label>ระยะเวลาประกัน</label>
             <select id="new-warranty-months" class="form-control">
+              <option value="3">3 เดือน (3 ด.)</option>
+              <option value="6">6 เดือน (6 ด.)</option>
               <option value="12">1 ปี (12 ด.)</option>
               <option value="24">2 ปี (24 ด.)</option>
               <option value="36" selected>3 ปี (36 ด.)</option>
@@ -1171,6 +1300,34 @@
           </select>
         </div>
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการแก้ไข</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Self Profile Edit Modal -->
+  <div id="profile-modal" class="modal-backdrop" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 440px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 16px; color: #fff;">✏️ แก้ไขข้อมูลผู้ใช้งานส่วนตัว</h3>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none';" style="padding: 4px 10px; font-size: 12px;">✕</button>
+      </div>
+      <form id="profile-form">
+        <div class="form-group">
+          <label for="profile-username">ชื่อผู้ใช้งานในระบบ (Username)</label>
+          <input type="text" id="profile-username" class="form-control" disabled style="opacity: 0.7; background: rgba(0,0,0,0.3);">
+        </div>
+        <div class="form-group">
+          <label for="profile-name">ชื่อ-นามสกุล / ตำแหน่งที่แสดง</label>
+          <input type="text" id="profile-name" class="form-control" required placeholder="ระบุชื่อ-นามสกุลของคุณ">
+        </div>
+        <div class="form-group">
+          <label for="profile-department">แผนก / วอร์ด / สังกัด</label>
+          <input type="text" id="profile-department" class="form-control" required placeholder="เช่น ICU, ฉุกเฉิน (ER), เวชระเบียน">
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none';">ยกเลิก</button>
+          <button type="submit" class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">💾 บันทึกข้อมูล</button>
+        </div>
       </form>
     </div>
   </div>

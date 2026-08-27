@@ -141,4 +141,22 @@ router.delete('/rma-claims/:id', verifyToken, adminOnly, (req, res) => {
   });
 });
 
+// POST /api/audit-logs (Staff/Admin) - Quick Staff Service Requests
+router.post('/audit-logs', verifyToken, staffOnly, (req, res) => {
+  const { asset_tag, department_name, floor, status, moved_direction, details } = req.body;
+  const { recordAuditLog } = require('../db');
+  recordAuditLog(null, {
+    asset_tag: asset_tag || 'SERVICE-REQ',
+    department_name: department_name || (req.user ? req.user.department : 'General'),
+    floor: floor || 'Fl 1',
+    status: status || 'Requested',
+    moved_direction: moved_direction || 'IN',
+    action_by_username: req.user ? req.user.username : 'staff',
+    details: details || ''
+  }, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.status(201).json({ message: 'บันทึกคำขอบริการสำเร็จ', log_code: result.log_code });
+  });
+});
+
 module.exports = router;

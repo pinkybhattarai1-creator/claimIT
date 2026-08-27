@@ -310,7 +310,7 @@ function renderClaimsTable(claims) {
     const badge = CLAIM_STATUS_BADGES[c.status] || `<span class="badge">${c.status}</span>`;
     const scoreColor = (c.viability_score !== null && c.viability_score <= 5) ? 'var(--success)' : 'var(--danger)';
     const scoreText = c.viability_score !== null ? `<span style="color:${scoreColor}; font-weight:700;">${c.viability_score}</span>` : '-';
-    const dateText = c.claim_date || (c.created_at ? c.created_at.slice(0,10) : '-');
+    const dateText = formatDualDate(c.claim_date || (c.created_at ? c.created_at.slice(0,10) : ''));
 
     tr.innerHTML = `
       <td><strong>${c.claim_number}</strong></td>
@@ -458,7 +458,7 @@ async function openClaimDetailsModal(claimId) {
     document.getElementById('cd-vendor').textContent = claim.vendor_name;
     document.getElementById('cd-status').innerHTML = CLAIM_STATUS_BADGES[claim.status] || claim.status;
     document.getElementById('cd-viability').textContent = claim.viability_score !== null ? `${claim.viability_score} / 10` : '-';
-    document.getElementById('cd-date').textContent = claim.claim_date || claim.created_at?.slice(0,10) || '-';
+    document.getElementById('cd-date').textContent = formatDualDate(claim.claim_date || claim.created_at?.slice(0,10) || '', true);
     document.getElementById('cd-created-by').textContent = claim.created_by || '-';
 
     // Populate assets table
