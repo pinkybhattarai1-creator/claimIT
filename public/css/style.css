@@ -168,8 +168,8 @@ header {
 /* Main Content Layout */
 main {
   max-width: 1400px;
-  margin: 40px auto;
-  padding: 0 24px;
+  margin: 18px auto 10px auto;
+  padding: 0 20px;
   flex: 1;
   width: 100%;
 }
@@ -190,8 +190,8 @@ main {
 
 /* Auth Portal */
 .login-container {
-  max-width: 450px;
-  margin: 80px auto;
+  max-width: 460px;
+  margin: 24px auto;
 }
 
 .login-header {

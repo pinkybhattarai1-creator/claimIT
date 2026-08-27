@@ -334,19 +334,31 @@ function initializeDatabase() {
       }
     });
 
-    // Seed Initial Admin & Staff if empty
-    db.get("SELECT COUNT(*) as count FROM users", (err, row) => {
+    // Seed 4 Admins and 4 Staff if not present
+    const adminPass = hashPassword('admin123');
+    const staffPass = hashPassword('staff123');
+    const standardUsers = [
+      ['admin', adminPass, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'],
+      ['it_somchai', adminPass, 'admin', 'นายสมชาย ชาญวิทย์ (Senior IT Support)', 'Technical Support & Infrastructure'],
+      ['it_wichai', adminPass, 'admin', 'นายวิชัย สุขเกษม (Systems Administrator)', 'Technical Support & Infrastructure'],
+      ['it_natthaporn', adminPass, 'admin', 'น.ส.ณัฐพร รวดเร็ว (Claim Specialist)', 'Technical Support & Infrastructure'],
+      ['staff', staffPass, 'staff', 'เจ้าหน้าที่เวชระเบียนทั่วไป', 'เวชระเบียนและต้อนรับ'],
+      ['staff_icu', staffPass, 'staff', 'พว.สายใจ ใฝ่บริการ (พยาบาล ICU)', 'ICU'],
+      ['staff_er', staffPass, 'staff', 'นพ.เกียรติศักดิ์ มุ่งมั่น (แพทย์ห้องฉุกเฉิน ER)', 'ฉุกเฉิน (ER)'],
+      ['staff_opd', staffPass, 'staff', 'นางสาวอรทัย ยิ้มแย้ม (เจ้าหน้าที่ OPD)', 'ศูนย์ระบบทางเดินอาหาร (GI)']
+    ];
+
+    standardUsers.forEach(u => {
+      db.run(
+        `INSERT INTO users (username, password, role, name, department, is_active)
+         SELECT ?, ?, ?, ?, ?, 1
+         WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)`,
+        [u[0], u[1], u[2], u[3], u[4], u[0]]
+      );
+    });
+
+    db.get("SELECT COUNT(*) as count FROM departments", (err, row) => {
       if (row && row.count === 0) {
-        const adminPass = hashPassword('admin123');
-        const staffPass = hashPassword('staff123');
-
-        db.run(
-          `INSERT INTO users (username, password, role, name, department, is_active) VALUES 
-          ('admin', ?, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure', 1),
-          ('staff', ?, 'staff', 'General Staff', 'General Department', 1)`,
-          [adminPass, staffPass]
-        );
-
         db.run(
           `INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
           ('Building 1', '1', 'ฉุกเฉิน (ER)', 0),

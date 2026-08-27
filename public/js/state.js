@@ -113,3 +113,33 @@ function sanitizeBrandProcedure(details) {
   }
   return trimmed;
 }
+
+// Dual Date Formatter: Christian Era (ค.ศ.) & Buddhist Era (พ.ศ.)
+function formatDualDate(dateStr, includeMonthName = false) {
+  if (!dateStr || dateStr === '-' || dateStr === 'null') return '-';
+  try {
+    const cleanStr = String(dateStr).slice(0, 10);
+    const parts = cleanStr.split('-');
+    if (parts.length === 3) {
+      let year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+
+      let ceYear = year > 2400 ? year - 543 : year;
+      let beYear = ceYear + 543;
+
+      if (includeMonthName) {
+        const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        const monthName = thaiMonths[month - 1] || `${month}`;
+        return `${day} ${monthName} ${beYear} (ค.ศ. ${ceYear})`;
+      }
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      return `${ceYear}-${mm}-${dd} (พ.ศ. ${beYear})`;
+    }
+    return String(dateStr);
+  } catch {
+    return String(dateStr);
+  }
+}
+window.formatDualDate = formatDualDate;

@@ -126,6 +126,41 @@ router.post('/change-password', loginLimiter, (req, res) => {
   });
 });
 
+// PUT /api/auth/profile (Update self name and department)
+router.put('/profile', verifyToken, (req, res) => {
+  const { name, department } = req.body;
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ error: 'กรุณาระบุชื่อ-นามสกุล' });
+  }
+  const cleanName = String(name).trim();
+  const cleanDept = department ? String(department).trim() : req.user.department;
+
+  db.run(
+    "UPDATE users SET name = ?, department = ? WHERE id = ? AND is_deleted = 0",
+    [cleanName, cleanDept, req.user.id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+
+      const updatedUser = {
+        id: req.user.id,
+        username: req.user.username,
+        role: req.user.role,
+        name: cleanName,
+        department: cleanDept
+      };
+      const token = jwt.sign(updatedUser, JWT_SECRET, { expiresIn: '8h' });
+
+      logAuthEvent(req.user.username, 'PROFILE_UPDATE', `Updated name to: ${cleanName}, dept: ${cleanDept}`, req);
+
+      res.json({
+        message: 'อัปเดตข้อมูลส่วนตัวสำเร็จเรียบร้อย',
+        user: updatedUser,
+        token
+      });
+    }
+  );
+});
+
 // Helper to record auth audit events safely
 function logAuthEvent(username, action, details, req) {
   const ip = req.ip || req.connection.remoteAddress || '127.0.0.1';

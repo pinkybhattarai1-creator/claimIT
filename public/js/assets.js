@@ -44,7 +44,10 @@ function fallbackCopy(text, onSuccess) {
 function getStatusBadgeHTML(asset) {
   const status = asset.status;
   const salvageStatus = asset.salvage_status;
-  const isExpired = new Date(asset.warranty_end) < new Date();
+  const now = new Date();
+  const wEnd = new Date(asset.warranty_end);
+  const isExpired = wEnd < now;
+  const isNearExpiry = !isExpired && (wEnd - now) <= (180 * 24 * 60 * 60 * 1000);
 
   if (salvageStatus === 'Pending Sell') {
     return `<span class="badge badge-sell">💰 รอขายทอดตลาด</span>`;
@@ -59,15 +62,21 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-donation">🎁 บริจาคเรียบร้อย</span>`;
   }
   if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
-    return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย (Scrapped)</span>`;
+    return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย</span>`;
   }
-  if (status === 'Broken' || (isExpired && status !== 'Working' && status !== 'Pending Pickup')) {
-    return `<span class="badge badge-broken">🔴 ชำรุด/หมดประกัน (Danger)</span>`;
+  if (status === 'Broken') {
+    return `<span class="badge badge-broken">🔴 ชำรุด</span>`;
   }
   if (status === 'Pending Pickup') {
     return `<span class="badge badge-vendor">🟡 รอศูนย์เข้ามารับ</span>`;
   }
-  return `<span class="badge badge-working">🟢 ปกติ (Working)</span>`;
+  if (isExpired) {
+    return `<span class="badge" style="background:#64748b; color:#fff;">⚪ หมดประกันแล้ว</span>`;
+  }
+  if (isNearExpiry) {
+    return `<span class="badge" style="background:#f59e0b; color:#000; font-weight:700;">⚠️ ใกล้หมดประกัน (6 ด.)</span>`;
+  }
+  return `<span class="badge badge-working">🟢 ปกติ (ในประกัน)</span>`;
 }
 
 // Populate Asset Inventory Table with 1-Click PDF Button
@@ -91,7 +100,7 @@ function populateAssetTable(assets) {
       <td>${asset.device_name}</td>
       <td><strong>${asset.brand || '-'}</strong></td>
       <td>${asset.location}</td>
-      <td>${asset.warranty_end}</td>
+      <td>${formatDualDate(asset.warranty_end)}</td>
       <td>${priceText}</td>
       <td>${getStatusBadgeHTML(asset)}</td>
       <td>
@@ -196,17 +205,19 @@ function displayAssetDetails(asset) {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   let warrantyHTML = '';
-  if (diffDays > 0) {
-    warrantyHTML = `<span style="color:var(--success); font-weight:600;">คงเหลือ ${diffDays} วัน (Active)</span>`;
+  if (diffDays > 180) {
+    warrantyHTML = `<span style="color:var(--success); font-weight:600;">ปกติ ในประกัน (เหลือ ${diffDays} วัน)</span>`;
+  } else if (diffDays > 0) {
+    warrantyHTML = `<span style="color:var(--warning); font-weight:700; background:rgba(245,158,11,0.15); padding:2px 8px; border-radius:4px;">⚠️ ใกล้หมดประกันใน 6 เดือน (เหลือ ${diffDays} วัน / ${Math.ceil(diffDays / 30)} เดือน)</span>`;
   } else {
-    warrantyHTML = `<span style="color:var(--danger); font-weight:600;">หมดอายุแล้ว (Expired) ${Math.abs(diffDays)} วัน</span>`;
+    warrantyHTML = `<span style="color:var(--danger); font-weight:600;">หมดอายุแล้ว (Expired ${Math.abs(diffDays)} วัน)</span>`;
   }
   
   document.getElementById(`${prefix}-detail-tag`).textContent = asset.asset_tag;
   document.getElementById(`${prefix}-detail-name`).textContent = asset.device_name;
   document.getElementById(`${prefix}-detail-serial`).textContent = asset.serial_no;
   document.getElementById(`${prefix}-detail-loc`).textContent = asset.location;
-  document.getElementById(`${prefix}-detail-warranty`).innerHTML = `${asset.warranty_end} (${warrantyHTML})`;
+  document.getElementById(`${prefix}-detail-warranty`).innerHTML = `${formatDualDate(asset.warranty_end, true)} &nbsp; ${warrantyHTML}`;
   
   // --- WARRANTY QUICK-ACCESS PANEL ---
   const WARRANTY_LINKS = {

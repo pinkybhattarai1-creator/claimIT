@@ -33,7 +33,11 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   let whereClause = "WHERE is_deleted = 0";
   let params = [];
 
-  if (statusFilter) {
+  if (statusFilter === 'expiring_6m' || statusFilter === 'near_expiry') {
+    whereClause += " AND warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+180 days', 'localtime')";
+  } else if (statusFilter === 'expired') {
+    whereClause += " AND warranty_end < date('now', 'localtime')";
+  } else if (statusFilter) {
     whereClause += " AND status = ?";
     params.push(statusFilter);
   }
@@ -62,6 +66,7 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
       SUM(CASE WHEN status = 'Working' THEN 1 ELSE 0 END) as working,
       SUM(CASE WHEN status = 'Broken' THEN 1 ELSE 0 END) as broken,
       SUM(CASE WHEN status = 'Pending Pickup' THEN 1 ELSE 0 END) as pending_pickup,
+      SUM(CASE WHEN warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+180 days', 'localtime') THEN 1 ELSE 0 END) as expiring_6m,
       SUM(CASE WHEN status = 'Scrapped' OR salvage_status = 'Scrapped' THEN 1 ELSE 0 END) as scrapped,
       SUM(CASE WHEN salvage_status IN ('Pending Sell', 'Sold') THEN 1 ELSE 0 END) as salvage_sell,
       SUM(CASE WHEN salvage_status IN ('Pending Donation', 'Donated') THEN 1 ELSE 0 END) as salvage_donation
@@ -75,6 +80,7 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
       working: (row && row.working) || 0,
       broken: (row && row.broken) || 0,
       pending_pickup: (row && row.pending_pickup) || 0,
+      expiring_6m: (row && row.expiring_6m) || 0,
       scrapped: (row && row.scrapped) || 0,
       salvage_sell: (row && row.salvage_sell) || 0,
       salvage_donation: (row && row.salvage_donation) || 0

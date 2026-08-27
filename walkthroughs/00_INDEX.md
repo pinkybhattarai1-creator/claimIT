@@ -47,13 +47,24 @@ ClaimIT ออกแบบมาเพื่อรองรับกระบว
 
 ---
 
-## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Initial Credentials)
+## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Pre-seeded Accounts: 4 Admins + 4 Staff)
 
-| Role | Username | Password | สิทธิ์การเข้าถึง |
+### 💻 บัญชีเจ้าหน้าที่ฝ่ายไอที (4 IT Admins)
+| Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
 |---|---|---|---|
-| Admin / IT Head | admin | admin123 | Full Access (ทุกเมนูและระบบจัดการผู้ใช้) |
-| Hospital Staff  | staff | staff123 | Staff Portal (ระบบแจ้งซ่อมและพิมพ์ฟอร์ม) |
+| `admin` | `admin123` | Technical Support Head (หัวหน้าไอที) | Technical Support & Infrastructure |
+| `it_somchai` | `admin123` | นายสมชาย ชาญวิทย์ (Senior IT Support) | Technical Support & Infrastructure |
+| `it_wichai` | `admin123` | นายวิชัย สุขเกษม (Systems Administrator) | Technical Support & Infrastructure |
+| `it_natthaporn` | `admin123` | น.ส.ณัฐพร รวดเร็ว (Claim Specialist) | Technical Support & Infrastructure |
+
+### 🧑‍💼 บัญชีเจ้าหน้าที่ประจำแผนก (4 Hospital Staff)
+| Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
+|---|---|---|---|
+| `staff` | `staff123` | เจ้าหน้าที่เวชระเบียนทั่วไป | เวชระเบียนและต้อนรับ |
+| `staff_icu` | `staff123` | พว.สายใจ ใฝ่บริการ (พยาบาล ICU) | ICU |
+| `staff_er` | `staff123` | นพ.เกียรติศักดิ์ มุ่งมั่น (แพทย์ห้องฉุกเฉิน ER) | ฉุกเฉิน (ER) |
+| `staff_opd` | `staff123` | นางสาวอรทัย ยิ้มแย้ม (เจ้าหน้าที่ OPD) | ศูนย์ระบบทางเดินอาหาร (GI) |
 
 ---
 
-*อัปเดต: สิงหาคม 2026 — ครอบคลุมทุก Feature ในระบบ ClaimIT v1.0*
+*อัปเดต: สิงหาคม 2026 — ครอบคลุมทุก Feature ในระบบ ClaimIT v1.0 พร้อมระบบ 6 เดือน, วันที่สองปี พ.ศ./ค.ศ., และโปรไฟล์ส่วนตัว*

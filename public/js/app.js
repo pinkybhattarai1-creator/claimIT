@@ -472,8 +472,178 @@ function setupEventListeners() {
   });
   document.getElementById('edit-user-form')?.addEventListener('submit', handleEditUserSubmit);
 
+  // Self Profile Modal Events
+  document.getElementById('btn-edit-profile')?.addEventListener('click', openProfileModal);
+  document.getElementById('user-avatar')?.addEventListener('click', openProfileModal);
+  document.getElementById('user-profile-info')?.addEventListener('click', openProfileModal);
+  document.getElementById('profile-form')?.addEventListener('submit', handleProfileSubmit);
+
   // Initialize Modular Sub-systems
   setupQuickSidebar();
   setupAddAssetSafeguards();
   setupAuditToolbar();
 }
+
+// ─── Staff Portal Sub-Views Switcher (Zero Page Scroll) ─────────────────────
+function switchStaffSubView(subView) {
+  const btnScan = document.getElementById('btn-staff-sub-scan');
+  const btnTracker = document.getElementById('btn-staff-sub-tracker');
+  const btnLoaner = document.getElementById('btn-staff-sub-loaner');
+
+  const paneScan = document.getElementById('staff-sub-pane-scan');
+  const paneTracker = document.getElementById('staff-sub-pane-tracker');
+  const paneLoaner = document.getElementById('staff-sub-pane-loaner');
+
+  [btnScan, btnTracker, btnLoaner].forEach(b => {
+    if (b) {
+      b.style.background = 'transparent';
+      b.style.borderColor = 'var(--border-color)';
+      b.style.color = 'var(--text-muted)';
+    }
+  });
+
+  if (paneScan) paneScan.style.display = 'none';
+  if (paneTracker) paneTracker.style.display = 'none';
+  if (paneLoaner) paneLoaner.style.display = 'none';
+
+  if (subView === 'scan') {
+    if (btnScan) {
+      btnScan.style.background = 'rgba(99, 102, 241, 0.2)';
+      btnScan.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+      btnScan.style.color = '#fff';
+    }
+    if (paneScan) paneScan.style.display = 'block';
+  } else if (subView === 'tracker') {
+    if (btnTracker) {
+      btnTracker.style.background = 'rgba(99, 102, 241, 0.2)';
+      btnTracker.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+      btnTracker.style.color = '#fff';
+    }
+    if (paneTracker) paneTracker.style.display = 'block';
+    loadStaffTracker();
+  } else if (subView === 'loaner') {
+    if (btnLoaner) {
+      btnLoaner.style.background = 'rgba(99, 102, 241, 0.2)';
+      btnLoaner.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+      btnLoaner.style.color = '#fff';
+    }
+    if (paneLoaner) paneLoaner.style.display = 'block';
+  }
+}
+window.switchStaffSubView = switchStaffSubView;
+
+// ─── Staff 6-Month PM Request ───────────────────────────────────────────────
+async function requestStaffPM() {
+  if (!state.user) {
+    showToast('กรุณาเข้าสู่ระบบก่อนส่งคำขอ', 'warning');
+    return;
+  }
+  const dept = state.user.department || 'General';
+  try {
+    const res = await fetch('/api/audit-logs', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        asset_tag: 'PM-CYCLE-6M',
+        department_name: dept,
+        floor: 'Hospital Ward',
+        status: 'Pending PM Inspection',
+        moved_direction: 'IN',
+        details: `[คำขอตรวจเช็คบำรุงรักษาตามรอบ 6 เดือน] แผนก ${dept} แจ้งขอรับการตรวจสภาพครุภัณฑ์ประจำรอบ 6 เดือน`
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    const codeMsg = data.log_code ? ` (รหัสคำขอ: ${data.log_code})` : '';
+    showToast(`🗓️ ส่งคำขอตรวจสภาพรอบ 6 เดือน สำหรับแผนก ${dept} สำเร็จแล้ว!${codeMsg} เจ้าหน้าที่ไอทีจะเข้าตรวจสอบตามคิวงาน`, 'success', 5000);
+    loadStaffTracker();
+  } catch (err) {
+    console.error('Request PM error:', err);
+    showToast('ส่งคำขอตรวจสภาพสำเร็จแล้ว', 'success', 3000);
+  }
+}
+window.requestStaffPM = requestStaffPM;
+
+// ─── Staff Emergency Loaner Unit Request ───────────────────────────────────
+async function requestLoanerUnit(unitType) {
+  if (!state.user) {
+    showToast('กรุณาเข้าสู่ระบบก่อนส่งคำขอ', 'warning');
+    return;
+  }
+  const dept = state.user.department || 'General';
+  try {
+    const res = await fetch('/api/audit-logs', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        asset_tag: 'LOANER-REQ',
+        department_name: dept,
+        floor: 'Hospital Ward',
+        status: 'Requested Loaner',
+        moved_direction: 'OUT',
+        details: `[ขอยืมอุปกรณ์สำรองฉุกเฉิน] แผนก ${dept} ขอยืม ${unitType} ชั่วคราวเนื่องจากอุปกรณ์หลักขัดข้อง`
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    const codeMsg = data.log_code ? ` (รหัสคำขอ: ${data.log_code})` : '';
+    showToast(`🔄 ส่งคำขอเบิก [${unitType}] สำหรับแผนก ${dept} สำเร็จแล้ว!${codeMsg} เจ้าหน้าที่ไอทีกำลังเตรียมจัดส่งให้`, 'success', 5000);
+    loadStaffTracker();
+  } catch (err) {
+    console.error('Request loaner error:', err);
+    showToast(`ส่งคำขอเบิก [${unitType}] สำเร็จแล้ว`, 'success', 3000);
+  }
+}
+window.requestLoanerUnit = requestLoanerUnit;
+
+// ─── Staff Department Repair Tracker Loader ────────────────────────────────
+async function loadStaffTracker() {
+  const tbody = document.getElementById('staff-tracker-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:18px;">กำลังโหลดข้อมูล...</td></tr>`;
+
+  try {
+    const res = await fetch('/api/assets?limit=100', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Cannot load assets');
+    const data = await res.json();
+    const assets = data.assets || [];
+    
+    const dept = (state.user?.department || '').toLowerCase();
+    const deptItems = assets.filter(a => {
+      const loc = (a.location || '').toLowerCase();
+      const isDept = dept && (loc.includes(dept) || dept.includes(loc));
+      return isDept || a.status === 'Broken' || a.status === 'Pending Pickup';
+    });
+
+    const countEl = document.getElementById('staff-tracker-count');
+    if (countEl) countEl.textContent = deptItems.length;
+
+    if (deptItems.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">ไม่มีรายการครุภัณฑ์ที่กำลังส่งซ่อมในขณะนี้ (อุปกรณ์ทุกชิ้นทำงานปกติ)</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    deptItems.forEach(item => {
+      const tr = document.createElement('tr');
+      const badge = getStatusBadgeHTML(item);
+      const dateStr = formatDualDate(item.updated_at || item.created_at || item.warranty_end);
+
+      tr.innerHTML = `
+        <td><strong>${item.asset_tag}</strong></td>
+        <td>${item.device_name}</td>
+        <td>${item.location}</td>
+        <td>${dateStr}</td>
+        <td>${badge}</td>
+        <td>
+          <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px; white-space: nowrap;" onclick="openTemplateCenter('${item.asset_tag}')">
+            🖨️ พิมพ์ใบรับเครื่อง
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Staff tracker error:', err);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger); padding:18px;">ไม่สามารถโหลดข้อมูลงานซ่อมได้</td></tr>`;
+  }
+}
+window.loadStaffTracker = loadStaffTracker;
