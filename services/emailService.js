@@ -1,14 +1,55 @@
 /**
  * ClaimIT Email Service
- * Handles backend-controlled HTML templates, Resend integration,
+ * Handles backend-controlled HTML templates, SendGrid & Resend integration,
  * and dispatch tracking in SQLite email_logs.
  */
 
+const https = require('https');
 const { Resend } = require('resend');
 const { db } = require('../db');
-const { RESEND_API_KEY, RESEND_FROM } = require('../utils/envValidator');
+const { RESEND_API_KEY, RESEND_FROM, SENDGRID_API_KEY, SENDGRID_FROM } = require('../utils/envValidator');
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+// Send email using SendGrid v3 REST API (no external SDK required)
+function sendViaSendGrid({ to, from, subject, html }) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: from || 'no-reply@claimit.local' },
+      subject: subject,
+      content: [{ type: 'text/html', value: html }]
+    });
+
+    const options = {
+      hostname: 'api.sendgrid.com',
+      port: 443,
+      path: '/v3/mail/send',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        resolve({ provider: 'SendGrid', status: res.statusCode });
+      } else {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          reject(new Error(`SendGrid API error (${res.statusCode}): ${body}`));
+        });
+      }
+    });
+
+    req.on('error', (err) => reject(err));
+    req.write(payload);
+    req.end();
+  });
+}
 
 // Pre-defined Email Templates
 const TEMPLATES = {
@@ -102,7 +143,44 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
   let status = 'NOT_SENT';
   let errorMessage = null;
 
-  if (resend && recipient) {
+  let providerUsed = 'SIMULATED';
+
+  if (SENDGRID_API_KEY && recipient) {
+    try {
+      await sendViaSendGrid({
+        to: recipient,
+        from: SENDGRID_FROM || 'no-reply@claimit.local',
+        subject,
+        html
+      });
+      status = 'SENT';
+      providerUsed = 'SendGrid';
+      console.log(`[EMAIL SENT via SendGrid] To: ${recipient} | Subject: ${subject}`);
+    } catch (err) {
+      console.warn('[SendGrid Notice - Trying Resend Fallback]:', err.message);
+      if (resend) {
+        try {
+          await resend.emails.send({
+            from: RESEND_FROM,
+            to: recipient,
+            subject,
+            html
+          });
+          status = 'SENT';
+          providerUsed = 'Resend (Fallback)';
+          console.log(`[EMAIL SENT via Resend Fallback] To: ${recipient} | Subject: ${subject}`);
+        } catch (resendErr) {
+          status = 'FAILED';
+          errorMessage = `SendGrid: ${err.message} | Resend: ${resendErr.message}`;
+          console.error('[EMAIL ERROR - Both providers failed]', errorMessage);
+        }
+      } else {
+        status = 'FAILED';
+        errorMessage = err.message;
+        console.error('[EMAIL ERROR - SendGrid]', err.message);
+      }
+    }
+  } else if (resend && recipient) {
     try {
       await resend.emails.send({
         from: RESEND_FROM,
@@ -111,14 +189,17 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
         html
       });
       status = 'SENT';
+      providerUsed = 'Resend';
+      console.log(`[EMAIL SENT via Resend] To: ${recipient} | Subject: ${subject}`);
     } catch (err) {
       status = 'FAILED';
       errorMessage = err.message;
-      console.error('[EMAIL ERROR]', err);
+      console.error('[EMAIL ERROR - Resend]', err.message);
     }
   } else {
-    status = RESEND_API_KEY ? 'SENT' : 'NOT_SENT';
-    console.log(`[EMAIL SIMULATED] To: ${recipient} | Subject: ${subject}`);
+    status = 'NOT_CONFIGURED';
+    providerUsed = 'NOT_INSERTED';
+    console.warn(`[EMAIL WARNING] You didn't insert SendGrid or Resend API key in .env. Skipped sending email to: ${recipient} | Subject: ${subject}`);
   }
 
   // Record log in SQLite
@@ -126,11 +207,12 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
     db.run(
       `INSERT INTO email_logs (claim_id, recipient, subject, template_name, status, error_message)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [claimId || null, recipient || 'internal@claimit.local', subject, templateName, status, errorMessage],
+      [claimId || null, recipient || 'internal@claimit.local', subject, `${templateName} (${providerUsed})`, status, errorMessage],
       function(err) {
         resolve({
           logId: this ? this.lastID : null,
           status,
+          provider: providerUsed,
           subject,
           recipient,
           error: errorMessage
@@ -142,5 +224,6 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
 
 module.exports = {
   TEMPLATES,
-  sendNotificationEmail
+  sendNotificationEmail,
+  sendViaSendGrid
 };

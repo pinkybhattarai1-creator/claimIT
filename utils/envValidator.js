@@ -13,6 +13,8 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_FROM = process.env.RESEND_FROM || 'onboarding@resend.dev';
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
+const SENDGRID_FROM = process.env.SENDGRID_FROM || process.env.EMAIL_FROM || 'no-reply@claimit.local';
 const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10);
 const MAX_CLAIM_ASSETS = parseInt(process.env.MAX_CLAIM_ASSETS || '5', 10);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -39,6 +41,8 @@ module.exports = {
   UPLOAD_DIR,
   RESEND_API_KEY,
   RESEND_FROM,
+  SENDGRID_API_KEY,
+  SENDGRID_FROM,
   MAX_FILE_SIZE_MB,
   MAX_CLAIM_ASSETS,
   HOST,

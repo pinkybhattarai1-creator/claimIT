@@ -340,6 +340,31 @@ function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_t
                 }
 
                 function finishTransition() {
+                  // If claim resolved with repair cost, record into repair_cost_history
+                  if ((new_status === 'RETURNED' || new_status === 'CLOSED') && repCost > 0 && assetTags.length > 0) {
+                    const placeholders = assetTags.map(() => '?').join(',');
+                    db.all(`SELECT id, category FROM mains WHERE asset_tag IN (${placeholders})`, assetTags, (mErr, mRows) => {
+                      if (!mErr && mRows && mRows.length > 0) {
+                        const costPerAsset = Math.round((repCost / mRows.length) * 100) / 100;
+                        const insertCostStmt = db.prepare(`
+                          INSERT INTO repair_cost_history (asset_id, asset_category, issue_category, part_name, cost_thb, vendor_name)
+                          VALUES (?, ?, ?, ?, ?, ?)
+                        `);
+                        for (const row of mRows) {
+                          insertCostStmt.run([
+                            row.id,
+                            row.category || 'Computer',
+                            resType || 'Repair & Component Replacement',
+                            'Vendor Repair & Servicing',
+                            costPerAsset,
+                            claim.vendor_name || 'Vendor Service Center'
+                          ]);
+                        }
+                        insertCostStmt.finalize();
+                      }
+                    });
+                  }
+
                   // Record audit log with guaranteed unique tracking code
                   recordAuditLog(db, {
                     asset_tag: claim.claim_number,

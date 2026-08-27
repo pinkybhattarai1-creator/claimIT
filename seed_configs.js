@@ -61,12 +61,14 @@ const defaultConfigs = [
     type: 'brand',
     value: 'Acer',
     details: `<div class="brand-guide">
-  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ Acer:</div>
+  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ Acer (Phyathai 3 SOP):</div>
   <ol style="margin: 0 0 10px 18px; padding: 0; line-height: 1.6; font-size: 13px;">
-    <li>ส่ง Email แจ้งเคลมไปที่ <strong>acerthai@acer.com</strong> หรือติดต่อ Call Center 02-153-9600</li>
+    <li>เข้าสู่ระบบตรวจสอบประกันศูนย์ Acer: <a href="https://register.acer.co.th/Warranty%20Check/warr_chk.aspx" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; font-weight: bold;">🌐 Acer Warranty Check (ตรวจสอบการรับประกัน)</a></li>
+    <li>ตรวจสอบเงื่อนไขการรับประกันเบื้องต้น (ไม่อยู่ในข้อยกเว้น: น้ำเข้า, ตกกระแทก, งัดแงะ) ตามแฟ้ม <code>J:\\018 Warranty Hardware\\PT3 Warranty</code></li>
+    <li>ส่ง Email แจ้งเคลมไปที่ <strong>acerthai@acer.com</strong> หรือติดต่อ Call Center <strong>02-153-9600</strong></li>
     <li><strong style="color: #ef4444;">⚠️ กฎสำคัญ:</strong> หากเป็นการเคลมอุปกรณ์ต่อพ่วง (เมาส์ / คีย์บอร์ด / Adapter) <strong>ต้องระบุหมายเลข S/N ของเครื่อง PC/AIO ตัวแม่ที่ซื้อมาคู่กันเสมอ</strong></li>
-    <li>ระบุอาการเสีย สถานที่ตั้งเครื่อง และเบอร์โทรศัพท์ผู้ประสานงาน</li>
-    <li>รอรับใบงาน RMA เพื่อส่งเครื่องหรือรอขนส่งเข้ารับอุปกรณ์</li>
+    <li>จัดทำ <strong>แบบฟอร์มตรวจอุปกรณ์เสีย</strong> สำหรับผู้รับเคสและผู้ตรวจสอบ</li>
+    <li>เมื่อช่างนำอุปกรณ์มาเคลม ตรวจเช็ค รับเอกสารเคลม และบันทึกลง Log <code>J:\\018 Warranty Hardware\\ส่งเคลมอุปกรณ์เสีย</code></li>
   </ol>
 </div>`
   },

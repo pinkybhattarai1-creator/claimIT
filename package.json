@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node test_suite.js",
+    "test:email": "node scripts/test_email.js",
     "backup": "node scripts/backup.js"
   },
   "dependencies": {

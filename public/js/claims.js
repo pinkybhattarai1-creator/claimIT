@@ -178,9 +178,13 @@ async function handleClaimInitiate(e) {
                `${dateText}\n\n` +
                `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
 
-  document.getElementById('email-preview-to').textContent = to;
-  document.getElementById('email-preview-subject').textContent = subject;
-  document.getElementById('email-preview-body').textContent = body;
+  const toInput = document.getElementById('email-preview-to');
+  const subjectInput = document.getElementById('email-preview-subject');
+  const bodyInput = document.getElementById('email-preview-body');
+
+  if (toInput) toInput.value = to;
+  if (subjectInput) subjectInput.value = subject;
+  if (bodyInput) bodyInput.value = body;
 
   pendingClaimData.email = { to, subject, body };
   document.getElementById('email-preview-modal').style.display = 'flex';
@@ -195,11 +199,19 @@ async function confirmAndSendEmail() {
   btn.textContent = 'กำลังส่ง...';
 
   try {
+    const toInput = document.getElementById('email-preview-to');
+    const subjectInput = document.getElementById('email-preview-subject');
+    const bodyInput = document.getElementById('email-preview-body');
+
+    const finalTo = (toInput && toInput.value.trim()) || pendingClaimData.email.to;
+    const finalSubject = (subjectInput && subjectInput.value.trim()) || pendingClaimData.email.subject;
+    const finalBody = (bodyInput && bodyInput.value) || pendingClaimData.email.body;
+
     // 1. Try sending email via authenticated endpoint
     const emailPayload = {
-      to: pendingClaimData.email.to,
-      subject: pendingClaimData.email.subject,
-      html: `<pre style="font-family:sans-serif;white-space:pre-wrap;">${pendingClaimData.email.body}</pre>`
+      to: finalTo,
+      subject: finalSubject,
+      html: `<pre style="font-family:sans-serif;white-space:pre-wrap;">${finalBody}</pre>`
     };
     const emailRes = await fetch('/api/email/send', {
       method: 'POST',
@@ -208,9 +220,18 @@ async function confirmAndSendEmail() {
     });
     
     let emailStatus = 'อีเมลส่งสำเร็จ';
-    if (!emailRes.ok) {
-      console.warn('Simulating SMTP fallback or queuing offline dispatch.');
-      emailStatus = 'จำลองการส่งอีเมล (Simulated / Queued)';
+    if (emailRes.ok) {
+      const emailData = await emailRes.json();
+      if (emailData.not_inserted || emailData.status === 'NOT_INSERTED') {
+        emailStatus = "⚠️ ยังไม่ได้ใส่ API Key ใน .env (You didn't insert API key)";
+        showToast("⚠️ คุณยังไม่ได้ใส่ API Key ในไฟล์ .env (ไม่พบทั้ง SendGrid และ Resend) — You didn't insert SendGrid or Resend API key", 'warning', 7000);
+      } else {
+        showToast('✉️ ส่งอีเมลแจ้งศูนย์บริการสำเร็จเรียบร้อยแล้ว', 'success');
+      }
+    } else {
+      console.warn("Email dispatch failed or API keys not inserted.");
+      emailStatus = "⚠️ ยังไม่ได้ใส่ API Key หรือส่งไม่สำเร็จ (You didn't insert API key)";
+      showToast("⚠️ ไม่สามารถส่งอีเมลได้ — กรุณาตรวจสอบ SENDGRID_API_KEY หรือ RESEND_API_KEY ในไฟล์ .env (You didn't insert API key)", 'warning', 6000);
     }
 
     // 2. Submit Claim into Database
@@ -496,7 +517,16 @@ async function openClaimDetailsModal(claimId) {
       });
     }
 
-    // Set download PDF button
+    // Set Batch Gate Pass and download PDF buttons
+    const gatepassBtn = document.getElementById('cd-btn-print-gatepass');
+    if (gatepassBtn) {
+      gatepassBtn.onclick = () => {
+        if (typeof openClaimGatePassTemplate === 'function') {
+          openClaimGatePassTemplate(claim);
+        }
+      };
+    }
+
     const pdfBtn = document.getElementById('cd-btn-download-pdf');
     if (pdfBtn) {
       pdfBtn.onclick = () => downloadClaimPDF(claimId);

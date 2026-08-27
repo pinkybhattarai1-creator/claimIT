@@ -52,6 +52,7 @@
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน / Quick Sidebar</button>
+        <button class="btn btn-secondary" id="btn-open-workflow-modal-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px; border-color: #38bdf8; color: #38bdf8;">🧭 ผังขั้นตอนการเคลม (SOP)</button>
         <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
         <button class="btn btn-secondary" id="demo-toggle-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px; background: transparent; border: 1px solid transparent; color: var(--text-muted); opacity: 0.5;">Demo Mode</button>
         <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">ออกจากระบบ</button>
@@ -102,13 +103,20 @@
         <div style="font-size: 11.5px; line-height: 1.7; color: var(--text-muted);">
           <div>💻 <strong>Dell Support:</strong> <a href="tel:026707250" style="color: #38bdf8;">02-670-7250</a></div>
           <div>💻 <strong>Lenovo Support:</strong> <a href="tel:1800011936" style="color: #38bdf8;">1800-011-936</a></div>
-          <div>💻 <strong>Acer Call Center:</strong> <a href="tel:021539600" style="color: #38bdf8;">02-153-9600</a></div>
+          <div>💻 <strong>Acer Call Center:</strong> <a href="tel:021539600" style="color: #38bdf8;">02-153-9600</a> | <a href="https://register.acer.co.th/Warranty%20Check/warr_chk.aspx" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; font-weight: bold;">เช็คประกัน Acer 🌐</a></div>
           <div>🏷️ <strong>IDA RMA Service:</strong> support@idagroup.co.th</div>
           <div>🖨️ <strong>TSC Barcode Printer:</strong> ติดต่อ Line Service</div>
           <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); color: #34d399;">
             🛡️ <strong>IT Helpdesk รพ.:</strong> โทรภายใน 4401 - 4403
           </div>
         </div>
+      </div>
+
+      <!-- Panel 4: Claim Workflow SOP -->
+      <div class="sidebar-panel">
+        <button class="btn" id="btn-sidebar-open-workflow" style="font-size: 12px; padding: 9px; width: 100%; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 12px rgba(2,132,199,0.3);">
+          🧭 ผังขั้นตอนรับแจ้ง & เคลม (Claim SOP)
+        </button>
       </div>
 
       <!-- Panel 4: Quick Excel Export -->
@@ -380,7 +388,10 @@
           
           <div class="detail-item">
             <div class="detail-label">รหัสครุภัณฑ์ (Asset Tag)</div>
-            <div class="detail-value" id="it-detail-tag">-</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+              <div class="detail-value" id="it-detail-tag">-</div>
+              <button type="button" class="btn btn-secondary" id="btn-copy-tag" style="padding: 2px 8px; font-size: 11px; white-space: nowrap;" title="คัดลอกรหัสครุภัณฑ์">📋 คัดลอก</button>
+            </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">ชื่อ / ชนิดครุภัณฑ์</div>
@@ -388,7 +399,10 @@
           </div>
           <div class="detail-item">
             <div class="detail-label">Serial Number</div>
-            <div class="detail-value" id="it-detail-serial">-</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+              <div class="detail-value" id="it-detail-serial" style="font-family: monospace; font-weight: 700; color: #38bdf8;">-</div>
+              <button type="button" class="btn btn-secondary" id="btn-copy-serial" style="padding: 2px 8px; font-size: 11px; white-space: nowrap;" title="คัดลอก Serial Number">📋 คัดลอก S/N</button>
+            </div>
           </div>
           <div class="detail-item">
             <div class="detail-label">สถานที่ตั้ง (Location)</div>
@@ -406,13 +420,13 @@
           <!-- Claim Worthiness Evaluation Banner -->
           <div id="it-detail-evaluate" style="margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none;"></div>
 
-          <!-- PDF & Official Template Buttons -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
-            <button id="btn-open-template-modal-it" class="btn" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);">
-              🖨️ แบบฟอร์มพิมพ์ทางการ (Official Forms)
+          <!-- 1-Click Official Hospital Form Buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px;">
+            <button type="button" class="btn" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent, 'inspection')" style="font-size: 12px; padding: 10px 8px; background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 12px rgba(16,185,129,0.3); font-weight: 700;" title="พิมพ์แบบฟอร์มตรวจอุปกรณ์เสีย">
+              📑 ใบตรวจเช็คเสีย (Form 1)
             </button>
-            <button id="btn-download-pdf" class="btn btn-secondary" onclick="downloadPDF(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px;">
-              📄 ดาวน์โหลด PDF
+            <button type="button" class="btn" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent, 'gatepass')" style="font-size: 12px; padding: 10px 8px; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 12px rgba(37,99,235,0.3); font-weight: 700;" title="พิมพ์ใบนําอุปกรณ์ ทรัพย์สิน ออกนอกพื้นที่">
+              🚪 ใบนําออก (PT3-FM-SEC-1012)
             </button>
           </div>
 
@@ -891,14 +905,18 @@
         <button class="btn btn-secondary" id="close-email-modal-btn" style="padding: 4px 10px;">✕</button>
       </div>
       <div style="margin-bottom: 16px;">
-        <label style="font-size: 13px; color: var(--text-muted);">ถึง (To):</label>
-        <div id="email-preview-to" style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; margin-bottom: 8px;">vendor@example.com</div>
+        <label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">ถึง (To - สามารถแก้ไขหรือระบุอีเมลผู้รับได้):</label>
+        <input type="email" id="email-preview-to" class="form-control" style="margin-bottom: 10px;" placeholder="เช่น support@acer.com หรือใส่อีเมลของคุณเพื่อทดสอบ">
         
-        <label style="font-size: 13px; color: var(--text-muted);">หัวข้อ (Subject):</label>
-        <div id="email-preview-subject" style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; margin-bottom: 8px; font-weight: bold;">แจ้งเคลมอุปกรณ์</div>
+        <label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">หัวข้อ (Subject):</label>
+        <input type="text" id="email-preview-subject" class="form-control" style="margin-bottom: 10px; font-weight: bold;" placeholder="หัวข้ออีเมล">
 
-        <label style="font-size: 13px; color: var(--text-muted);">ข้อความ (Body):</label>
-        <div id="email-preview-body" style="padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; min-height: 150px; white-space: pre-wrap; font-family: monospace;"></div>
+        <label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 4px;">ข้อความ (Body):</label>
+        <textarea id="email-preview-body" class="form-control" rows="8" style="margin-bottom: 10px; font-family: monospace; font-size: 12.5px;"></textarea>
+
+        <div style="font-size: 11.5px; color: #94a3b8; background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 6px; border-left: 3px solid #38bdf8;">
+          💡 <strong>คำแนะนำ:</strong> สามารถปรับแก้อีเมลผู้รับหรือเนื้อหาก่อนส่งได้ทันที หรือพิมพ์อีเมลของตัวเองเพื่อทดสอบการรับอีเมลจริงก่อนส่งหา Vendor
+        </div>
       </div>
       <div style="display: flex; gap: 10px;">
         <button id="confirm-send-email-btn" class="btn" style="flex: 1; background: var(--success); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">🚀 ยืนยันส่งอีเมลและบันทึกเคลม</button>
@@ -958,11 +976,8 @@
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <label style="font-size: 13px; font-weight: 600; color: #93c5fd;">เลือกแบบฟอร์ม (Select Template):</label>
           <select id="template-selector" class="form-control" style="padding: 6px 14px; font-size: 13px; min-width: 320px; background: #0f172a; border-color: #3b82f6; color: #fff; font-weight: 600;">
-            <option value="repair_order" selected>📑 1. ใบรับงานซ่อม / ใบรับเคลมสินค้า (Hospital Work Order)</option>
-            <option value="claim_888">📑 2. ใบรับเคลม / นำส่งสินค้า (888 Technology Claim Form)</option>
-            <option value="warranty_888">📑 3. ใบรับประกันสินค้า (888 Technology Warranty Certificate)</option>
-            <option value="talent_delivery">📑 4. ใบส่งมอบ / ใบรับประกัน (Talent Technology Form)</option>
-            <option value="claimit_audit">📑 5. รายงานประเมินความคุ้มค่า & PDPA Audit (ClaimIT Report)</option>
+            <option value="inspection" selected>📑 1. ใบตรวจเช็คอุปกรณ์ เสีย (Hospital Defective Equipment Inspection Form)</option>
+            <option value="gatepass">📑 2. ใบนําอุปกรณ์ ทรัพย์สิน ออกนอกพื้นที่ (PT3-FM-SEC-1012 Equipment Gate Pass)</option>
           </select>
         </div>
 
@@ -980,28 +995,73 @@
       <div id="template-quick-edit-drawer" style="display: none; padding: 14px 24px; background: #0f172a; border-bottom: 1px solid var(--border-color); font-size: 12px;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เลขที่ Job / อ้างอิง</label>
-            <input type="text" id="edit-job-no" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="PYT68100232">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">วันที่เอกสาร (Date)</label>
+            <input type="text" id="edit-doc-date" class="form-control" style="padding: 4px 8px; font-size: 12px;">
           </div>
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อผู้ติดต่อ</label>
-            <input type="text" id="edit-contact-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เจ้าหน้าที่ไอที ประจำโรงพยาบาล">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ผู้เก็บอุปกรณ์ / ผู้ตรวจสอบ</label>
+            <input type="text" id="edit-inspector-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เจ้าหน้าที่ไอที ประจำโรงพยาบาล">
           </div>
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เบอร์โทรผู้ติดต่อ</label>
-            <input type="text" id="edit-contact-phone" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="02-467-1111 ต่อ 1234">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">แผนก / จุดติดตั้ง</label>
+            <input type="text" id="edit-department" class="form-control" style="padding: 4px 8px; font-size: 12px;">
           </div>
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">อาการเสีย / ปัญหา</label>
-            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ปริ้นเป็นเส้น / สแกนเนอร์ไม่ตอบสนอง">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชั้น (Floor)</label>
+            <input type="text" id="edit-floor" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="2">
           </div>
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อช่าง / ผู้ดำเนินการ</label>
-            <input type="text" id="edit-tech-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ช่างเทคนิคไอที ประจำ รพ.">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">อาการเสีย (Defect)</label>
+            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เครื่องเปิดไม่ติด / อุปกรณ์ฮาร์ดแวร์ทำงานผิดปกติ">
           </div>
           <div>
-            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">วิธีการแก้ไข</label>
-            <input type="text" id="edit-solution" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ทำความสะอาด และเปลี่ยนลูกรอก ให้กับตัวเครื่อง ใช้งานได้ปกติ">
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">สถานะดำเนินการต่อ (Next Action)</label>
+            <select id="edit-next-action" class="form-control" style="padding: 4px 8px; font-size: 12px;">
+              <option value="claim" selected>ส่งเครม</option>
+              <option value="repair">ส่งซ่อม*มีค่าใช่จ่าย</option>
+              <option value="replace">สั่งซื้อทดแทน</option>
+              <option value="scrap">ตัดขาย</option>
+              <option value="stock">เก็บเข้า Stock</option>
+            </select>
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อ บริษัท / ศูนย์บริการ</label>
+            <input type="text" id="edit-vendor-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="Acer Service Center">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อผู้ส่งอุปกรณ์ / ผู้ดำเนินการ</label>
+            <input type="text" id="edit-sender-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="นายพิพัฒน์ วงศ์สวัสดิ์">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อผู้นำออก (Gate Pass)</label>
+            <input type="text" id="edit-requester-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="นายพิพัฒน์ วงศ์สวัสดิ์">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ตำแหน่งผู้นำออก</label>
+            <input type="text" id="edit-position" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เจ้าหน้าที่เทคโนโลยีสารสนเทศ">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เหตุผลนำออก (Gate Pass)</label>
+            <select id="edit-reason" class="form-control" style="padding: 4px 8px; font-size: 12px;">
+              <option value="repair" selected>เพื่อซ่อม</option>
+              <option value="sell">จำหน่าย</option>
+              <option value="outside">ใช้งานภายนอกโรงพยาบาล</option>
+              <option value="borrow">ยืมระหว่างโรงพยาบาล</option>
+              <option value="dorm">ย้ายออกจากหอพัก</option>
+              <option value="other">อื่น</option>
+            </select>
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ทะเบียนรถนำออก</label>
+            <input type="text" id="edit-vehicle-plate" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="1กข-5542 กทม.">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ยี่ห้อ / สีรถนำออก</label>
+            <input type="text" id="edit-vehicle-brand" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="Toyota สีขาว / ขนส่งศูนย์บริการ">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">วัน-เวลานำทรัพย์สินออก</label>
+            <input type="text" id="edit-exit-time" class="form-control" style="padding: 4px 8px; font-size: 12px;">
           </div>
         </div>
       </div>
@@ -1111,10 +1171,15 @@
         </div>
       </div>
 
-      <div style="margin-top: 16px; display: flex; justify-content: space-between;">
-        <button type="button" class="btn" id="cd-btn-download-pdf" style="background: linear-gradient(135deg, #0284c7, #2563eb);">
-          📄 ดาวน์โหลด PDF ใบเคลมทางการ
-        </button>
+      <div style="margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn" id="cd-btn-print-gatepass" style="background: linear-gradient(135deg, #059669, #10b981); font-size: 12.5px; padding: 8px 14px; font-weight: 700;">
+            🚪 พิมพ์ใบนําออกรวม (PT3-FM-SEC-1012)
+          </button>
+          <button type="button" class="btn btn-secondary" id="cd-btn-download-pdf" style="font-size: 12.5px; padding: 8px 14px;">
+            📄 ดาวน์โหลด PDF
+          </button>
+        </div>
         <button type="button" class="btn btn-secondary" id="close-claim-details-modal-btn2">ปิด</button>
       </div>
     </div>
@@ -1150,6 +1215,127 @@
         </div>
         <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการแก้ไข</button>
       </form>
+    </div>
+  <!-- MODAL: CLAIM WORKFLOW & SOP FLOWCHART -->
+  <div id="claim-workflow-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2100; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 960px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #0f172a; border-color: rgba(56, 189, 248, 0.4); padding: 0;">
+      
+      <!-- Modal Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: rgba(30, 41, 59, 0.9);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">🧭</span>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; color: #38bdf8;">ผังขั้นตอนการรับแจ้งอุปกรณ์เสียและส่งเคลม (Claim Workflow SOP)</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">คู่มือกระบวนการปฏิบัติงาน IT Support โรงพยาบาลพญาไท 3</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="close-workflow-modal-btn" style="padding: 6px 12px; font-size: 14px;">✕ ปิด</button>
+      </div>
+
+      <!-- Flowchart Content Area (Scrollable) -->
+      <div style="flex: 1; overflow-y: auto; padding: 24px; font-size: 13px; line-height: 1.6;">
+        
+        <!-- Step 1: Intake & Analysis -->
+        <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;">
+          <div style="font-weight: 800; font-size: 14px; color: #38bdf8; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+            <span>1️⃣ การรับแจ้ง & วิเคราะห์เคส (Intake & Analysis)</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
+            <span class="badge" style="background: #0284c7; padding: 6px 10px; font-size: 12px;">รับเคสแจ้งอุปกรณ์เสีย</span>
+            <span>➔</span>
+            <span class="badge" style="background: #4f46e5; padding: 6px 10px; font-size: 12px;">ดูเคสและวิเคราะห์อาการเสีย</span>
+            <span>➔</span>
+            <span class="badge" style="background: #dc2626; padding: 6px 10px; font-size: 12px;">พบว่าอุปกรณ์เสีย ➔ แจ้งหัวหน้า</span>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 6px; border-left: 3px solid #38bdf8; font-size: 12px;">
+            🔍 <strong>ตรวจสอบประกัน และเงื่อนไขการรับประกัน:</strong> ตรวจดูเงื่อนไขข้อยกเว้นการรับประกัน (น้ำเข้า, ตก/กระแทก, งัดแงะ)<br>
+            📁 อ้างอิงเอกสารที่: <code>J:\\018 Warranty Hardware\\PT3 Warranty</code><br>
+            🌐 <strong>ตรวจสอบประกันศูนย์ Acer:</strong> 
+            <a href="https://register.acer.co.th/Warranty%20Check/warr_chk.aspx" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; font-weight: bold; margin-left: 4px;">Acer Warranty Check (คลิกที่นี่)</a> |
+            <a href="https://support.lenovo.com/warrantylookup" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; margin-left: 4px;">Lenovo Support</a> |
+            <a href="https://www.dell.com/support/home/en-us" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline; margin-left: 4px;">Dell Support</a>
+          </div>
+        </div>
+
+        <!-- 2 Branches: Case 1 & Case 2 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; margin-bottom: 16px;">
+          
+          <!-- Case 1: In Warranty -->
+          <div style="background: rgba(6, 78, 59, 0.25); border: 1.5px solid #059669; border-radius: 10px; padding: 16px;">
+            <div style="font-weight: 800; font-size: 14px; color: #34d399; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <span>🟢 กรณี 1: อุปกรณ์ยังอยู่ในประกัน</span>
+              <span class="badge" style="background: #059669; color: #fff;">In Warranty</span>
+            </div>
+            
+            <ol style="margin: 0 0 14px 18px; padding: 0; line-height: 1.7; font-size: 12.5px;">
+              <li><strong>ตรวจสอบเบื้องต้น:</strong> เช็คว่าอาการเสียอยู่ในเงื่อนไขประกันหรือไม่ (ไม่มีรอยน้ำเข้า, ตกกระแทก, งัดแงะ)</li>
+              <li><strong>จัดทำเอกสารใบเคลม:</strong> บันทึกข้อมูลเข้าระบบ ClaimIT</li>
+              <li>
+                <strong>จัดทำแบบฟอร์ม:</strong> จัดทำ <strong>แบบฟอร์มตรวจอุปกรณ์เสีย</strong> (สำหรับผู้รับเคส และผู้ตรวจสอบอาการเสีย)<br>
+                <span style="font-size: 11px; color: #94a3b8;">เอกสารอยู่ที่: <code>J:\\018 Warranty Hardware</code></span>
+              </li>
+              <li><strong>ติดต่อบริษัทที่รับเคลม:</strong> แจ้งรายละเอียดอุปกรณ์ เช่น S/N, Tag, อาการเสีย และส่งเรื่องเคลม</li>
+              <li><strong>เมื่อช่างนำอุปกรณ์มาเคลม/ซ่อม:</strong> ตรวจเช็คอุปกรณ์ และรับเอกสารการเคลม</li>
+              <li><strong>บันทึก Log การเคลม:</strong> ลงใน Log การเคลมอุปกรณ์เสียไว้เพื่อ Recheck<br>
+                <span style="font-size: 11px; color: #94a3b8;">บันทึกที่: <code>J:\\018 Warranty Hardware\\ส่งเคลมอุปกรณ์เสีย</code></span>
+              </li>
+              <li><strong style="color: #34d399;">🏁 จบกระบวนการ</strong></li>
+            </ol>
+
+            <button type="button" class="btn" onclick="openTemplateFromWorkflow('inspection')" style="width: 100%; font-size: 12px; padding: 8px; background: linear-gradient(135deg, #059669, #10b981);">
+              📑 เปิด "แบบฟอร์มตรวจอุปกรณ์เสีย"
+            </button>
+          </div>
+
+          <!-- Case 2: Out of Warranty -->
+          <div style="background: rgba(127, 29, 29, 0.2); border: 1.5px solid #dc2626; border-radius: 10px; padding: 16px;">
+            <div style="font-weight: 800; font-size: 14px; color: #f87171; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <span>🔴 กรณี 2: อุปกรณ์หมดประกัน</span>
+              <span class="badge" style="background: #dc2626; color: #fff;">Out of Warranty</span>
+            </div>
+
+            <div style="font-size: 12.5px; line-height: 1.6; margin-bottom: 12px;">
+              <strong>ตรวจสอบก่อนว่า สามารถซ่อมเองได้หรือไม่:</strong>
+              <div style="margin: 8px 0 8px 12px; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: 6px; border-left: 3px solid #10b981;">
+                <strong>ก. ซ่อมเองได้:</strong> ซ่อมเอง ➔ ตรวจสอบอุปกรณ์หลังซ่อม ➔ <strong style="color: #34d399;">จบกระบวนการ</strong>
+              </div>
+              <div style="margin: 8px 0 8px 12px; padding: 6px 10px; background: rgba(0,0,0,0.25); border-radius: 6px; border-left: 3px solid #ef4444;">
+                <strong>ข. ซ่อมเองไม่ได้:</strong>
+                <ol style="margin: 4px 0 0 16px; padding: 0;">
+                  <li>ส่งซ่อม ➔ จัดทำเอกสารส่งซ่อม</li>
+                  <li>จัดทำ <strong>แบบฟอร์มนำทรัพย์สินออกนอกพื้นที่ (PT3-FM-SEC-1012)</strong></li>
+                  <li>เข้าสู่กระบวนการรอตัดขาย</li>
+                </ol>
+              </div>
+
+              <!-- Salvage Process Box -->
+              <div style="margin-top: 10px; padding: 10px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px;">
+                <div style="font-weight: 700; color: #fbbf24; margin-bottom: 4px;">💰 กระบวนการตัดขาย (Salvage & Write-Off):</div>
+                <div style="font-size: 12px; color: #e2e8f0;">
+                  รอตัดขาย ➔ เช็ค NVB ให้เหลือ 0 บาท ➔ ตรวจสอบว่าสามารถตัดขายได้หรือไม่:
+                  <ul style="margin: 4px 0 0 16px; padding: 0;">
+                    <li><strong>ตัดขายได้:</strong> ทำเรื่องตัดขาย ➔ รอส่งต่อทรัพย์สิน ➔ <strong style="color: #34d399;">จบ</strong></li>
+                    <li><strong>ตัดขายไม่ได้:</strong> ประเมิน ➔ ส่งซ่อมภายนอก ➔ <strong style="color: #34d399;">จบ</strong></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn" onclick="openTemplateFromWorkflow('gatepass')" style="width: 100%; font-size: 12px; padding: 8px; background: linear-gradient(135deg, #d97706, #b45309);">
+              📑 เปิด "ใบนําอุปกรณ์ ทรัพย์สิน ออกนอกพื้นที่ (PT3-FM-SEC-1012)"
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 12px 24px; border-top: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.9); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
+        <div>โรงพยาบาลพญาไท 3 | ฝ่ายเทคโนโลยีสารสนเทศ</div>
+        <button class="btn btn-secondary" onclick="document.getElementById('claim-workflow-modal').style.display='none'" style="padding: 6px 16px;">ปิดหน้าต่าง</button>
+      </div>
+
     </div>
   </div>
 

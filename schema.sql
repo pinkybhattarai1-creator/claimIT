@@ -71,9 +71,25 @@ CREATE TABLE IF NOT EXISTS claims (
   created_by TEXT NOT NULL,
   confirmed_by TEXT,
   notes TEXT,
+  recommendation_override TEXT,
+  override_reason TEXT,
+  overridden_by TEXT,
   is_deleted INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4.1 Historical Repair Cost Ledger (Actual Thai Market & Vendor Repair Invoices)
+CREATE TABLE IF NOT EXISTS repair_cost_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  asset_id INTEGER,
+  asset_category TEXT NOT NULL,
+  issue_category TEXT NOT NULL,
+  part_name TEXT,
+  cost_thb REAL NOT NULL,
+  vendor_name TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (asset_id) REFERENCES mains (id)
 );
 
 -- 5. Claim Assets Junction Table (1 to 5 assets per claim)
@@ -164,6 +180,8 @@ CREATE TABLE IF NOT EXISTS email_logs (
 CREATE INDEX IF NOT EXISTS idx_mains_asset_tag ON mains(asset_tag);
 CREATE INDEX IF NOT EXISTS idx_mains_serial_no ON mains(serial_no);
 CREATE INDEX IF NOT EXISTS idx_claims_claim_number ON claims(claim_number);
+CREATE INDEX IF NOT EXISTS idx_repair_cost_category ON repair_cost_history(asset_category, issue_category);
+CREATE INDEX IF NOT EXISTS idx_repair_cost_asset_id ON repair_cost_history(asset_id);
 CREATE INDEX IF NOT EXISTS idx_claim_assets_claim_id ON claim_assets(claim_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_storage_key ON evidence(storage_key);
 CREATE INDEX IF NOT EXISTS idx_move_log_asset_tag ON move_log(asset_tag);

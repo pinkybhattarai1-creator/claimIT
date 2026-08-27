@@ -473,16 +473,19 @@ router.post('/salvage', verifyToken, staffOnly, (req, res) => {
   });
 });
 
-// PDF Generation for Claim Report (Staff/Admin)
+// PDF Generation for Official Hospital Forms (Inspection Form or Gate Pass PT3-FM-SEC-1012)
 router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
   const tag = req.params.tag.toUpperCase();
+  const formType = (req.query.form || 'inspection').toLowerCase();
   const fs = require('fs');
   const path = require('path');
 
   db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolution_type, r.repair_cost FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE m.asset_tag = ? AND m.is_deleted = 0", [tag], (err, asset) => {
     if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
-    const doc = new PDFDocument({ margin: 36, size: 'A4' });
-    const filename = `claim_${tag}.pdf`;
+    
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const filePrefix = formType === 'gatepass' ? 'PT3-FM-SEC-1012' : 'Inspection';
+    const filename = `${filePrefix}_${tag}.pdf`;
     res.setHeader('Content-disposition', 'attachment; filename=' + filename);
     res.setHeader('Content-type', 'application/pdf');
 
@@ -502,51 +505,181 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     }
 
     doc.pipe(res);
-    
-    // Header
+
     const titleFont = isThai ? 'ThaiBold' : 'Helvetica-Bold';
     const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
+    const today = new Date();
+    const shortDate = `${today.getDate().toString().padStart(2, '0')} / ${(today.getMonth() + 1).toString().padStart(2, '0')} / ${today.getFullYear() + 543}`;
+    const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 
-    doc.font(titleFont).fontSize(16).fillColor('#0284c7').text('ClaimIT — Hospital Asset Warranty & RMA Report', { align: 'center' });
-    doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: Phyathai 3 Hospital (โรงพยาบาลพญาไท 3) | Generated: ${new Date().toLocaleString('th-TH')}`, { align: 'center' });
-    doc.moveDown(1);
+    if (formType === 'gatepass') {
+      // =========================================================================
+      // FORM 2: ใบนําอุปกรณ์ ทรัพย์สิน ออกนอกพื้นที่ (PT3-FM-SEC-1012)
+      // =========================================================================
+      doc.font(regularFont).fontSize(8).fillColor('#475569')
+         .text('PT3-FM-SEC-1012; แก้ไขครั้งที่ 07; วันที่มีผลบังคับใช้ 01/12/2563; หน้า 1 / 1', { align: 'right' });
+      doc.moveDown(0.2);
 
-    // Section 1: Asset Information
-    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('1. รายละเอียดครุภัณฑ์ (Asset Specifications)', { underline: true });
-    doc.moveDown(0.3);
-    doc.font(regularFont).fontSize(9.5).fillColor('#334155');
-    doc.text(`รหัสครุภัณฑ์ (Asset Tag): ${asset.asset_tag}`);
-    doc.text(`ชื่ออุปกรณ์ (Device Name): ${asset.device_name}`);
-    doc.text(`หมวดหมู่ / แบรนด์ / รุ่น: ${asset.category} | ${asset.brand} ${asset.model}`);
-    doc.text(`หมายเลขซีเรียล (S/N): ${asset.serial_no}`);
-    doc.text(`จุดติดตั้ง (Location): ${asset.location}`);
-    doc.text(`มูลค่าจัดซื้อ (Purchase Price): ฿${(asset.purchase_price || 0).toLocaleString()}`);
-    doc.text(`ระยะเวลารับประกัน (Warranty): ${asset.warranty_start} ถึง ${asset.warranty_end}`);
-    doc.text(`สถานะปัจจุบัน (Status): ${asset.status} (Salvage: ${asset.salvage_status || 'None'})`);
-    doc.moveDown(1);
-
-    // Section 2: PDPA-Aware Data Sanitization Audit Log
-    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('2. บันทึกความปลอดภัยข้อมูลผู้ป่วย (PDPA Storage Security Audit)', { underline: true });
-    doc.moveDown(0.3);
-    doc.font(regularFont).fontSize(9.5).fillColor('#334155');
-    doc.text(`ต้องทำความสะอาดข้อมูลก่อนส่ง (Sanitization Required): ${asset.sanitization_required ? 'ใช่ (YES)' : 'ไม่ใช่ (NO)'}`);
-    doc.text(`ยืนยันการล้างข้อมูลเรียบร้อย (Data Wiped Confirmed): ${asset.data_wiped_confirmed ? '✓ ยืนยันแล้ว (CONFIRMED)' : 'ยังไม่ดำเนินการ'}`);
-    if (asset.data_wiped_by) doc.text(`ผู้ดำเนินการล้างข้อมูล (Technician): ${asset.data_wiped_by}`);
-    if (asset.data_wiped_at) doc.text(`วัน-เวลาที่ดำเนินการ: ${asset.data_wiped_at}`);
-    if (asset.sanitization_note) doc.text(`บันทึกเพิ่มเติม: ${asset.sanitization_note}`);
-    doc.moveDown(1);
-
-    // Section 3: Vendor Claim Details
-    if (asset.vendor_name) {
-      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. ข้อมูลการส่งเคลมศูนย์บริการ (Vendor RMA Service Details)', { underline: true });
+      // Hospital Header
+      doc.font(titleFont).fontSize(14).fillColor('#047857')
+         .text('PHYATHAI 3 HOSPITAL  โรงพยาบาลพญาไท 3', { align: 'center' });
+      doc.font(regularFont).fontSize(8).fillColor('#64748b')
+         .text('PETCHKASEM 19 • เพชรเกษม 19', { align: 'center' });
       doc.moveDown(0.3);
-      doc.font(regularFont).fontSize(9.5).fillColor('#334155');
-      doc.text(`ศูนย์บริการ (Vendor): ${asset.vendor_name}`);
-      doc.text(`หมายเลขใบรับเคลม (RMA / Case No.): ${asset.vendor_rma_number || 'N/A'}`);
-      doc.text(`วันที่ส่งเคลม (Dispatch Date): ${asset.claim_date || '-'}`);
-      doc.text(`กำหนดส่งคืนโดยประมาณ (Expected Return): ${asset.expected_return_date || '-'}`);
-      if (asset.resolution_type) doc.text(`ผลการซ่อม/เคลม (Resolution): ${asset.resolution_type}`);
-      if (asset.repair_cost) doc.text(`ค่าใช้จ่าย (Cost): ฿${asset.repair_cost.toLocaleString()}`);
+
+      doc.font(titleFont).fontSize(13).fillColor('#000')
+         .text('ใบนําอุปกรณ์ ทรัพย์สิน ออกนอกพื้นที่ (PT3-FM-SEC-1012)', { align: 'center' });
+      doc.moveDown(0.3);
+
+      doc.font(regularFont).fontSize(9.5).fillColor('#000');
+      doc.text(`วันที่: ${today.getDate()}   เดือน: ${thaiMonths[today.getMonth()]}   ปี: ${today.getFullYear() + 543}`, { align: 'right' });
+      doc.moveDown(0.3);
+
+      doc.text(`ชื่อ-สกุล: ${req.user?.name || 'เจ้าหน้าที่ไอที ประจำโรงพยาบาล'}          ตำแหน่ง: เจ้าหน้าที่เทคโนโลยีสารสนเทศ          แผนก/หน่วย: ${asset.location || 'เทคโนโลยีสารสนเทศ'}`);
+      doc.moveDown(0.3);
+      doc.text(`ขอนำรายการทรัพย์สินของ   [X] โรงพยาบาลออก      [  ] ส่วนตัว   ออกจากพื้นที่ของโรงพยาบาล`);
+      doc.text(`ด้วยวิธีการ:  [  ] นำออกด้วยตนเอง      [X] อนุญาตให้ ชื่อ/บริษัท ${asset.vendor_name || 'Acer Service Center'} เป็นตัวแทนนำออก`);
+      doc.moveDown(0.4);
+
+      // 10 Rows Table
+      doc.font(titleFont).fontSize(9).text('ดังรายการต่อไปนี้:');
+      doc.moveDown(0.2);
+
+      const tableTop = doc.y;
+      const colX = [30, 65, 360, 430, 565];
+      doc.rect(colX[0], tableTop, colX[4] - colX[0], 20).fill('#f1f5f9');
+      doc.fillColor('#000').font(titleFont).fontSize(8.5);
+      doc.text('ลำดับ', colX[0] + 5, tableTop + 5);
+      doc.text('รายการ (Description)', colX[1] + 5, tableTop + 5);
+      doc.text('จำนวน', colX[2] + 5, tableTop + 5);
+      doc.text('หมายเหตุ (Note)', colX[3] + 5, tableTop + 5);
+
+      let currentY = tableTop + 20;
+      doc.font(regularFont).fontSize(8);
+
+      for (let i = 1; i <= 10; i++) {
+        doc.rect(colX[0], currentY, colX[4] - colX[0], 18).stroke('#cbd5e1');
+        if (i === 1) {
+          doc.fillColor('#000').text('1', colX[0] + 12, currentY + 4);
+          doc.text(`${asset.device_name || asset.category} (${asset.brand} ${asset.model}) S/N: ${asset.serial_no}`, colX[1] + 5, currentY + 4);
+          doc.text('1 เครื่อง', colX[2] + 10, currentY + 4);
+          doc.text(`Tag: ${asset.asset_tag}`, colX[3] + 5, currentY + 4);
+        } else {
+          doc.fillColor('#94a3b8').text(i.toString(), colX[0] + 12, currentY + 4);
+        }
+        currentY += 18;
+      }
+
+      doc.y = currentY + 8;
+      doc.fillColor('#000').font(regularFont).fontSize(8.5);
+      doc.text(`เหตุผลในการนำออก:   [X] เพื่อซ่อม      [  ] จำหน่าย      [  ] ใช้งานภายนอกโรงพยาบาล      [  ] ยืมระหว่างโรงพยาบาล      [  ] อื่นๆ`);
+      doc.text(`วันที่จะนำทรัพย์สินออก: ${shortDate} เวลา 14:00 น.      ทะเบียนรถ: 1กข-5542 กทม.      ยี่ห้อ: Toyota สีขาว / ขนส่งศูนย์บริการ`);
+      doc.moveDown(0.6);
+
+      // Signatures (5 boxes)
+      const sigTop = doc.y;
+      const sigW = (colX[4] - colX[0]) / 2;
+      
+      doc.rect(colX[0], sigTop, sigW, 80).stroke('#cbd5e1');
+      doc.rect(colX[0] + sigW, sigTop, sigW, 80).stroke('#cbd5e1');
+
+      doc.font(titleFont).fontSize(8).fillColor('#000');
+      doc.text('1. เจ้าของทรัพย์สิน (กรณีทรัพย์สินส่วนตัว)', colX[0] + 5, sigTop + 6);
+      doc.font(regularFont).fontSize(7.5);
+      doc.text('ลงชื่อ ................................................................', colX[0] + 5, sigTop + 35);
+      doc.text('วันที่ ........................... เวลา ...........................', colX[0] + 5, sigTop + 55);
+
+      doc.font(titleFont).fontSize(8);
+      doc.text('2. หน่วยงานเจ้าของทรัพย์สิน (กรณีทรัพย์สินของหน่วยงาน)', colX[0] + sigW + 5, sigTop + 6);
+      doc.font(regularFont).fontSize(7.5);
+      doc.text(`ลงชื่อ: ${req.user?.name || 'เจ้าหน้าที่ไอที ประจำโรงพยาบาล'} (ผู้จัดการแผนก/หัวหน้าหน่วย)`, colX[0] + sigW + 5, sigTop + 35);
+      doc.text(`วันที่: ${shortDate}`, colX[0] + sigW + 5, sigTop + 55);
+
+      const sigTop2 = sigTop + 85;
+      const sigW3 = (colX[4] - colX[0]) / 3;
+      doc.rect(colX[0], sigTop2, sigW3, 75).stroke('#cbd5e1');
+      doc.rect(colX[0] + sigW3, sigTop2, sigW3, 75).stroke('#cbd5e1');
+      doc.rect(colX[0] + (sigW3 * 2), sigTop2, sigW3, 75).stroke('#cbd5e1');
+
+      doc.font(titleFont).fontSize(7.5);
+      doc.text('3. ผู้อำนวยการฝ่าย/ผู้จัดการส่วน', colX[0] + 4, sigTop2 + 5);
+      doc.font(regularFont).fontSize(7);
+      doc.text('ลงชื่อ ..........................................', colX[0] + 4, sigTop2 + 35);
+
+      doc.font(titleFont).fontSize(7.5);
+      doc.text('4. รปภ.จุดทางออกตรวจสอบทรัพย์สิน', colX[0] + sigW3 + 4, sigTop2 + 5);
+      doc.font(regularFont).fontSize(7);
+      doc.text('ลงชื่อ ..........................................', colX[0] + sigW3 + 4, sigTop2 + 35);
+
+      doc.font(titleFont).fontSize(7.5);
+      doc.text('5. หน่วยรักษาความปลอดภัย', colX[0] + (sigW3 * 2) + 4, sigTop2 + 5);
+      doc.font(regularFont).fontSize(7);
+      doc.text('ลงชื่อ ..........................................', colX[0] + (sigW3 * 2) + 4, sigTop2 + 35);
+
+    } else {
+      // =========================================================================
+      // FORM 1: ใบตรวจเช็คอุปกรณ์ เสีย (Hospital Defective Equipment Inspection Form)
+      // =========================================================================
+      doc.font(titleFont).fontSize(16).fillColor('#047857').text('พญาไท 3   PHYATHAI 3', 35, 35);
+      doc.font(regularFont).fontSize(8.5).fillColor('#4b5563').text('เพชรเกษม 19', 35, 55);
+
+      doc.rect(260, 30, 305, 38).stroke('#000');
+      doc.font(titleFont).fontSize(14).fillColor('#000').text('ใบตรวจเช็คอุปกรณ์ เสีย', 270, 42);
+      doc.font(regularFont).fontSize(10).text(`วันที่ ${shortDate}`, 445, 44);
+
+      doc.y = 85;
+      doc.font(regularFont).fontSize(10.5).fillColor('#000');
+      doc.text(`ประเภทอุปกรณ์ : ${asset.category || asset.device_name || 'คอมพิวเตอร์'}`, 35, 90);
+      doc.font(titleFont).fillColor('#dc2626').text(`ผู้เก็บอุปกรณ์ : `, 360, 90, { continued: true });
+      doc.font(regularFont).fillColor('#000').text(`${req.user?.name || 'เจ้าหน้าที่ไอที ประจำโรงพยาบาล'}`);
+
+      doc.text(`Tag / Serial : ${asset.asset_tag} / ${asset.serial_no}`, 35, 115);
+      doc.text(`แผนก : ${asset.location || 'เทคโนโลยีสารสนเทศ'}                  ชั้น : ${(asset.location?.match(/Fl(oor)?\s*(\d+)/i)?.[2]) || '2'}`, 35, 140);
+
+      doc.moveDown(1.5);
+      doc.font(titleFont).fontSize(11).fillColor('#000').text('สถานะอุปกรณ์', { underline: true });
+      doc.moveDown(0.4);
+      doc.font(regularFont).fontSize(10).fillColor('#000');
+      doc.text('   [  ] ใช้งานได้   หมายเหตุ ( ถ้ามี ) ............................................................................................');
+      doc.moveDown(0.3);
+      doc.text(`   [X] เสีย   อาการเสีย : เครื่องเปิดไม่ติด / อุปกรณ์ฮาร์ดแวร์ทำงานผิดปกติ`);
+
+      doc.moveDown(1.2);
+      doc.font(titleFont).fontSize(11).text('สถานะดำเนินการต่อ', { underline: true });
+      doc.moveDown(0.4);
+      doc.font(regularFont).fontSize(10);
+      doc.text('   [X] ส่งเครม      [  ] ส่งซ่อม*มีค่าใช่จ่าย      [  ] สั่งซื้อทดแทน      [  ] ตัดขาย      [  ] เก็บเข้า Stock');
+
+      doc.moveDown(2);
+      // 3 Columns Box at bottom
+      const boxTop = doc.y;
+      const colWidth = 175;
+      
+      // Col 1: ผู้ตรวจสอบอุปกรณ์
+      doc.rect(35, boxTop, colWidth, 180).stroke('#000');
+      doc.font(titleFont).fontSize(10.5).text('ผู้ตรวจสอบอุปกรณ์', 45, boxTop + 12, { width: colWidth - 20, align: 'center', underline: true });
+      doc.font(regularFont).fontSize(9.5);
+      doc.text(`ลงชื่อ: ${req.user?.name || 'เจ้าหน้าที่ไอที'}`, 45, boxTop + 60);
+      doc.text(`วันที่: ${shortDate}`, 45, boxTop + 85);
+      doc.text('หมายเหตุ: ตรวจสอบเงื่อนไขแล้ว', 45, boxTop + 110);
+
+      // Col 2: ผู้ดำเนินการต่อ
+      doc.rect(35 + colWidth, boxTop, colWidth, 180).stroke('#000');
+      doc.font(titleFont).fontSize(10.5).text('ผู้ดำเนินการต่อ', 35 + colWidth + 10, boxTop + 12, { width: colWidth - 20, align: 'center', underline: true });
+      doc.font(regularFont).fontSize(9.5);
+      doc.text(`ลงชื่อ: ${req.user?.name || 'เจ้าหน้าที่ไอที'}`, 35 + colWidth + 10, boxTop + 60);
+      doc.text(`วันที่: ${shortDate}`, 35 + colWidth + 10, boxTop + 85);
+      doc.text('หมายเหตุ: ส่งเคลมศูนย์บริการ', 35 + colWidth + 10, boxTop + 110);
+
+      // Col 3: เฉพาะกรณีส่งเครม , ส่งซ่อม (Red highlighted text)
+      doc.rect(35 + (colWidth * 2), boxTop, colWidth, 180).stroke('#000');
+      doc.font(titleFont).fontSize(10).fillColor('#dc2626').text('เฉพาะกรณีส่งเครม , ส่งซ่อม', 35 + (colWidth * 2) + 10, boxTop + 12, { width: colWidth - 20, align: 'center', underline: true });
+      doc.font(regularFont).fontSize(9).fillColor('#dc2626');
+      doc.text(`วันที่ส่งเครม/ซ่อม: วันที่ ${shortDate}`, 35 + (colWidth * 2) + 10, boxTop + 45);
+      doc.text(`ชื่อ บริษัท: ${asset.vendor_name || 'Acer Service Center'}`, 35 + (colWidth * 2) + 10, boxTop + 70);
+      doc.fillColor('#000');
+      doc.text(`ลงชื่อ: ${req.user?.name || 'นายพิพัฒน์ วงศ์สวัสดิ์'}`, 35 + (colWidth * 2) + 10, boxTop + 110);
+      doc.font(regularFont).fontSize(8).fillColor('#4b5563').text('(ชื่อผู้ส่งอุปกรณ์)', 35 + (colWidth * 2) + 10, boxTop + 130, { align: 'center', width: colWidth - 20 });
     }
 
     doc.end();

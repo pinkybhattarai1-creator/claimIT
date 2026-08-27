@@ -438,8 +438,194 @@ async function runTests() {
     }, staffToken);
     assert(emailRes.status === 200, 'Mounted /api/email/send dispatches successfully (200)');
 
+    // =========================================================================
+    // PROMPT 1: Depreciation Calculations & Historical Repair Cost Ledger
+    // =========================================================================
+    console.log('\n--- TEST 13: Straight-Line Depreciation Floor (BV >= 1.00 THB) ---');
+    const { calculateStraightLineBV, calculateDynamicViability } = require('./claim_calculator');
+
+    // 13.1 Fresh asset (0 months age)
+    const freshBV = calculateStraightLineBV(20000, 0, 60);
+    assert(freshBV === 20000, `Fresh asset (0 mo) Book Value equals purchase price: ฿${freshBV}`);
+
+    // 13.2 Mid-life asset (30 of 60 months)
+    const midBV = calculateStraightLineBV(20000, 30, 60);
+    assert(midBV === 10000, `Mid-life asset (30 mo) Book Value is half purchase price: ฿${midBV}`);
+
+    // 13.3 Expired asset (72 of 60 months -> 120% expired)
+    const expiredBV = calculateStraightLineBV(18500, 72, 60);
+    assert(expiredBV === 1.0, `Expired asset (72/60 mo) Book Value never drops below 1.00 THB (Got: ฿${expiredBV})`);
+
+    // 13.4 Ancient asset (120 of 36 months)
+    const ancientBV = calculateStraightLineBV(50000, 120, 36);
+    assert(ancientBV === 1.0, `Ancient asset (120/36 mo) Book Value strictly floors at 1.00 THB (Got: ฿${ancientBV})`);
+
+    // 13.5 Zero/Negative price edge case
+    const zeroBV = calculateStraightLineBV(0, 10, 60);
+    assert(zeroBV === 1.0, `Zero price asset Book Value remains at 1.00 THB (Got: ฿${zeroBV})`);
+
+    console.log('\n--- TEST 14: Dynamic Viability & Cost Ledger ($BV * 0.5 Threshold) ---');
+    // 14.1 Add record to repair cost history ledger via API
+    const addLedgerRes = await makeRequest('POST', '/api/claims/cost-ledger', {
+      asset_id: 1,
+      asset_category: 'Computer',
+      issue_category: 'Motherboard Failure',
+      part_name: 'OptiPlex Motherboard V2',
+      cost_thb: 4500,
+      vendor_name: 'Dell Thailand Service'
+    }, staffToken);
+    assert(addLedgerRes.status === 201, 'Repair cost record added to ledger via API (201)');
+
+    // 14.2 Query cost ledger
+    const queryLedgerRes = await makeRequest('GET', '/api/claims/cost-ledger?asset_category=Computer', null, staffToken);
+    assert(queryLedgerRes.status === 200, 'Cost ledger records retrieved successfully (200)');
+    assert(queryLedgerRes.data.total > 0, `Cost ledger contains ${queryLedgerRes.data.total} records`);
+
+    // 14.3 Viability Calculation: Obsolete asset (BV=฿1, Cost=฿4,500 > BV*0.5=฿0.50 -> "Salvage / Write-off")
+    const salvageEval = calculateDynamicViability({
+      purchase_price: 18500,
+      age_in_months: 72,
+      expected_lifespan_months: 48,
+      category: 'Computer',
+      repair_cost: 4500
+    });
+    assert(salvageEval.recommendation === 'Salvage / Write-off', `Obsolete asset recommended for Salvage / Write-off (Got: ${salvageEval.recommendation})`);
+    assert(salvageEval.book_value_thb === 1.0, `Book Value is ฿1.00 THB`);
+    assert(salvageEval.formula_breakdown.threshold_value === 0.5, `Threshold value is ฿0.50 THB (BV * 0.5)`);
+
+    // 14.4 Viability Calculation: Viable new asset (BV=฿19,600, Cost=฿3,200 <= BV*0.5=฿9,800 -> "RMA / Repair")
+    const repairEval = calculateDynamicViability({
+      purchase_price: 24500,
+      age_in_months: 12,
+      expected_lifespan_months: 60,
+      category: 'Computer',
+      repair_cost: 3200
+    });
+    assert(repairEval.recommendation === 'RMA / Repair', `Valuable asset recommended for RMA / Repair (Got: ${repairEval.recommendation})`);
+
+    // 14.5 API calculate-viability endpoint
+    const apiViabilityRes = await makeRequest('POST', '/api/claims/calculate-viability', {
+      asset_tag: '031709030031', // Old Dell Monitor
+      issue_category: 'Panel Defect'
+    }, staffToken);
+    assert(apiViabilityRes.status === 200, 'API /api/claims/calculate-viability returned 200');
+    assert(apiViabilityRes.data.recommendation === 'Salvage / Write-off', 'Aged monitor evaluated as Salvage / Write-off');
+
+    // =========================================================================
+    // PROMPT 2: Receipt OCR Extraction, PDPA Sanitization & Serial Cross-Check
+    // =========================================================================
+    console.log('\n--- TEST 15: Receipt OCR, PDPA Masking & Serial Verification ---');
+    const sampleInvoiceText = `
+      บริษัท เดลล์ คอร์ปอเรชั่น (ประเทศไทย) จำกัด
+      เลขประจำตัวผู้เสียภาษี: 0105537042598
+      เลขที่ใบกำกับภาษี: INV-2026-998812
+      วันที่: 2026-08-20
+      ผู้ติดต่อ: นายสมชาย การุณย์
+      เบอร์โทร: 089-123-4567
+      เลขบัตรประชาชน: 1-1004-99887-12-3
+      อีเมล: somchai.k@gmail.com
+      รายการ: Replacement Motherboard OptiPlex 7090
+      Serial Number: DELL-OPT-21
+      จำนวนเงินรวมทั้งสิ้น: ฿4,500.00
+    `;
+
+    // 15.1 Direct OCR extraction with matching serial number
+    const ocrMatchRes = await makeRequest('POST', '/api/evidence/ocr-extract', {
+      text: sampleInvoiceText,
+      asset_tag: 'CIT-2021-AIO-01' // Asset with S/N DELL-OPT-21
+    }, staffToken);
+    assert(ocrMatchRes.status === 200, 'OCR extract endpoint returned 200');
+    assert(ocrMatchRes.data.ocr.vendor_tax_id === '0105537042598', `Extracted Thai Tax ID: ${ocrMatchRes.data.ocr.vendor_tax_id}`);
+    assert(ocrMatchRes.data.ocr.total_amount_thb === 4500, `Extracted Amount: ฿${ocrMatchRes.data.ocr.total_amount_thb}`);
+    assert(ocrMatchRes.data.ocr.extracted_serial_number === 'DELL-OPT-21', `Extracted Serial Number: ${ocrMatchRes.data.ocr.extracted_serial_number}`);
+
+    // 15.2 PDPA Sanitization Check (Phone, Citizen ID, Personal Email masked)
+    const sanitizedText = ocrMatchRes.data.ocr.sanitized_text;
+    assert(!sanitizedText.includes('089-123-4567') && sanitizedText.includes('089-***-4567'), 'PDPA: Phone number masked');
+    assert(!sanitizedText.includes('1-1004-99887-12-3') && sanitizedText.includes('1-****-*****-**-3'), 'PDPA: Thai Citizen ID masked');
+    assert(!sanitizedText.includes('somchai.k@gmail.com') && sanitizedText.includes('s***k@gmail.com'), 'PDPA: Personal email address masked');
+
+    // 15.3 Serial Number Match Verification
+    assert(ocrMatchRes.data.serial_validation.match === true, 'Serial verification PASSED when document S/N matches asset S/N');
+
+    // 15.4 Serial Number Mismatch Alert
+    const ocrMismatchRes = await makeRequest('POST', '/api/evidence/ocr-extract', {
+      text: sampleInvoiceText,
+      asset_tag: '032186040006' // Asset with S/N SN9988 (differs from DELL-OPT-21)
+    }, staffToken);
+    assert(ocrMismatchRes.status === 200, 'OCR extract for mismatched asset returned 200');
+    assert(ocrMismatchRes.data.serial_validation.match === false, 'Serial mismatch ALERT triggered when OCR serial != asset serial');
+
+    // =========================================================================
+    // PROMPT 3: AI Missing Information Inquirer & Vendor RMA Brief Generator
+    // =========================================================================
+    console.log('\n--- TEST 16: AI Intake Diagnostics & Bilingual Vendor RMA Brief ---');
+    // 16.1 Incomplete intake (Missing power state, liquid, physical drop details)
+    const incompleteIntake = await makeRequest('POST', '/api/claims/validate-intake', {
+      description: 'เครื่องเสีย ใช้งานไม่ได้',
+      issue_symptoms: 'เปิดโปรแกรมไม่ขึ้น',
+      device_type: 'Computer'
+    }, staffToken);
+    assert(incompleteIntake.status === 200, 'Intake validation endpoint returned 200');
+    assert(incompleteIntake.data.missing_details === true, 'Incomplete intake flagged with missing_details = true');
+    assert(incompleteIntake.data.follow_up_questions.length >= 2, `Generated ${incompleteIntake.data.follow_up_questions.length} diagnostic follow-up questions`);
+
+    // 16.2 Complete intake
+    const completeIntake = await makeRequest('POST', '/api/claims/validate-intake', {
+      description: 'คอมพิวเตอร์เปิดไม่ติด ไฟ Power LED กระพริบสีส้ม 2 ครั้ง ไม่มีเสียง Beep',
+      issue_symptoms: 'ไม่เคยโดนน้ำหรือของเหลว สภาพบอดี้ปกติไม่มีรอยตกหล่นหรือแตกหัก',
+      device_type: 'Computer'
+    }, staffToken);
+    assert(completeIntake.status === 200, 'Complete intake validation returned 200');
+    assert(completeIntake.data.missing_details === false, 'Complete intake verified with missing_details = false');
+
+    // 16.3 Vendor RMA Dispatch Brief Generation
+    const rmaBriefRes = await makeRequest('POST', `/api/claims/${createdClaimId}/generate-rma-brief`, null, staffToken);
+    assert(rmaBriefRes.status === 200, 'Generate RMA Brief endpoint returned 200');
+    assert(rmaBriefRes.data.brief_markdown && rmaBriefRes.data.brief_markdown.includes('HOSPITAL IT WARRANTY & RMA DISPATCH NOTE'), 'Bilingual RMA Brief generated');
+    assert(rmaBriefRes.data.structured_data.assets.length > 0, 'RMA Brief contains structured asset records');
+
+    // =========================================================================
+    // PROMPT 4: Human-in-the-Loop Override Governance & Quality Gates
+    // =========================================================================
+    console.log('\n--- TEST 17: Human-in-the-Loop Override Governance & Quality Gates ---');
+    // 17.1 Override without reason -> Rejected with HTTP 400
+    const overrideNoReason = await makeRequest('POST', `/api/claims/${createdClaimId}/override-recommendation`, {
+      overridden_recommendation: 'RMA / Repair',
+      override_reason: '' // Empty string
+    }, staffToken);
+    assert(overrideNoReason.status === 400, 'Override request with empty reason rejected with HTTP 400');
+
+    // 17.2 Override with missing reason parameter -> Rejected with HTTP 400
+    const overrideMissingReason = await makeRequest('POST', `/api/claims/${createdClaimId}/override-recommendation`, {
+      overridden_recommendation: 'Salvage / Write-off'
+    }, staffToken);
+    assert(overrideMissingReason.status === 400, 'Override request with missing reason rejected with HTTP 400');
+
+    // 17.3 Override with whitespace-only reason -> Rejected with HTTP 400
+    const overrideWhitespaceReason = await makeRequest('POST', `/api/claims/${createdClaimId}/override-recommendation`, {
+      overridden_recommendation: 'RMA / Repair',
+      override_reason: '     '
+    }, staffToken);
+    assert(overrideWhitespaceReason.status === 400, 'Override request with whitespace-only reason rejected with HTTP 400');
+
+    // 17.4 Valid Override Request with Justification
+    const validOverride = await makeRequest('POST', `/api/claims/${createdClaimId}/override-recommendation`, {
+      overridden_recommendation: 'RMA / Repair',
+      override_reason: 'Critical medical workstation controller with specialized legacy software (No modern replacement available in ICU)',
+      previous_recommendation: 'Salvage / Write-off'
+    }, staffToken);
+    assert(validOverride.status === 200, 'Valid override with non-empty reason accepted (200)');
+    assert(validOverride.data.audit_log_code && validOverride.data.audit_log_code.startsWith('CHG-'), 'Immutable audit log code generated for override');
+
+    // 17.5 Verify immutable audit trail recorded the override
+    const auditCheckRes = await makeRequest('GET', '/api/audit-logs?search=Override+Recommendation', null, staffToken);
+    assert(auditCheckRes.status === 200, 'Audit logs search returned 200');
+    const foundOverrideLog = (auditCheckRes.data || []).some(l => l.details && l.details.includes('Critical medical workstation controller'));
+    assert(foundOverrideLog === true, 'Override justification permanently preserved in immutable audit log');
+
     console.log('\n===============================================================');
-    console.log('🎉 ALL 12 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
+    console.log('🎉 ALL 17 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
     console.log('===============================================================\n');
 
   } finally {

@@ -4,6 +4,42 @@
  * warranty calculations, claim worthiness evaluation, and salvage actions.
  */
 
+// Universal Clipboard Copy with Toast Feedback & Fallback Support
+window.copyTextToClipboard = function(text, label = 'ข้อความ') {
+  if (!text || text === '-' || text === 'N/A') return;
+  const showSuccess = () => {
+    showToast(`📋 คัดลอก ${label} (${text}) ลงคลิปบอร์ดแล้ว!`, 'success');
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(showSuccess).catch(() => fallbackCopy(text, showSuccess));
+  } else {
+    fallbackCopy(text, showSuccess);
+  }
+};
+
+function fallbackCopy(text, onSuccess) {
+  try {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'fixed';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(el);
+    if (successful) {
+      if (onSuccess) onSuccess();
+    } else {
+      prompt('กด Ctrl+C เพื่อคัดลอก:', text);
+    }
+  } catch (err) {
+    prompt('กด Ctrl+C เพื่อคัดลอก:', text);
+  }
+}
+
 // Asset Status Badges HTML Builder
 function getStatusBadgeHTML(asset) {
   const status = asset.status;
@@ -176,7 +212,7 @@ function displayAssetDetails(asset) {
   const WARRANTY_LINKS = {
     'dell':     'https://www.dell.com/support/home/en-us',
     'lenovo':   'https://support.lenovo.com/warrantylookup',
-    'acer':     'https://register.acer.co.th/WarrantyCheck/warr_chk.aspx',
+    'acer':     'https://register.acer.co.th/Warranty%20Check/warr_chk.aspx',
     'hp':       'https://support.hp.com/us-en/check-warranty',
     'tsc':      'https://support.tscprinters.com/',
     'logitech': 'https://support.logi.com',
@@ -197,18 +233,8 @@ function displayAssetDetails(asset) {
   copyBtn.className = 'btn btn-secondary';
   copyBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex:1; display:flex; align-items:center; justify-content:center; gap:6px;';
   copyBtn.innerHTML = '📋 คัดลอก Serial Number';
-  copyBtn.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(asset.serial_no);
-      copyBtn.innerHTML = '✅ คัดลอกแล้ว!';
-      copyBtn.style.background = 'var(--success)';
-      setTimeout(() => {
-        copyBtn.innerHTML = '📋 คัดลอก Serial Number';
-        copyBtn.style.background = '';
-      }, 2000);
-    } catch {
-      prompt('คัดลอก S/N นี้:', asset.serial_no);
-    }
+  copyBtn.onclick = () => {
+    copyTextToClipboard(asset.serial_no, 'Serial Number');
   };
   quickPanel.appendChild(copyBtn);
 
@@ -222,9 +248,38 @@ function displayAssetDetails(asset) {
   linkBtn.innerHTML = `🌐 ตรวจสอบรับประกัน ${brandLabel}`;
   quickPanel.appendChild(linkBtn);
 
+  const flowBtn = document.createElement('button');
+  flowBtn.type = 'button';
+  flowBtn.className = 'btn btn-secondary';
+  flowBtn.style.cssText = 'font-size:12px; padding:7px 14px; flex-basis:100%; display:flex; align-items:center; justify-content:center; gap:6px; background:rgba(56,189,248,0.1); border-color:#38bdf8; color:#38bdf8;';
+  flowBtn.innerHTML = '🧭 ดูผังขั้นตอนรับแจ้งเสีย & เคลม (Claim Workflow SOP)';
+  flowBtn.onclick = () => {
+    if (typeof openClaimWorkflowModal === 'function') {
+      openClaimWorkflowModal(asset);
+    }
+  };
+  quickPanel.appendChild(flowBtn);
+
   const serialEl = document.getElementById(`${prefix}-detail-serial`);
   if (serialEl) serialEl.closest('.detail-item').after(quickPanel);
   // --- END WARRANTY QUICK-ACCESS PANEL ---
+
+  // Bind quick copy buttons for Tag and S/N
+  const copyTagBtn = document.getElementById('btn-copy-tag');
+  if (copyTagBtn) {
+    copyTagBtn.onclick = (e) => {
+      e.stopPropagation();
+      copyTextToClipboard(asset.asset_tag, 'รหัสครุภัณฑ์');
+    };
+  }
+
+  const copySerialBtn = document.getElementById('btn-copy-serial');
+  if (copySerialBtn) {
+    copySerialBtn.onclick = (e) => {
+      e.stopPropagation();
+      copyTextToClipboard(asset.serial_no, 'Serial Number');
+    };
+  }
 
   document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';

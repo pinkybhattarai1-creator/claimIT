@@ -367,6 +367,26 @@ function setupEventListeners() {
   document.getElementById('cancel-email-btn')?.addEventListener('click', closeEmailModal);
   document.getElementById('confirm-send-email-btn')?.addEventListener('click', confirmAndSendEmail);
 
+  // Claim Workflow SOP Modal Events
+  window.openClaimWorkflowModal = function(asset) {
+    const modal = document.getElementById('claim-workflow-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.openTemplateFromWorkflow = function(formType) {
+    const modal = document.getElementById('claim-workflow-modal');
+    if (modal) modal.style.display = 'none';
+    const currentTag = state.selectedAsset ? state.selectedAsset.asset_tag : (document.getElementById('it-detail-tag')?.textContent || 'CIT-2024-AIO-02');
+    openTemplateCenter(currentTag, formType);
+  };
+
+  document.getElementById('btn-open-workflow-modal-header')?.addEventListener('click', () => openClaimWorkflowModal());
+  document.getElementById('btn-sidebar-open-workflow')?.addEventListener('click', () => openClaimWorkflowModal());
+  document.getElementById('close-workflow-modal-btn')?.addEventListener('click', () => {
+    const modal = document.getElementById('claim-workflow-modal');
+    if (modal) modal.style.display = 'none';
+  });
+
   // Template Center Modal Events
   document.getElementById('close-template-modal-btn')?.addEventListener('click', () => {
     document.getElementById('print-template-modal').style.display = 'none';
@@ -386,10 +406,18 @@ function setupEventListeners() {
   }
 
   // Live input update listeners in template drawer
-  const quickInputs = ['edit-job-no', 'edit-contact-name', 'edit-contact-phone', 'edit-problem-desc', 'edit-tech-name', 'edit-solution'];
+  const quickInputs = [
+    'edit-doc-date', 'edit-inspector-name', 'edit-department', 'edit-floor',
+    'edit-problem-desc', 'edit-next-action', 'edit-vendor-name', 'edit-sender-name',
+    'edit-requester-name', 'edit-position', 'edit-reason', 'edit-vehicle-plate',
+    'edit-vehicle-brand', 'edit-exit-time'
+  ];
   quickInputs.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', () => renderActiveTemplate());
+    if (el) {
+      el.addEventListener('input', () => renderActiveTemplate());
+      el.addEventListener('change', () => renderActiveTemplate());
+    }
   });
 
   document.getElementById('btn-execute-print')?.addEventListener('click', () => window.print());
