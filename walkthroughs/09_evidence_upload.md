@@ -1,4 +1,4 @@
-﻿# 09 — แนบไฟล์หลักฐาน (Evidence Upload)
+# 09 — แนบไฟล์หลักฐาน (Evidence Upload)
 
 กลุ่มผู้ใช้: IT Staff / Admin
 
@@ -13,6 +13,12 @@
 
 ## วิธีอัปโหลด Evidence
 
+### 1. ถ่ายภาพผ่านมือถือ / iPhone บนวอร์ด (Staff Portal):
+- ช่างไอทีกดปุ่ม **[📷 ถ่ายรูป]** หรือ **[📸 ถ่ายรูป/แนบภาพ]** บน Staff Portal
+- ถ่ายรูปตัวเครื่อง หรือจุดชำรุดเสียหายด้วยกล้องมือถือ
+- เมื่อกด **[🚨 แจ้งชำรุดเข้าส่วนกลาง]** ระบบจะอัปโหลดรูปภาพผ่าน API นี้และผูกเป็นหลักฐานของครุภัณฑ์อัตโนมัติ
+
+### 2. ผ่าน REST API / ใบส่งเคลม:
 POST /api/evidence/upload
 - Header: Authorization: Bearer [JWT Token]
 - Body: multipart/form-data
