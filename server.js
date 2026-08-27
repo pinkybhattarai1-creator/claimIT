@@ -67,6 +67,37 @@ app.post('/api/verify-gate', (req, res) => {
   return res.status(401).json({ success: false, error: 'รหัสผ่านไม่ถูกต้อง (รหัสผ่านคือ 1)' });
 });
 
+// Network & Mobile Connection Info Endpoint
+app.get('/api/network-info', (req, res) => {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  let hospitalIp = null;
+  let primaryIp = null;
+  const allIps = [];
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        allIps.push(net.address);
+        if (net.address.startsWith('10.33.') || net.address.startsWith('10.')) {
+          if (!hospitalIp) hospitalIp = net.address;
+        } else if (!primaryIp) {
+          primaryIp = net.address;
+        }
+      }
+    }
+  }
+
+  const detectedIp = hospitalIp || primaryIp || '127.0.0.1';
+  res.json({
+    detectedIp,
+    hospitalIp: hospitalIp || detectedIp,
+    allIps,
+    port: PORT,
+    mobileUrl: `http://${detectedIp}:${PORT}`
+  });
+});
+
 // 6. Mount API Route Modules
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));

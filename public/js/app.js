@@ -280,13 +280,20 @@ function setupEventListeners() {
     });
   }
   
-  // Action Buttons - Report Broken with Symptom Details
+  // Action Buttons - Report Broken with Symptom Details & Mobile Photo Evidence
   const btnReportBroken = document.getElementById('btn-report-broken');
   if (btnReportBroken) {
-    btnReportBroken.addEventListener('click', () => {
+    btnReportBroken.addEventListener('click', async () => {
       const issueInput = document.getElementById('ward-issue-input');
-      const issueText = issueInput ? issueInput.value.trim() : '';
-      updateAssetStatus('Broken', issueText);
+      let issueText = issueInput ? issueInput.value.trim() : '';
+      if (state.wardCapturedPhotoFile) {
+        issueText = (issueText ? issueText + ' ' : '') + '[📷 แนบภาพถ่ายจากมือถือแล้ว]';
+      }
+      const tag = state.selectedAsset ? state.selectedAsset.asset_tag : null;
+      await updateAssetStatus('Broken', issueText);
+      if (tag && state.wardCapturedPhotoFile) {
+        await uploadWardCapturedPhoto(tag);
+      }
     });
   }
   
@@ -647,3 +654,136 @@ async function loadStaffTracker() {
   }
 }
 window.loadStaffTracker = loadStaffTracker;
+
+// ─── Mobile Connection & Hospital IP Manager ────────────────────────────────
+let currentMobileUrl = '';
+
+async function fetchNetworkInfo() {
+  try {
+    const res = await fetch('/api/network-info');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    const savedCustomIp = localStorage.getItem('claimit_custom_ip');
+    const activeHost = savedCustomIp || data.detectedIp || window.location.hostname;
+    currentMobileUrl = `http://${activeHost}:${data.port || window.location.port || 8847}`;
+
+    const loginInput = document.getElementById('mobile-connect-url-input');
+    if (loginInput) loginInput.value = currentMobileUrl;
+
+    const sidebarInput = document.getElementById('sidebar-mobile-url-input');
+    if (sidebarInput) sidebarInput.value = currentMobileUrl;
+
+    const modalInput = document.getElementById('modal-mobile-url-input');
+    if (modalInput) modalInput.value = currentMobileUrl;
+
+    const customInput = document.getElementById('custom-ip-input');
+    if (customInput && savedCustomIp) customInput.value = savedCustomIp;
+  } catch (e) {
+    console.warn('Network info fetch error:', e);
+    currentMobileUrl = window.location.origin;
+  }
+}
+
+function copyMobileUrl() {
+  const url = currentMobileUrl || window.location.origin;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('📋 คัดลอกลิงก์สำหรับ iPhone/มือถือแล้ว!', 'success'))
+    .catch(() => prompt('คัดลอกลิงก์นี้เปิดบนมือถือ:', url));
+}
+window.copyMobileUrl = copyMobileUrl;
+
+function openMobileIpModal() {
+  fetchNetworkInfo();
+  const modal = document.getElementById('mobile-ip-modal');
+  if (modal) modal.style.display = 'flex';
+}
+window.openMobileIpModal = openMobileIpModal;
+
+function saveCustomIP() {
+  const input = document.getElementById('custom-ip-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    localStorage.setItem('claimit_custom_ip', val);
+    showToast(`💾 บันทึก IP กำหนดเอง: ${val} แล้ว`, 'success');
+  } else {
+    localStorage.removeItem('claimit_custom_ip');
+    showToast('🔄 คืนค่า IP เป็นระบบตรวจจับอัตโนมัติ', 'info');
+  }
+  fetchNetworkInfo();
+}
+window.saveCustomIP = saveCustomIP;
+
+function promptChangeMobileIP() {
+  openMobileIpModal();
+}
+window.promptChangeMobileIP = promptChangeMobileIP;
+
+// ─── Ward / Staff Photo Capture (Mobile & iPhone Camera) ─────────────────────
+state.wardCapturedPhotoFile = null;
+
+function handleWardPhotoCapture(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  state.wardCapturedPhotoFile = file;
+
+  // Show status tag in Upper Bar
+  const statusTag = document.getElementById('ward-camera-status-tag');
+  if (statusTag) statusTag.style.display = 'flex';
+
+  // Show preview in Details Card
+  const previewBox = document.getElementById('ward-photo-preview-box');
+  const imgEl = document.getElementById('ward-photo-img');
+  if (previewBox && imgEl) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imgEl.src = e.target.result;
+      previewBox.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  showToast('📷 แนบภาพถ่ายจากมือถือสำเร็จ!', 'success');
+}
+window.handleWardPhotoCapture = handleWardPhotoCapture;
+
+function clearWardPhoto() {
+  state.wardCapturedPhotoFile = null;
+  const input = document.getElementById('ward-camera-input');
+  if (input) input.value = '';
+
+  const statusTag = document.getElementById('ward-camera-status-tag');
+  if (statusTag) statusTag.style.display = 'none';
+
+  const previewBox = document.getElementById('ward-photo-preview-box');
+  if (previewBox) previewBox.style.display = 'none';
+}
+window.clearWardPhoto = clearWardPhoto;
+
+async function uploadWardCapturedPhoto(assetTag) {
+  if (!state.wardCapturedPhotoFile || !assetTag) return;
+  try {
+    const formData = new FormData();
+    formData.append('file', state.wardCapturedPhotoFile);
+    formData.append('asset_tag', assetTag);
+
+    const token = localStorage.getItem('claimit_token') || sessionStorage.getItem('claimit_token');
+    await fetch('/api/evidence/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    console.log(`[Photo Evidence] Uploaded photo evidence for ${assetTag}`);
+    clearWardPhoto();
+  } catch (err) {
+    console.warn('Photo evidence upload warning:', err);
+  }
+}
+window.uploadWardCapturedPhoto = uploadWardCapturedPhoto;
+
+// Initialize Network info on load
+document.addEventListener('DOMContentLoaded', () => {
+  fetchNetworkInfo();
+});

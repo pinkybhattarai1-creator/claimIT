@@ -47,6 +47,7 @@
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
         <button class="btn btn-secondary" id="btn-edit-profile" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="แก้ไขชื่อและแผนกของคุณ">✏️ แก้ไขชื่อ</button>
+        <button class="btn btn-secondary" id="btn-header-mobile-ip" onclick="openMobileIpModal()" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="ลิงก์และ IP สำหรับเปิดในมือถือหรือ iPhone">📱 มือถือ / IP</button>
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน</button>
         <button class="btn btn-secondary" id="btn-open-workflow-modal-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px; border-color: #38bdf8; color: #38bdf8;">🧭 ผังขั้นตอนการเคลม (SOP)</button>
         <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
@@ -65,6 +66,21 @@
       <button class="btn btn-secondary" id="close-sidebar-btn" style="padding: 4px 10px; font-size: 12px;">✕</button>
     </div>
     <div class="quick-sidebar-body">
+      <!-- Panel 0: Mobile / iPhone Connect URL & IP -->
+      <div class="sidebar-panel" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3);">
+        <div class="sidebar-panel-title">
+          <span>📱 เปิดบนมือถือ / iPhone</span>
+          <button type="button" class="btn btn-secondary" onclick="promptChangeMobileIP()" style="font-size: 10px; padding: 2px 6px;">⚙️ ตั้ง IP</button>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
+          ใช้เปิดตรวจเช็คงานในวอร์ดผ่าน Wi-Fi รพ.:
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" id="sidebar-mobile-url-input" class="form-control" readonly style="font-size: 11px; padding: 5px 8px; flex: 1; background: rgba(0,0,0,0.3); color: #38bdf8;" value="กำลังโหลด IP...">
+          <button type="button" class="btn" onclick="copyMobileUrl()" style="font-size: 11px; padding: 5px 10px; white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5);">📋</button>
+        </div>
+      </div>
+
       <!-- Panel 1: Today's Case Volume -->
       <div class="sidebar-panel">
         <div class="sidebar-panel-title">
@@ -157,40 +173,52 @@
         
         <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-color);">
           <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-align: center;">
-            🚀 เข้าสู่ระบบด่วน 1-Click (เลือก 4 เจ้าหน้าที่ IT หรือ 4 เจ้าหน้าที่ประจำแผนก):
+            🚀 เข้าสู่ระบบด่วน 1-Click (4 IT Admins & 4 IT Staff):
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <!-- IT Admins (4 accounts) -->
             <div style="display: flex; flex-direction: column; gap: 5px;">
               <div style="font-size: 11px; font-weight: 700; color: #60a5fa; margin-bottom: 2px;">💻 ฝ่ายไอที (4 Admins):</div>
               <button type="button" class="btn btn-secondary" onclick="quickLogin('admin', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;">
-                👑 <strong>admin</strong> (หัวหน้าไอที)
+                👑 <strong>admin</strong> (Admin 1 - หัวหน้าไอที)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_somchai', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                💻 <strong>it_somchai</strong> (ช่างอาวุโส)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin2', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                💻 <strong>admin2</strong> (Admin 2 - ช่างอาวุโส)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_wichai', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                🖥️ <strong>it_wichai</strong> (ดูแลระบบ)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin3', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                🖥️ <strong>admin3</strong> (Admin 3 - ดูแลระบบ/เน็ตเวิร์ก)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('it_natthaporn', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                🏷️ <strong>it_natthaporn</strong> (ฝ่ายเคลม)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin4', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
+                🏷️ <strong>admin4</strong> (Admin 4 - ฝ่ายเคลม/ฮาร์ดแวร์)
               </button>
             </div>
-            <!-- Staff (4 accounts) -->
+            <!-- Staff (4 accounts - IT Field/On-Site Staff) -->
             <div style="display: flex; flex-direction: column; gap: 5px;">
-              <div style="font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 2px;">🧑‍💼 ประจำแผนก (4 Staff):</div>
+              <div style="font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 2px;">🛠️ ช่างภาคสนาม (4 Staff):</div>
               <button type="button" class="btn btn-secondary" onclick="quickLogin('staff', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7;">
-                📋 <strong>staff</strong> (เวชระเบียน)
+                🛠️ <strong>staff</strong> (Staff 1 - ช่างไอทีภาคสนาม)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_icu', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                🏥 <strong>staff_icu</strong> (วอร์ด ICU)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff2', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                📱 <strong>staff2</strong> (Staff 2 - ช่างประจำวอร์ด)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_er', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                🚑 <strong>staff_er</strong> (ฉุกเฉิน ER)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff3', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                ⚡ <strong>staff3</strong> (Staff 3 - ไอทีโมบาย/iPhone)
               </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff_opd', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                🩺 <strong>staff_opd</strong> (คลินิก OPD)
+              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff4', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
+                📋 <strong>staff4</strong> (Staff 4 - ผู้ช่วยไอที)
               </button>
+            </div>
+          </div>
+
+          <!-- Mobile / iPhone Connect URL & IP Configuration Strip -->
+          <div style="margin-top: 14px; padding: 10px 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; font-size: 11.5px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-weight: 700; color: #a5b4fc;">📱 เปิดใช้งานบน iPhone / มือถือใน รพ.:</span>
+              <button type="button" class="btn btn-secondary" onclick="promptChangeMobileIP()" style="font-size: 10.5px; padding: 2px 7px;">⚙️ เปลี่ยน IP</button>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="mobile-connect-url-input" class="form-control" readonly style="font-size: 11px; padding: 5px 8px; flex: 1; background: rgba(0,0,0,0.3); color: #38bdf8;" value="กำลังโหลด IP...">
+              <button type="button" class="btn" id="btn-copy-mobile-url" onclick="copyMobileUrl()" style="font-size: 11px; padding: 5px 10px; white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5);">📋 คัดลอก</button>
             </div>
           </div>
         </div>
@@ -212,9 +240,13 @@
             </div>
           </div>
           
-          <div style="display: flex; gap: 8px; align-items: center; flex: 1; max-width: 480px; min-width: 260px;">
+          <div style="display: flex; gap: 8px; align-items: center; flex: 1; max-width: 540px; min-width: 260px;">
             <input type="text" id="ward-search-input" class="form-control" style="flex: 1; padding: 9px 14px; font-size: 13px;" placeholder="สแกนหรือระบุรหัส เช่น CIT-2024-AIO-02" autofocus>
             <button class="btn" id="ward-search-btn" style="padding: 9px 16px; font-size: 13px; white-space: nowrap;">🔍 ค้นหา</button>
+            <input type="file" id="ward-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleWardPhotoCapture(event)">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" style="padding: 9px 12px; font-size: 12.5px; white-space: nowrap; display: flex; align-items: center; gap: 5px;" title="ถ่ายรูปครุภัณฑ์ด้วยมือถือหรือ iPhone">
+              📷 ถ่ายรูป
+            </button>
           </div>
 
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -231,6 +263,10 @@
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2024-AIO-02')" style="font-size: 11.5px; padding: 4px 10px;">💻 HP ProOne (ต้อนรับ)</button>
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2022-TAB-03')" style="font-size: 11.5px; padding: 4px 10px;">📱 iPad Air (ICU)</button>
           <button type="button" class="preset-tag" onclick="selectPreset('CIT-2023-SCN-01')" style="font-size: 11.5px; padding: 4px 10px;">🏷️ Zebra Scanner</button>
+          <div id="ward-camera-status-tag" style="display: none; align-items: center; gap: 6px; margin-left: auto; font-size: 11.5px; color: #34d399; background: rgba(16,185,129,0.12); padding: 3px 10px; border-radius: 6px;">
+            📷 แนบรูปภาพแล้ว
+            <span style="cursor: pointer; color: #f87171;" onclick="clearWardPhoto()" title="ลบภาพ">✕</span>
+          </div>
         </div>
 
         <!-- Parser Analytics Panel -->
@@ -251,10 +287,10 @@
       <!-- Staff Portal Initial Hub (Rich, mostly buttons, zero scrolling) -->
       <div id="ward-empty-placeholder" class="glass-panel" style="padding: 22px; margin-bottom: 20px;">
         <div style="text-align: center; margin-bottom: 18px;">
-          <div style="font-size: 32px; margin-bottom: 6px;">🛡️ 🏥</div>
-          <h3 style="font-size: 17px; color: #fff; margin-bottom: 4px;">ศูนย์บริการและแจ้งซ่อมครุภัณฑ์ไอทีประจำแผนก</h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); max-width: 580px; margin: 0 auto; line-height: 1.5;">
-            สแกนบาร์โค้ดบนตัวอุปกรณ์ หรือเลือกบริการด่วนด้านล่างเพื่อประสานงานกับศูนย์ไอทีได้ทันที
+          <div style="font-size: 32px; margin-bottom: 6px;">🛡️ 📱</div>
+          <h3 style="font-size: 17px; color: #fff; margin-bottom: 4px;">Staff Portal: สำหรับช่างไอทีภาคสนาม / On-site IT Support</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); max-width: 620px; margin: 0 auto; line-height: 1.5;">
+            สแกนบาร์โค้ด หรือถ่ายรูปครุภัณฑ์ด้วยกล้องมือถือ/iPhone เพื่อตรวจเช็ค บันทึกงาน หรือเบิกอุปกรณ์สำรองได้ทันที
           </p>
         </div>
 
@@ -405,6 +441,21 @@
                 <button type="button" class="preset-tag" onclick="setWardIssue('เชื่อมต่อเครือข่ายไม่ได้')">🌐 เชื่อมเน็ตไม่ได้</button>
               </div>
               <input type="text" id="ward-issue-input" class="form-control" style="font-size: 12px; padding: 8px;" placeholder="ระบุอาการเสียเพิ่มเติม...">
+            </div>
+
+            <!-- Photo Evidence for On-site IT Staff -->
+            <div style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; font-weight: 600; color: #94a3b8;">📷 ภาพถ่ายครุภัณฑ์ / จุดชำรุด:</span>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" style="font-size: 11px; padding: 3px 8px;">
+                  📸 ถ่ายรูป/แนบภาพ
+                </button>
+              </div>
+              <div id="ward-photo-preview-box" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+                <img id="ward-photo-img" src="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);">
+                <div style="font-size: 11px; color: #34d399; flex: 1;" id="ward-photo-status">✅ แนบรูปภาพแล้ว</div>
+                <button type="button" class="btn btn-secondary" onclick="clearWardPhoto()" style="padding: 2px 7px; font-size: 11px;">✕ ลบ</button>
+              </div>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -1515,6 +1566,36 @@
           <button type="submit" class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">💾 บันทึกข้อมูล</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Mobile & iPhone IP Connection Modal -->
+  <div id="mobile-ip-modal" class="modal-backdrop" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 440px; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 16px; color: #fff;">📱 เชื่อมต่อ ClaimIT ผ่านมือถือ / iPhone</h3>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mobile-ip-modal').style.display='none';" style="padding: 4px 10px; font-size: 12px;">✕</button>
+      </div>
+      <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
+        เปิดใช้งาน ClaimIT บน iPhone หรือสมาร์ทโฟนของช่างไอที โดยเชื่อมต่อ Wi-Fi เดียวกันกับโรงพยาบาล:
+      </p>
+      <div class="form-group">
+        <label style="font-size: 12px; color: #a5b4fc;">🔗 URL สำหรับเปิดบนมือถือ</label>
+        <div style="display: flex; gap: 6px; margin-top: 4px;">
+          <input type="text" id="modal-mobile-url-input" class="form-control" readonly style="font-size: 12.5px; font-weight: 600; color: #38bdf8; background: rgba(0,0,0,0.3);">
+          <button type="button" class="btn" onclick="copyMobileUrl()" style="white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5); font-size: 12px; padding: 6px 12px;">📋 คัดลอก</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top: 14px;">
+        <label style="font-size: 12px; color: var(--text-muted);">⚙️ กำหนด Host / IP เอง (กรณีใช้ Hotspot หรือ Subnet อื่น):</label>
+        <div style="display: flex; gap: 6px; margin-top: 4px;">
+          <input type="text" id="custom-ip-input" class="form-control" placeholder="เช่น 10.33.43.50 หรือ 192.168.1.100" style="font-size: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="saveCustomIP()" style="white-space: nowrap; font-size: 12px; padding: 6px 12px;">💾 บันทึก</button>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mobile-ip-modal').style.display='none';">ปิด</button>
+      </div>
     </div>
   </div>
 
