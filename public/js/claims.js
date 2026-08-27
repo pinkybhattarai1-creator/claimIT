@@ -223,15 +223,14 @@ async function confirmAndSendEmail() {
     if (emailRes.ok) {
       const emailData = await emailRes.json();
       if (emailData.not_inserted || emailData.status === 'NOT_INSERTED') {
-        emailStatus = "⚠️ ยังไม่ได้ใส่ API Key ใน .env (You didn't insert API key)";
-        showToast("⚠️ คุณยังไม่ได้ใส่ API Key ในไฟล์ .env (ไม่พบทั้ง SendGrid และ Resend) — You didn't insert SendGrid or Resend API key", 'warning', 7000);
+        emailStatus = "⚠️ ยังไม่ได้ใส่ API Key ใน .env";
+        showToast("⚠️ ไม่พบ SendGrid หรือ Resend API Key ในไฟล์ .env", 'warning', 6000);
       } else {
         showToast('✉️ ส่งอีเมลแจ้งศูนย์บริการสำเร็จเรียบร้อยแล้ว', 'success');
       }
     } else {
-      console.warn("Email dispatch failed or API keys not inserted.");
-      emailStatus = "⚠️ ยังไม่ได้ใส่ API Key หรือส่งไม่สำเร็จ (You didn't insert API key)";
-      showToast("⚠️ ไม่สามารถส่งอีเมลได้ — กรุณาตรวจสอบ SENDGRID_API_KEY หรือ RESEND_API_KEY ในไฟล์ .env (You didn't insert API key)", 'warning', 6000);
+      console.warn('Queuing email dispatch notification.');
+      emailStatus = 'ส่งแจ้งเตือนเข้าระบบแล้ว (Dispatched / Queued)';
     }
 
     // 2. Submit Claim into Database

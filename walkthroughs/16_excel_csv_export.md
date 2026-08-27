@@ -1,74 +1,75 @@
-# 16 — ส่งออกข้อมูล Excel และ CSV (Data Export Center)
+﻿# 16 — ส่งออกข้อมูล Excel / CSV
 
-> **กลุ่มผู้ใช้:** Staff / IT Admin | **เวลาอ่าน:** ~5 นาที
+กลุ่มผู้ใช้: Staff / IT Admin
 
 ---
 
 ## ภาพรวม
 
-ClaimIT ออกแบบมาให้ทำงานร่วมกับโปรแกรมสำนักงาน (เช่น Microsoft Excel, Google Sheets, LibreOffice Calc) ได้อย่างราบรื่น โดยมีโมดูลส่งออกข้อมูล (`routes/export.js` และ `public/js/sidebar.js`) ที่รองรับทั้งการดาวน์โหลดฐานข้อมูลรวมแบบหลายแผ่นงาน (Multi-Sheet Excel) และไฟล์ข้อมูลเฉพาะเรื่องแบบ CSV
+ระบบรองรับการส่งออกข้อมูลในหลายรูปแบบ:
+1. Multi-Sheet Excel (.xls) — ครอบคลุมทุกตาราง
+2. CSV ครุภัณฑ์ (.csv) — เฉพาะรายการครุภัณฑ์
+3. CSV Audit Log (.csv) — ประวัติการเคลื่อนย้าย
 
 ---
 
-## 1. การส่งออกฐานข้อมูลทั้งหมด (Multi-Sheet Microsoft Excel)
+## 1. ดาวน์โหลด Excel ทั้งหมด
 
-### วิธีการดาวน์โหลด:
-สามารถคลิกดาวน์โหลดได้จาก 3 จุดในระบบ:
-1. ปุ่ม **[ส่งออก Excel ทั้งหมด]** เหนือตารางคลังครุภัณฑ์ใน IT Portal
-2. ปุ่ม **[ส่งออก Excel]** บนแถบเมนูหลักด้านบน (Header Navigation Bar)
-3. ปุ่ม **[ดาวน์โหลด Excel ทั้งหมด (.xls)]** ภายในแผง Quick Hub Sidebar
+### วิธีเข้าถึง:
+- ปุ่ม [ส่งออก Excel ทั้งหมด] ในตาราง Inventory
+- ปุ่ม [ส่งออก Excel] ใน Nav Bar Header
+- ปุ่ม [ดาวน์โหลด Excel ทั้งหมด] ใน Quick Sidebar
 
-### กลไกไฟล์ Native SpreadsheetML:
-ระบบสร้างไฟล์ในรูปแบบ **XML SpreadsheetML (.xls)** แท้ ซึ่งมีข้อดีเด่นชัดคือ:
-- **ไม่ต้องติดตั้ง Library ภายนอกขนาดใหญ่:** ทำงานได้รวดเร็วและเบาเครื่อง
-- **รองรับภาษาไทย 100%:** บันทึกด้วยรหัสอักขระ UTF-8 พร้อมกำหนด XML Header ชัดเจน เปิดใน Excel แล้วภาษาไทยไม่เป็นภาษาต่างดาว
-- **จัดรูปแบบสวยงาม:** ส่วนหัวตารางมีสีพื้นหลังสีฟ้า Sky Blue `#0284C7` และตัวอักษรสีขาว หนา ชัดเจน ฟอนต์ Tahoma
+API: GET /api/export/excel
 
-### รายการ 5 ชีต (Sheets) ในไฟล์ Excel:
-
-| ชื่อแผ่นงาน (Sheet) | ข้อมูลที่บรรจุ |
+### ชีต (Sheets) ในไฟล์ Excel:
+| ชีต | ข้อมูล |
 |---|---|
-| **IT Assets** | ข้อมูลครุภัณฑ์ทั้งหมด (รหัส, ชื่อ, หมวด, แบรนด์, รุ่น, S/N, ที่อยู่, ประกัน, ราคา, สถานะ, PDPA) |
-| **Claims** | รายการใบส่งเคลมทั้งหมด (หมายเลขเคลม, Vendor, RMA No., วันส่ง, คะแนน Viability, สถานะ) |
-| **Move Logs** | ประวัติการเคลื่อนย้ายและ Audit Trail ย้อนหลังสูงสุด 2,000 รายการล่าสุด |
-| **Users** | รายชื่อผู้ใช้งานในระบบ (Username, ชื่อ-นามสกุล, แผนก, บทบาท, สถานะเปิดใช้งาน) |
-| **Configurations** | รายการคอนฟิกแบรนด์ หมวดหมู่ และสถานที่ พร้อมรายละเอียดขั้นตอนการเคลม |
+| IT Assets | ครุภัณฑ์ทั้งหมด (ไม่รวมที่ถูกลบ) |
+| Claims | ใบเคลมทั้งหมด |
+| Move Logs | Audit Trail (2000 รายการล่าสุด) |
+| Users | รายชื่อผู้ใช้งาน |
+| Configurations | การตั้งค่าระบบ |
+
+### รูปแบบ:
+- Native SpreadsheetML (.xls) — เปิดใน Excel ได้โดยตรง
+- Header row มีสีพื้นหลังสีน้ำเงิน
+- UTF-8 encoding รองรับภาษาไทย
 
 ---
 
-## 2. การดาวน์โหลดข้อมูลครุภัณฑ์แบบ CSV (Assets CSV)
+## 2. ดาวน์โหลด CSV ครุภัณฑ์
 
-- **จุดดาวน์โหลด:** ภายใน Quick Hub Sidebar คลิกปุ่ม `[ดาวน์โหลด CSV ครุภัณฑ์ (.csv)]`
-- **API Endpoint:** `GET /api/export/assets.csv`
-- **โครงสร้างไฟล์:** คั่นด้วยเครื่องหมายจุลภาค (Comma `,`) บรรจุคอลัมน์ข้อมูลครุภัณฑ์ครบถ้วน เหมาะสำหรับนำไป Import เข้าสู่ระบบ ERP, SAP หรือระบบบริหารสินทรัพย์ของโรงพยาบาล
-- **คอลัมน์:** Asset Tag, Device Name, Category, Brand, Model, Serial No, Location, Warranty Start, Warranty End, Status, Salvage Status, Purchase Price
+API: GET /api/export/csv/assets
 
----
-
-## 3. ข้อมูล Audit Logs ใน Excel (Audit Trail Export)
-
-> **หมายเหตุ:** ไม่มี CSV endpoint แยกสำหรับ Audit Logs — ข้อมูลประวัติการเคลื่อนย้ายจะถูกส่งออกผ่านไฟล์ **Multi-Sheet Excel** โดยอัตโนมัติใน **Sheet 3 (บันทึกการเปลี่ยนแปลง Audit)**
-
-- **ดาวน์โหลดเดียวกัน:** ใช้ปุ่ม **[ส่งออก Excel ทั้งหมด]** เพื่อรับไฟล์ที่มี Audit Log ย้อนหลังสูงสุด 2,000 รายการล่าสุด
-- **คอลัมน์ใน Sheet Audit:** รหัสติดตาม (Log Code), วัน-เวลาบันทึก, รหัสครุภัณฑ์, แผนก/ศูนย์, ชั้น, สถานะครุภัณฑ์, ทิศทางการเคลื่อนย้าย, ผู้ดำเนินการ, รายละเอียด
-- **เหมาะสำหรับ:** การตรวจสอบของคณะกรรมการตรวจสอบภายใน ISO 27001, นำส่งให้ฝ่ายบริหารรายไตรมาส
-
-
+คอลัมน์:
+- รหัสครุภัณฑ์, ชื่ออุปกรณ์, หมวดหมู่, แบรนด์, รุ่น
+- Serial No., สถานที่, วันเริ่มประกัน, วันหมดประกัน
+- สถานะ, Salvage Status, ราคาซื้อ
+- ระยะเวลาประกัน, PO Number, Invoice No.
+- ต้องล้างข้อมูล (PDPA)
 
 ---
 
-## กลไกความปลอดภัยในการดาวน์โหลด (Authenticated File Download)
+## 3. ดาวน์โหลด CSV Audit Logs
 
-เนื่องจากการดาวน์โหลดไฟล์ข้อมูลพัสดุโรงพยาบาลเป็นข้อมูลสำคัญ ฟังก์ชัน `downloadAuthenticatedFile()` ใน `sidebar.js` จะดำเนินการ:
-1. แนบ **JWT Bearer Token** ใน Request Header เสมอ หากยังไม่ล็อกอินจะไม่สามารถดาวน์โหลดได้
-2. แสดง Toast สีฟ้าแจ้งความคืบหน้า:
-   ```text
-   ℹ️ กำลังส่งออก Microsoft Excel ทั้งระบบ (.xls)...
-   ```
-3. ดึงชื่อไฟล์จาก Header `Content-Disposition` (เช่น `claimit_database_2026-08-27.xls`)
-4. สร้าง Blob URL และทำการ Trigger การดาวน์โหลดในเบราว์เซอร์อย่างปลอดภัย
-5. ล้างหน่วยความจำ Blob ทันทีเมื่อเสร็จสิ้น พร้อมแจ้งเตือนสำเร็จ
+API: GET /api/export/csv/audit-logs
+
+หรือกดปุ่ม [ส่งออกบันทึกเป็น Excel/CSV] ในส่วน Audit Trail
+
+คอลัมน์:
+- Log Code, Timestamp, Asset Tag
+- Department, Status, Moved Direction
+- Username, Details
 
 ---
 
-ถัดไป: [17_quick_sidebar.md](file:///d:/claimit/claimIT/walkthroughs/17_quick_sidebar.md)
+## Quick Export จาก Sidebar
+
+เปิด Quick Hub Sidebar → ส่วน "ส่งออกข้อมูล (Quick Export)":
+- [ดาวน์โหลด Excel ทั้งหมด (.xls)]
+- [ดาวน์โหลด CSV ครุภัณฑ์ (.csv)]
+
+---
+
+ถัดไป: 17_quick_sidebar.md

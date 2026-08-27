@@ -1,87 +1,80 @@
-# 09 — แนบไฟล์หลักฐาน (Evidence Upload & IDOR Protection)
+﻿# 09 — แนบไฟล์หลักฐาน (Evidence Upload)
 
-> **กลุ่มผู้ใช้:** IT Staff / IT Administrator | **เวลาอ่าน:** ~5 นาที
+กลุ่มผู้ใช้: IT Staff / Admin
 
 ---
 
 ## ฟีเจอร์นี้คืออะไร?
 
-ในกระบวนการส่งเคลมอุปกรณ์ไอที การเก็บหลักฐานประกอบเป็นสิ่งจำเป็นอย่างยิ่ง เช่น:
-- ภาพถ่ายสภาพตัวเครื่องภายนอก รอยแตกหัก หรือรอยไหม้
-- ภาพถ่ายหน้าจอแสดง Error Code, Blue Screen (BSOD), หรือ Diagnostic Tool
-- ภาพถ่ายใบเสร็จรับเงิน, สติกเกอร์ Void ประกัน, หรือสลิปส่งของของขนส่ง
-
-ClaimIT มีระบบจัดเก็บไฟล์หลักฐาน (Evidence Management) ทั้งในระดับ **รายครุภัณฑ์ (Asset Level)** และในระดับ **ใบส่งเคลม (Claim Level)** พร้อมการคุ้มครองความปลอดภัยตามมาตรฐานสากล
+ระบบรองรับการแนบไฟล์หลักฐาน (ภาพถ่าย / เอกสาร) เข้ากับใบเคลม
+เช่น รูปถ่ายอุปกรณ์เสีย, สลิปรับงาน, รูปหน้าจอ error
 
 ---
 
-## วิธีการใช้งานผ่านหน้าจอ UI (User Interface)
+## วิธีอัปโหลด Evidence
 
-### 1. แนบไฟล์หลักฐานเข้ากับใบส่งเคลม (Claim Evidence)
-1. ในหน้า IT Portal เลื่อนลงมาที่ **Multi-Asset Claims Board**
-2. คลิกปุ่ม **[📋 รายละเอียด]** ของใบเคลมที่ต้องการ
-3. เลื่อนลงมาที่ส่วน **"ไฟล์หลักฐานแนบ (Attached Evidence)"**
-4. คลิกปุ่มเลือกไฟล์ (`#cd-evidence-input`) เลือกรูปภาพหรือเอกสาร (รองรับ JPG, PNG, PDF)
-5. ระบบจะทำการอัปโหลดไฟล์ทันที พร้อมแสดงแถบแจ้งเตือนสีเขียว
-6. รายการไฟล์จะปรากฏในตาราง พร้อมไอคอน `🖼️` (รูปภาพ) หรือ `📄` (เอกสาร) ระบุชื่อไฟล์เดิม และขนาดไฟล์ (KB)
-7. **การเปิดดู:** คลิกที่ชื่อไฟล์ ระบบจะเปิดดูภาพหรือเอกสารในแท็บใหม่ทันที
-8. **การลบไฟล์:** คลิกปุ่มสีแดง **[ลบ]** ระบบจะยืนยันและลบไฟล์ออกจากใบเคลม
+POST /api/evidence/upload
+- Header: Authorization: Bearer [JWT Token]
+- Body: multipart/form-data
+  - claim_id: [ID ของใบเคลม]
+  - asset_tag: [รหัสครุภัณฑ์]
+  - file: [ไฟล์ภาพ/เอกสาร]
 
----
-
-### 2. แนบไฟล์หลักฐานเข้ากับครุภัณฑ์โดยตรง (Asset Evidence)
-1. สแกนหรือเลือกครุภัณฑ์ใน Action Board
-2. เลื่อนลงมาที่ส่วนหลักฐานประจำเครื่อง (`#asset-evidence-list`)
-3. เลือกไฟล์และอัปโหลด ระบบจะผูกไฟล์นั้นเข้ากับ `asset_tag` ของเครื่องทันที
-4. ไฟล์นี้จะยังคงผูกติดกับประวัติของเครื่องตลอดไป แม้จะเปลี่ยนใบเคลมในอนาคต
+Response 201:
+  { message: "อัปโหลดไฟล์หลักฐานสำเร็จ", evidence: { id, storage_key, ... } }
 
 ---
 
-## สถาปัตยกรรมความปลอดภัยและการจัดเก็บ (Private Storage Architecture)
+## ที่จัดเก็บไฟล์ (Private Storage)
 
-ระบบออกแบบตามหลักการ **Zero Trust & Defense-in-Depth**:
-
-### 1. โฟลเดอร์จัดเก็บข้อมูลส่วนตัว (Private Storage Outside Web Root)
-- ไฟล์ที่อัปโหลดทั้งหมดถูกจัดเก็บไว้ที่:
-  ```text
+ไฟล์ถูกจัดเก็บใน:
   /storage/evidence/
-  ```
-- โฟลเดอร์นี้**ไม่ได้อยู่ใน Web Root (`public/`)** บุคคลภายนอกไม่สามารถเข้าถึงไฟล์ผ่าน URL โดยตรงได้ (เช่น เข้า `http://host/storage/evidence/pic.jpg` จะได้รับ 404)
 
-### 2. การตั้งชื่อไฟล์ด้วยรหัสสุ่ม UUID (UUID Keyed Storage)
-- เพื่อป้องกันการคาดเดาชื่อไฟล์ (Path Traversal / Filename Guessing) ชื่อไฟล์จริงบนดิสก์จะถูกสุ่มเป็น UUID v4:
-  ```text
-  ตัวอย่าง: 3f9a2b1c-4d5e-6789-abcd-ef0123456789.png
-  ```
-- ชื่อไฟล์เดิมของผู้ใช้ (`original_filename`) จะถูกเก็บแยกไว้ในฐานข้อมูลอย่างปลอดภัย
+ไม่อยู่ใน Public Web Root → ผู้ใช้ไม่สามารถเข้าถึงโดยตรงผ่าน URL
+ชื่อไฟล์ถูกแทนด้วย UUID สุ่ม เช่น:
+  3f9a2b1c-4d5e-6789-abcd-ef0123456789.jpg
+ชื่อไฟล์เดิมเก็บแยกใน field original_filename
 
 ---
 
-## การป้องกันการเข้าถึงข้อมูลโดยไม่ได้รับอนุญาต (IDOR Protection)
+## IDOR Protection
 
-**IDOR (Insecure Direct Object Reference)** คือช่องโหว่ที่ผู้ใช้เปลี่ยนตัวเลข ID ใน URL เพื่อแอบดูไฟล์ของผู้อื่น
-ใน ClaimIT ได้รับการป้องกันอย่างสมบูรณ์:
-1. **การยืนยันตัวตน:** ทุกคำขอเข้าดูไฟล์ (`GET /api/evidence/:id/view`) ต้องมี JWT Token ที่ถูกต้อง
-2. **การตรวจสอบสิทธิ์ความเป็นเจ้าของ (Authorization Check):** ฟังก์ชัน `getEvidenceForUser()` ใน `services/evidenceService.js` จะตรวจสอบว่า:
-   - ผู้ใช้มีสิทธิ์ระดับ `admin` หรือ
-   - ผู้ใช้สังกัดอยู่ในโรงพยาบาล/แผนกที่มีสิทธิ์เข้าถึงใบเคลมนั้น
-3. **การส่งไฟล์แบบปลอดภัย (Secure Streaming):** ไฟล์จะถูกส่งผ่าน Stream พร้อมตั้งค่า Header:
-   - `Content-Type`: ตรงตาม MIME Type ของไฟล์จริง
-   - `Content-Disposition: inline`: แสดงผลในเบราว์เซอร์อย่างปลอดภัย
-   - `Cache-Control: private, max-age=3600`: ห้าม Proxy สาธารณะแคชไฟล์
+IDOR = Insecure Direct Object Reference
+
+ระบบป้องกัน:
+1. ผู้ใช้ต้องล็อกอินและมี JWT Token ถูกต้อง
+2. ระบบตรวจสอบว่าผู้ขอดูไฟล์มีสิทธิ์เข้าถึงใบเคลมนั้น
+3. ไม่สามารถเดา URL ไฟล์โดยตรงได้เพราะชื่อเป็น UUID สุ่ม
 
 ---
 
-## ข้อมูลสรุป API สำหรับนักพัฒนา (REST Endpoints)
+## ดูไฟล์ Evidence (Secure Stream)
 
-| Method | Endpoint | สิทธิ์ | คำอธิบาย |
-|---|---|---|---|
-| `POST` | `/api/evidence/upload` | Staff+ | อัปโหลดไฟล์ (รับ `claim_id` หรือ `asset_tag` + `file`) |
-| `GET` | `/api/evidence/:id/view` | Staff+ | สตรีมไฟล์เพื่อเปิดดู (ตรวจสอบสิทธิ์ IDOR) |
-| `DELETE` | `/api/evidence/:id` | Staff+ | ทำการ Soft Delete ไฟล์หลักฐาน (`is_deleted = 1`) |
-| `GET` | `/api/evidence/claim/:claimId` | Staff+ | ดึงรายการไฟล์ทั้งหมดของใบเคลมนั้น |
-| `GET` | `/api/evidence/asset/:tag` | Staff+ | ดึงรายการไฟล์ทั้งหมดของครุภัณฑ์นั้น |
+GET /api/evidence/:id/view
+- ระบบตรวจสอบ JWT + ownership ก่อน
+- Stream ไฟล์กลับพร้อม correct Content-Type
+- Cache-Control: private, max-age=3600
+- Content-Disposition: inline (แสดงในเบราว์เซอร์)
 
 ---
 
-ถัดไป: [10_pdf_and_print_center.md](file:///d:/claimit/claimIT/walkthroughs/10_pdf_and_print_center.md)
+## ลบ Evidence
+
+DELETE /api/evidence/:id
+- Soft delete (is_deleted = 1)
+- ไม่ได้ลบไฟล์จริงบน disk ทันที
+
+---
+
+## ดูรายการ Evidence ของใบเคลม
+
+GET /api/claims/:id
+Response รวม:
+  evidence: [
+    { id, original_filename, mime_type, file_size, created_at },
+    ...
+  ]
+
+---
+
+ถัดไป: 10_pdf_and_print_center.md

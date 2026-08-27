@@ -68,9 +68,21 @@ function switchView(viewName) {
     userBadge.style.display = 'flex';
     document.getElementById('btn-to-it').classList.add('active');
     document.getElementById('btn-to-ward').classList.remove('active');
+    const currentActiveTab = document.querySelector('.it-tab-btn.active')?.getAttribute('data-tab') || 'tab-it-scanner';
+    switchItTab(currentActiveTab);
     refreshData();
     setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
   }
+}
+
+// Switch IT sub-navigation tab (Eliminates infinite scrolling)
+function switchItTab(tabId) {
+  document.querySelectorAll('.it-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.it-tab-pane').forEach(pane => {
+    pane.style.display = pane.id === tabId ? 'block' : 'none';
+  });
 }
 
 // Global Refresh Data & Real-Time Sync
@@ -176,30 +188,12 @@ function setupEventListeners() {
   
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
   
-  // Demo Mode
-  let isDemoMode = false;
-  const demoToggleBtn = document.getElementById('demo-toggle-btn');
-  if (demoToggleBtn) {
-    demoToggleBtn.addEventListener('click', () => {
-      isDemoMode = !isDemoMode;
-      demoToggleBtn.style.opacity = isDemoMode ? '1' : '0.5';
-      demoToggleBtn.style.background = isDemoMode ? 'var(--primary-glow)' : 'transparent';
-      document.querySelectorAll('.demo-only').forEach(el => {
-        el.style.display = isDemoMode ? 'inline-block' : 'none';
-      });
+  // IT Sub-Navigation Tabs Click Listener (Eliminates long vertical scrolling)
+  document.querySelectorAll('.it-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      if (tabId) switchItTab(tabId);
     });
-  }
-
-  const fillAdmin = document.getElementById('demo-fill-admin');
-  if (fillAdmin) fillAdmin.addEventListener('click', () => {
-    document.getElementById('login-username').value = 'admin';
-    document.getElementById('login-password').value = 'admin123';
-  });
-
-  const fillStaff = document.getElementById('demo-fill-staff');
-  if (fillStaff) fillStaff.addEventListener('click', () => {
-    document.getElementById('login-username').value = 'staff';
-    document.getElementById('login-password').value = 'staff123';
   });
 
   const quickStaff = document.getElementById('btn-quick-staff');
