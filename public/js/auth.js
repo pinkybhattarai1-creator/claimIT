@@ -105,7 +105,7 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = state.user.role === 'admin' ? 'IT Admin' : 'Staff';
+  userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
   const itBtn = document.getElementById('btn-to-it');
   if (state.user.role === 'admin') {
     itBtn.style.display = 'flex';
@@ -120,3 +120,74 @@ function logout() {
   switchView('auth');
   showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
 }
+
+// ─── Fast Login (1-Click for 4 Admins and 4 Staff) ─────────────────────────
+function quickLogin(username, password) {
+  const uInput = document.getElementById('login-username');
+  const pInput = document.getElementById('login-password');
+  if (uInput && pInput) {
+    uInput.value = username;
+    pInput.value = password;
+    const form = document.getElementById('login-form');
+    if (form) form.requestSubmit();
+  }
+}
+window.quickLogin = quickLogin;
+
+// ─── Self Profile Editing ───────────────────────────────────────────────────
+function openProfileModal() {
+  if (!state.user) {
+    showToast('กรุณาเข้าสู่ระบบก่อนแก้ไขข้อมูล', 'warning');
+    return;
+  }
+  const modal = document.getElementById('profile-modal');
+  const uInput = document.getElementById('profile-username');
+  const nInput = document.getElementById('profile-name');
+  const dInput = document.getElementById('profile-department');
+
+  if (uInput) uInput.value = state.user.username || '';
+  if (nInput) nInput.value = state.user.name || '';
+  if (dInput) dInput.value = state.user.department || '';
+
+  if (modal) modal.style.display = 'flex';
+}
+window.openProfileModal = openProfileModal;
+
+async function handleProfileSubmit(e) {
+  e.preventDefault();
+  if (!state.user) return;
+
+  const name = document.getElementById('profile-name')?.value.trim();
+  const department = document.getElementById('profile-department')?.value.trim();
+
+  if (!name) {
+    showToast('กรุณาระบุชื่อ-นามสกุล', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ name, department })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      state.user = { ...state.user, ...data.user };
+      if (data.token) state.user.token = data.token;
+      localStorage.setItem('claimit_user', JSON.stringify(state.user));
+      showUserNavigation();
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.style.display = 'none';
+      showToast('✅ อัปเดตข้อมูลส่วนตัวสำเร็จเรียบร้อย', 'success', 3000);
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'ไม่สามารถอัปเดตข้อมูลส่วนตัวได้', 'error');
+    }
+  } catch (err) {
+    console.error('Update profile error:', err);
+    showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลส่วนตัว', 'error');
+  }
+}
+window.handleProfileSubmit = handleProfileSubmit;
