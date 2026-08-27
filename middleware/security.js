@@ -29,12 +29,13 @@ function securityHeaders(req, res, next) {
   next();
 }
 
-// 2. Strict CORS Allowlist
+// 2. Strict CORS Allowlist (with Hospital Intranet 10.33.xx.xx Support)
 function corsMiddleware(req, res, next) {
   const origin = req.headers.origin;
+  const isHospitalIntranet = origin && (/^https?:\/\/(10\.33\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin));
   const allowed = CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN.split(',').map(o => o.trim());
 
-  if (allowed === '*' || !origin || allowed.includes(origin)) {
+  if (allowed === '*' || !origin || isHospitalIntranet || allowed.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
