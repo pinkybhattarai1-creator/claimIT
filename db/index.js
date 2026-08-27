@@ -307,18 +307,18 @@ function initializeDatabase() {
       }
     });
 
-    // Seed 4 Admins and 4 Staff if not present
+    // Seed 4 Admins and 4 Staff (IT Field/On-Site Technicians)
     const adminPass = hashPassword('admin123');
     const staffPass = hashPassword('staff123');
     const standardUsers = [
-      ['admin', adminPass, 'admin', 'Technical Support Head', 'Technical Support & Infrastructure'],
-      ['it_somchai', adminPass, 'admin', 'นายสมชาย ชาญวิทย์ (Senior IT Support)', 'Technical Support & Infrastructure'],
-      ['it_wichai', adminPass, 'admin', 'นายวิชัย สุขเกษม (Systems Administrator)', 'Technical Support & Infrastructure'],
-      ['it_natthaporn', adminPass, 'admin', 'น.ส.ณัฐพร รวดเร็ว (Claim Specialist)', 'Technical Support & Infrastructure'],
-      ['staff', staffPass, 'staff', 'เจ้าหน้าที่เวชระเบียนทั่วไป', 'เวชระเบียนและต้อนรับ'],
-      ['staff_icu', staffPass, 'staff', 'พว.สายใจ ใฝ่บริการ (พยาบาล ICU)', 'ICU'],
-      ['staff_er', staffPass, 'staff', 'นพ.เกียรติศักดิ์ มุ่งมั่น (แพทย์ห้องฉุกเฉิน ER)', 'ฉุกเฉิน (ER)'],
-      ['staff_opd', staffPass, 'staff', 'นางสาวอรทัย ยิ้มแย้ม (เจ้าหน้าที่ OPD)', 'ศูนย์ระบบทางเดินอาหาร (GI)']
+      ['admin', adminPass, 'admin', 'Admin 1 (Technical Support Head)', 'Technical Support & Infrastructure'],
+      ['admin2', adminPass, 'admin', 'Admin 2 (Senior IT Support)', 'Technical Support & Infrastructure'],
+      ['admin3', adminPass, 'admin', 'Admin 3 (Systems & Network IT)', 'Technical Support & Infrastructure'],
+      ['admin4', adminPass, 'admin', 'Admin 4 (Hardware & Claim IT)', 'Technical Support & Infrastructure'],
+      ['staff', staffPass, 'staff', 'Staff 1 (IT Field Technician - On-Site)', 'Technical Support & Infrastructure'],
+      ['staff2', staffPass, 'staff', 'Staff 2 (IT On-site Support)', 'Technical Support & Infrastructure'],
+      ['staff3', staffPass, 'staff', 'Staff 3 (IT Mobile Hardware Support)', 'Technical Support & Infrastructure'],
+      ['staff4', staffPass, 'staff', 'Staff 4 (IT Ward Support Staff)', 'Technical Support & Infrastructure']
     ];
 
     standardUsers.forEach(u => {
