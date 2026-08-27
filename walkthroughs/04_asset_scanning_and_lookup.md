@@ -1,4 +1,4 @@
-﻿# 04 — สแกนและค้นหาครุภัณฑ์ (Asset Scanning & Lookup)
+# 04 — สแกนและค้นหาครุภัณฑ์ (Asset Scanning & Lookup)
 
 กลุ่มผู้ใช้: Staff / IT Admin
 
@@ -71,7 +71,7 @@
 
 ---
 
-## Demo Preset Tags (คลิกทดสอบ)
+## รหัสครุภัณฑ์ยอดนิยม (Quick Access Tags)
 
 | ครุภัณฑ์ | รหัส |
 |---|---|
