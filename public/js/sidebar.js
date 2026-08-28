@@ -125,3 +125,15 @@ function renderSidebarRecentScans() {
     container.appendChild(item);
   });
 }
+
+function switchDashboardSection(viewName, tabId) {
+  const sidebar = document.getElementById('quick-sidebar');
+  if (sidebar) sidebar.classList.remove('open');
+  if (typeof switchView === 'function') switchView(viewName);
+  if (viewName === 'it' && tabId && typeof switchItTab === 'function') {
+    switchItTab(tabId);
+  } else if (viewName === 'config' && tabId && typeof switchConfigTab === 'function') {
+    switchConfigTab(tabId);
+  }
+}
+window.switchDashboardSection = switchDashboardSection;
