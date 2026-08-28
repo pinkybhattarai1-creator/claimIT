@@ -1,4 +1,4 @@
-﻿# 15 — ตั้งค่าระบบ (System Configurations)
+# 15 — ตั้งค่าระบบ (System Configurations)
 
 กลุ่มผู้ใช้: Admin เท่านั้น
 
@@ -13,14 +13,23 @@ Admin สามารถจัดการการตั้งค่าแบ�
 
 ---
 
+## การเข้าถึงและเมนูระบบ (Dedicated Navigation)
+
+System Configurations ได้รับการแยกเป็น **ส่วนเฉพาะตัว (Dedicated View Section)** บนแถบเมนูด้านบนสุดของ Header:
+- คลิกปุ่มเมนูหลัก **[⚙️ ตั้งค่า & จัดการระบบ (System Admin)]** บนแถบ Header หรือคลิกลิงก์ทางลัดจาก IT Portal
+- หน้าจอแยกประกอบด้วย 3 แท็บย่อย:
+  1. `⚙️ ตั้งค่าระบบ (System Configs)` — Brands, Models, Categories, Locations, Vendor Procedures
+  2. `👥 จัดการบัญชีผู้ใช้ (User Management)` — 4 Admins + 4 Staff CRUD, Activate/Deactivate, Reset Password
+  3. `💾 สำรองข้อมูล & ความปลอดภัย (Database Backup & Maintenance)` — สำรองฐานข้อมูล 1-Click ทันที
+
 ## ตารางการตั้งค่า
 
-แสดงในหน้า IT Portal:
+แสดงในหน้า [⚙️ ตั้งค่า & จัดการระบบ]:
 - ID
 - ประเภท (Type): brand / category / location
 - ค่า (Value): เช่น Dell, Computer, Ward 20
 - รายละเอียด / ขั้นตอน (Details)
-- ปุ่มจัดการ
+- ปุ่มจัดการ (✏️ แก้ไข / 🗑️ ลบ)
 
 ---
 
