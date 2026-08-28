@@ -151,48 +151,51 @@ app.post('/api/backup', verifyToken, adminOnly, (req, res) => {
 app.use(errorHandler);
 
 // 8. Start Server
-const server = app.listen(PORT, HOST, () => {
-  const hostLabel = (HOST === '0.0.0.0' || HOST === '127.0.0.1') ? 'localhost' : HOST;
-  console.log(`[ClaimIT Server] Running securely on http://${hostLabel}:${PORT} (${NODE_ENV})`);
-  try {
-    const os = require('os');
-    const nets = os.networkInterfaces();
-    const hospitalIps = [];
-    const otherIps = [];
-    for (const name of Object.keys(nets)) {
-      for (const net of nets[name]) {
-        if (net.family === 'IPv4' && !net.internal) {
-          if (net.address.startsWith('10.33.') || net.address.startsWith('10.')) {
-            hospitalIps.push(net.address);
-          } else {
-            otherIps.push(net.address);
+let server;
+if (require.main === module) {
+  server = app.listen(PORT, HOST, () => {
+    const hostLabel = (HOST === '0.0.0.0' || HOST === '127.0.0.1') ? 'localhost' : HOST;
+    console.log(`[ClaimIT Server] Running securely on http://${hostLabel}:${PORT} (${NODE_ENV})`);
+    try {
+      const os = require('os');
+      const nets = os.networkInterfaces();
+      const hospitalIps = [];
+      const otherIps = [];
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          if (net.family === 'IPv4' && !net.internal) {
+            if (net.address.startsWith('10.33.') || net.address.startsWith('10.')) {
+              hospitalIps.push(net.address);
+            } else {
+              otherIps.push(net.address);
+            }
           }
         }
       }
-    }
-    hospitalIps.forEach(ip => {
-      console.log(`[ClaimIT Network] 🏥 พร้อมใช้งานผ่านเครือข่ายโรงพยาบาล (Hospital Intranet): http://${ip}:${PORT}`);
-    });
-    otherIps.forEach(ip => {
-      console.log(`[ClaimIT Network] 📱 เข้าใช้งานผ่านเครือข่าย: http://${ip}:${PORT}`);
-    });
+      hospitalIps.forEach(ip => {
+        console.log(`[ClaimIT Network] 🏥 พร้อมใช้งานผ่านเครือข่ายโรงพยาบาล (Hospital Intranet): http://${ip}:${PORT}`);
+      });
+      otherIps.forEach(ip => {
+        console.log(`[ClaimIT Network] 📱 เข้าใช้งานผ่านเครือข่าย: http://${ip}:${PORT}`);
+      });
 
-    // 9. Automatically open browser on startup when launched directly (npm start / node server.js)
-    if (require.main === module && !process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
-      const openUrl = `http://${hostLabel}:${PORT}`;
-      const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
-                       process.platform === 'darwin' ? `open ${openUrl}` :
-                       `xdg-open ${openUrl}`;
-      try {
-        const { exec } = require('child_process');
-        exec(startCmd, (err) => {
-          if (!err) {
-            console.log(`[ClaimIT Browser] 🌐 เปิดหน้าต่างเว็บเบราว์เซอร์อัตโนมัติ: ${openUrl}`);
-          }
-        });
-      } catch {}
-    }
-  } catch {}
-});
+      // 9. Automatically open browser on startup when launched directly (npm start / node server.js)
+      if (!process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
+        const openUrl = `http://${hostLabel}:${PORT}`;
+        const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+                         process.platform === 'darwin' ? `open ${openUrl}` :
+                         `xdg-open ${openUrl}`;
+        try {
+          const { exec } = require('child_process');
+          exec(startCmd, (err) => {
+            if (!err) {
+              console.log(`[ClaimIT Browser] 🌐 เปิดหน้าต่างเว็บเบราว์เซอร์อัตโนมัติ: ${openUrl}`);
+            }
+          });
+        } catch {}
+      }
+    } catch {}
+  });
+}
 
 module.exports = { app, server };

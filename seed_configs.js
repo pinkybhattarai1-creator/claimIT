@@ -70,15 +70,67 @@ const defaultConfigs = [
   </ol>
 </div>`
   },
-  { type: 'category', value: 'Computer', details: '' },
-  { type: 'category', value: 'Scanner', details: '' },
-  { type: 'category', value: 'Tablet', details: '' },
-  { type: 'category', value: 'Webcam', details: '' },
-  { type: 'category', value: 'Monitor', details: '' },
-  { type: 'location', value: 'Ward 20', details: 'Floor 2' },
-  { type: 'location', value: 'ICU', details: 'Floor 3' },
-  { type: 'location', value: 'ฉุกเฉิน (ER)', details: 'Floor 1' },
-  { type: 'location', value: 'Technical Support & Infrastructure', details: 'Floor 4' }
+  {
+    type: 'brand',
+    value: 'Zebra',
+    details: `<div class="brand-guide">
+  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมอุปกรณ์ Zebra (ZebraCare):</div>
+  <ol style="margin: 0 0 10px 18px; padding: 0; line-height: 1.6; font-size: 13px;">
+    <li>เปิด Portal เว็บไซต์ Zebra Support Community หรือติดต่อศูนย์บริการตัวแทนจำหน่ายที่ได้รับการแต่งตั้ง</li>
+    <li>ระบุ Serial Number และอัปโหลดไฟล์วิดีโอแสดงอาการสแกนบาร์โค้ดไม่ติด หรือหัวอ่านชำรุด</li>
+    <li>รับเอกสาร RMA Return Voucher และจัดส่งพัสดุไปยังศูนย์ซ่อม</li>
+  </ol>
+</div>`
+  },
+  {
+    type: 'brand',
+    value: 'HP',
+    details: `<div class="brand-guide">
+  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมศูนย์บริการ HP (HP Care Pack):</div>
+  <ol style="margin: 0 0 10px 18px; padding: 0; line-height: 1.6; font-size: 13px;">
+    <li>ตรวจสอบระยะเวลารับประกันผ่าน HP Warranty Lookup ด้วย Serial Number</li>
+    <li>ติดต่อ HP Call Center 02-787-3344 เพื่อทำการแจ้งซ่อมแบบ Onsite Service</li>
+    <li>แจ้งหมายเลขเครื่อง และนัดหมายวันเข้าบริการของทีมช่าง HP Service</li>
+  </ol>
+</div>`
+  },
+  {
+    type: 'brand',
+    value: 'Apple',
+    details: `<div class="brand-guide">
+  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมอุปกรณ์ Apple (iPad / Mac):</div>
+  <ol style="margin: 0 0 10px 18px; padding: 0; line-height: 1.6; font-size: 13px;">
+    <li><strong>บังคับ:</strong> ต้องทำการล้างข้อมูล (Erase All Content and Settings) และ Sign out จาก Apple ID / Find My ก่อนส่งมอบ</li>
+    <li>นำเครื่องเข้าศูนย์บริการ Apple Authorized Service Provider (AASP) หรือนัดหมายช่างรับเครื่อง</li>
+    <li>เก็บสำเนาใบรับงานซ่อมเพื่อติดตามสถานะการเปลี่ยนเครื่องหรือซ่อมบำรุง</li>
+  </ol>
+</div>`
+  },
+  { type: 'brand', value: 'Canon', details: 'ศูนย์บริการ Canon Call Center 02-344-9988' },
+  { type: 'brand', value: 'Epson', details: 'ศูนย์บริการ Epson Customer Care 02-685-9888' },
+  { type: 'category', value: 'Computer', details: 'เครื่องคอมพิวเตอร์ตั้งโต๊ะ, All-in-One, Mobile Cart PC' },
+  { type: 'category', value: 'Monitor', details: 'จอแสดงผลทางคลินิก, จอภาพประจำห้องตรวจ' },
+  { type: 'category', value: 'Tablet', details: 'แท็บเล็ตประจำรถเข็นพยาบาลและห้องผู้ป่วย' },
+  { type: 'category', value: 'Scanner', details: 'เครื่องสแกนบาร์โค้ดสายและไร้สาย 2D สำหรับยาและเวชภัณฑ์' },
+  { type: 'category', value: 'Printer', details: 'เครื่องพิมพ์ใบเสร็จ, เครื่องพิมพ์สติกเกอร์ยา และเครื่องพิมพ์เลเซอร์' },
+  { type: 'category', value: 'Network', details: 'สวิตช์เครือข่ายและจุดกระจายสัญญาณไร้สาย' },
+  { type: 'category', value: 'Webcam', details: 'กล้องสำหรับการประชุมทางไกลและการแพทย์ทางไกล (Telemedicine)' },
+  { type: 'location', value: 'ฉุกเฉิน (Emergency Room / ER)', details: 'Building 1, Floor 1' },
+  { type: 'location', value: 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', details: 'Building 1, Floor 1' },
+  { type: 'location', value: 'ห้องจ่ายยากลาง (Central Pharmacy)', details: 'Building 1, Floor 1' },
+  { type: 'location', value: 'ศูนย์เอกซเรย์และรังสีวิทยา (Radiology & Imaging)', details: 'Building 1, Floor 2' },
+  { type: 'location', value: 'ห้องปฏิบัติการทางการแพทย์ (Central Lab)', details: 'Building 1, Floor 2' },
+  { type: 'location', value: 'ศูนย์ส่องกล้องระบบทางเดินอาหาร (GI Endoscopy Center)', details: 'Building 1, Floor 2' },
+  { type: 'location', value: 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', details: 'Building 1, Floor 2' },
+  { type: 'location', value: 'หอผู้ป่วยกุมารเวชกรรม (Pediatric Ward 12)', details: 'Building 1, Floor 2' },
+  { type: 'location', value: 'หอผู้ป่วยศัลยกรรม (Surgical Ward 16)', details: 'Building 1, Floor 3' },
+  { type: 'location', value: 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', details: 'Building 1, Floor 3' },
+  { type: 'location', value: 'ห้องผ่าตัดใหญ่ (Operating Theatre / OR)', details: 'Building 1, Floor 3' },
+  { type: 'location', value: 'เวชระเบียนและสถิติ (Medical Records)', details: 'Building 1, Floor 4' },
+  { type: 'location', value: 'ฝ่ายการเงินและบัญชี (Finance & Billing)', details: 'Building 1, Floor 4' },
+  { type: 'location', value: 'Technical Support & Infrastructure', details: 'Building 1, Floor 4' },
+  { type: 'location', value: 'สำนักงานผู้อำนวยการ (Executive Administration)', details: 'Building 1, Floor 5' },
+  { type: 'location', value: 'ศูนย์รับเรื่องคอลเซ็นเตอร์ (Call Center Workspace)', details: 'Building 2, Floor 2' }
 ];
 
 db.serialize(() => {

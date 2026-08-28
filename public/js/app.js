@@ -61,6 +61,14 @@ function initApp() {
 
 // Routing & View Switcher with URL Path Synchronization
 function switchView(viewName, pushHistory = true) {
+  // Enforce RBAC Guard: Non-admin users can never navigate to IT Workbench or Admin Config
+  if ((viewName === 'it' || viewName === 'config') && (!state.user || state.user.role !== 'admin')) {
+    if (state.user) {
+      showToast('สิทธิ์การเข้าถึงถูกจำกัด: เฉพาะผู้ดูแลระบบไอที (IT Admin) เท่านั้น', 'warning', 3500);
+    }
+    viewName = state.user ? 'ward' : 'auth';
+  }
+
   state.activeView = viewName;
   document.title = PAGE_TITLES[viewName] || 'ClaimIT';
 

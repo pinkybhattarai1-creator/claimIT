@@ -29,53 +29,53 @@
           <nav class="sidebar-nav">
             <div class="sidebar-item active" id="btn-to-ward" onclick="switchView('ward')">
               <span class="sidebar-icon">🛠️</span>
-              <span>Staff Field Portal</span>
+              <span>ระบบแจ้งซ่อมภาคสนาม (Staff)</span>
             </div>
             <div class="sidebar-item" id="btn-to-it" onclick="switchView('it')">
               <span class="sidebar-icon">💻</span>
-              <span>IT & RMA Hub</span>
+              <span>ศูนย์จัดการเคลม & IT Hub</span>
             </div>
             <div class="sidebar-item" id="btn-to-config" onclick="switchView('config')">
               <span class="sidebar-icon">⚙️</span>
-              <span>System Admin</span>
+              <span>ตั้งค่าระบบ & ผู้ใช้งาน</span>
             </div>
           </nav>
         </div>
 
-        <!-- Group 2: Quick Links / Operations -->
-        <div>
-          <div class="sidebar-group-title">OPERATIONS</div>
+        <!-- Group 2: Quick Links / Operations (Admin Only) -->
+        <div id="sidebar-group-operations" style="display: none;">
+          <div class="sidebar-group-title">งานประจำวัน (IT OPERATIONS)</div>
           <nav class="sidebar-nav">
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-scanner')">
               <span class="sidebar-icon">🔍</span>
-              <span>Asset Scanner</span>
+              <span>สแกนเนอร์ & รับเคลม</span>
             </div>
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-claims')">
               <span class="sidebar-icon">📦</span>
-              <span>Multi-Asset Claims</span>
+              <span>ใบส่งเคลมศูนย์บริการ</span>
             </div>
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-inventory')">
               <span class="sidebar-icon">📋</span>
-              <span>Asset Inventory</span>
+              <span>ทะเบียนครุภัณฑ์ไอที</span>
             </div>
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-audit')">
               <span class="sidebar-icon">📜</span>
-              <span>Audit Trail</span>
+              <span>ประวัติการใช้งาน (Audit Trail)</span>
             </div>
           </nav>
         </div>
 
-        <!-- Group 3: Quick Tools -->
-        <div>
-          <div class="sidebar-group-title">DATA EXPORTS</div>
+        <!-- Group 3: Quick Tools (Admin Only) -->
+        <div id="sidebar-group-exports" style="display: none;">
+          <div class="sidebar-group-title">ส่งออกข้อมูล (DATA EXPORT)</div>
           <nav class="sidebar-nav">
             <div class="sidebar-item" id="btn-sidebar-export-excel">
               <span class="sidebar-icon">📊</span>
-              <span>Export Excel (.xls)</span>
+              <span>ส่งออก Microsoft Excel (.xls)</span>
             </div>
             <div class="sidebar-item" id="btn-sidebar-export-csv">
               <span class="sidebar-icon">📄</span>
-              <span>Export Assets (.csv)</span>
+              <span>ส่งออกข้อมูลครุภัณฑ์ (.csv)</span>
             </div>
           </nav>
         </div>
@@ -119,19 +119,19 @@
         <div class="topbar-right" id="user-badge" style="display: none;">
           <!-- Top Navigation Tabs -->
           <div class="nav-tabs" id="nav-tabs" style="display: none;">
-            <button class="nav-btn active" id="btn-top-ward" onclick="switchView('ward')">🛠️ Staff</button>
-            <button class="nav-btn" id="btn-top-it" onclick="switchView('it')">💻 IT Hub</button>
-            <button class="nav-btn" id="btn-top-config" onclick="switchView('config')">⚙️ Admin</button>
+            <button class="nav-btn active" id="btn-top-ward" onclick="switchView('ward')">🛠️ แจ้งซ่อม (Staff)</button>
+            <button class="nav-btn" id="btn-top-it" onclick="switchView('it')">💻 ศูนย์ไอที (IT Hub)</button>
+            <button class="nav-btn" id="btn-top-config" onclick="switchView('config')">⚙️ ตั้งค่าระบบ (Admin)</button>
           </div>
 
           <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-profile" onclick="openProfileModal()">
-            ✏️ โปรไฟล์
+            ✏️ ข้อมูลส่วนตัว
           </button>
           <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn">
-            📌 ข้อมูลด่วน
+            📌 เมนูด่วน (Quick Hub)
           </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btn-export-excel-header">
-            📊 Excel
+            📊 ส่งออก Excel
           </button>
         </div>
       </header>
@@ -166,19 +166,33 @@
                 </button>
               </form>
 
-              <!-- Quick Login Pill Switchers (For Fast Testing) -->
+              <!-- Quick Login Pill Switchers (For Fast Demonstration) -->
               <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); text-align: center;">
-                <div style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px;">⚡ เลือกบัญชีทดสอบด่วน (1-Click Login):</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-admin" onclick="quickLogin('admin', 'admin123')">🛡️ Admin 1 (Head)</button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('admin2', 'admin123')">🛡️ Admin 2 (Senior)</button>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-staff" onclick="quickLogin('staff', 'staff123')">👨‍💻 Staff 1 (Field)</button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('staff2', 'staff123')">👨‍💻 Staff 2 (Ward)</button>
+                <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">⚡ บัญชีสำหรับทดลองใช้งาน (Demonstration Accounts):</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; margin-bottom: 12px;">
+                  <div style="background: var(--surface-subtle); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                    <div style="font-size: 10.5px; font-weight: 700; color: var(--primary); margin-bottom: 6px; text-transform: uppercase;">🛡️ ฝ่ายระบบสารสนเทศ (IT Admin)</div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-admin" onclick="quickLogin('admin', 'admin123')" style="width: 100%; margin-bottom: 4px; font-size: 11px; text-align: left;" title="นายณรงค์ฤทธิ์ (หัวหน้าฝ่ายไอที)">
+                      1. หัวหน้าฝ่ายไอที
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('admin4', 'admin123')" style="width: 100%; font-size: 11px; text-align: left;" title="น.ส.กัญญาพัชร (เจ้าหน้าที่งานเคลม)">
+                      2. เจ้าหน้าที่งานเคลม
+                    </button>
+                  </div>
+                  <div style="background: var(--surface-subtle); padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                    <div style="font-size: 10.5px; font-weight: 700; color: var(--success); margin-bottom: 6px; text-transform: uppercase;">👨‍💻 ช่างเทคนิคประจำตึก (Staff)</div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-staff" onclick="quickLogin('staff', 'staff123')" style="width: 100%; margin-bottom: 4px; font-size: 11px; text-align: left;" title="นายประสิทธิ์ (ช่างเทคนิค On-Site)">
+                      1. ช่างเทคนิค On-Site
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogin('staff2', 'staff123')" style="width: 100%; font-size: 11px; text-align: left;" title="นายธนดล (ช่างประจำหอผู้ป่วย)">
+                      2. ช่างประจำหอผู้ป่วย
+                    </button>
+                  </div>
                 </div>
-                <div style="margin-top: 14px; display: flex; gap: 4px; align-items: center; justify-content: center;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
                   <input type="text" id="mobile-connect-url-input" class="form-control" readonly style="font-size: 11px; padding: 4px 8px; font-family: var(--font-mono); background: var(--surface-subtle); max-width: 220px;" placeholder="ตรวจจับ IP เครือข่าย...">
                   <button type="button" class="btn btn-secondary btn-sm" onclick="copyMobileUrl()" style="font-size: 11px; padding: 4px 8px;">📋 คัดลอก</button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 8px;" title="ตั้งค่า IP">⚙️</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 8px;" title="ตั้งค่า IP เครือข่าย">⚙️</button>
                 </div>
               </div>
             </div>
@@ -193,35 +207,35 @@
           <div class="scanner-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
               <div>
-                <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">📸 สแกนตรวจเช็ค & แจ้งซ่อมภาคสนาม (Staff Portal)</h3>
-                <div id="ward-scanner-status" style="font-size: 12px; color: var(--primary); margin-top: 2px;">
-                  ⚡ สแกนบาร์โค้ด หรือระบุรหัสเพื่อค้นหาทันที
-                </div>
+                <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <span>🔍</span> ตรวจสอบและแจ้งชำรุดครุภัณฑ์ (Field Scanner)
+                </h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">สแกนบาร์โค้ด หรือพิมพ์รหัสครุภัณฑ์เพื่อตรวจสอบประกัน ถ่ายภาพหลักฐาน และส่งเรื่องแจ้งซ่อมเข้าส่วนกลาง</p>
               </div>
               
-              <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ล็อคให้รับเฉพาะการสแกนความเร็วสูงจากหัวอ่าน">
+              <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ล็อคให้รับเฉพาะการสแกนความเร็วสูงจากหัวอ่านบาร์โค้ด">
                 <input type="checkbox" id="ward-scanner-only-mode">
-                <span>🔒 หัวอ่านเท่านั้น</span>
+                <span>🔒 ล็อคหัวอ่านสแกนเนอร์</span>
               </label>
             </div>
 
             <div class="scanner-input-group">
-              <input type="text" id="ward-search-input" class="scanner-input-field" placeholder="สแกนหรือพิมพ์รหัส เช่น CIT-2024-AIO-02">
+              <input type="text" id="ward-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัส เช่น CIT-2024-AIO-02">
               <button class="btn" id="ward-search-btn">🔍 ค้นหา</button>
               
               <input type="file" id="ward-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleWardPhotoCapture(event)">
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" title="ถ่ายภาพครุภัณฑ์">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" title="ถ่ายภาพครุภัณฑ์หรือจุดชำรุด">
                 📷 ถ่ายรูป
               </button>
             </div>
 
             <!-- Quick Presets -->
-            <div class="preset-chips-row">
-              <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">รหัสยอดนิยม:</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (ต้อนรับ)</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air (ICU)</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner</span>
-              
+            <div class="preset-chips-row" style="margin-top: 10px;">
+              <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">📌 ลองใช้รหัสตัวอย่าง:</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (OPD มีประกัน)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (ICU ชำรุด/ล้างข้อมูล)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (วอร์ด 20)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2023-PRN-06')">🖨️ TSC Printer (ห้องยา ชำรุด)</span>
               <div id="ward-camera-status-tag" style="display: none; align-items: center; gap: 4px; margin-left: auto; font-size: 11.5px; color: var(--success); background: var(--success-light); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--success-border);">
                 📷 แนบรูปภาพแล้ว
                 <span style="cursor: pointer; color: var(--danger);" onclick="clearWardPhoto()" title="ลบภาพ">✕</span>
@@ -419,10 +433,10 @@
         <section id="it-section" class="view-section">
           <!-- IT Sub-Navigation Tabs Bar -->
           <div class="card" style="padding: 8px 12px; margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-            <button type="button" class="btn btn-secondary btn-sm active it-tab-btn" data-tab="tab-it-scanner">🔍 สแกนเนอร์ & เคลม</button>
-            <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-claims">📦 รายการใบส่งเคลม</button>
+            <button type="button" class="btn btn-secondary btn-sm active it-tab-btn" data-tab="tab-it-scanner">🔍 สแกนเนอร์ & รับเคลม</button>
+            <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-claims">📦 ใบส่งเคลมศูนย์บริการ</button>
             <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-inventory">📋 ทะเบียนครุภัณฑ์ไอที</button>
-            <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-audit">📜 ประวัติ & Audit Trail</button>
+            <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-audit">📜 ประวัติการใช้งาน (Audit Trail)</button>
             
             <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('config')" style="margin-left: auto; color: var(--primary); border-color: var(--primary-border);">
               ⚙️ ตั้งค่าระบบ (Admin) →
@@ -446,12 +460,12 @@
               <div class="kpi-card">
                 <div class="kpi-label" style="color: var(--danger-text);">🔴 รอดำเนินการเคลม</div>
                 <div class="kpi-value" id="stat-broken-assets" style="color: var(--danger);">0</div>
-                <div class="kpi-desc">เสียหาย / ชำรุด</div>
+                <div class="kpi-desc">แจ้งชำรุดรอส่งซ่อม</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-label" style="color: var(--warning-text);">🟡 รอศูนย์มารับ</div>
+                <div class="kpi-label" style="color: var(--warning-text);">🟡 รอศูนย์บริการเข้ารับ</div>
                 <div class="kpi-value" id="stat-vendor-claims" style="color: var(--warning);">0</div>
-                <div class="kpi-desc">รอนัดหมายเข้ารับ</div>
+                <div class="kpi-desc">บันทึกนัดหมายรับเครื่อง</div>
               </div>
             </div>
 
@@ -461,18 +475,18 @@
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">🔍 สแกนและค้นหาครุภัณฑ์ (IT Control)</h3>
-                  <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ป้องกันการพิมพ์ผิดพลาด">
+                  <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ล็อคให้รับเฉพาะการสแกนความเร็วสูงจากหัวอ่านบาร์โค้ด">
                     <input type="checkbox" id="it-scanner-only-mode">
-                    <span>🔒 หัวอ่านเท่านั้น</span>
+                    <span>🔒 ล็อคหัวอ่านสแกนเนอร์</span>
                   </label>
                 </div>
 
                 <div class="scanner-input-group">
-                  <input type="text" id="it-search-input" class="scanner-input-field" placeholder="สแกนหรือระบุรหัส เช่น CIT-2022-TAB-03">
-                  <button class="btn" id="it-search-btn">ค้นหา</button>
+                  <input type="text" id="it-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัส เช่น CIT-2022-TAB-03">
+                  <button class="btn" id="it-search-btn">🔍 ค้นหา</button>
                 </div>
                 <div id="it-scanner-status" style="font-size: 11.5px; color: var(--primary); margin-top: 6px;">
-                  ⚡ ตรวจจับอัตโนมัติ: สแกนปุ๊บ ค้นหาทันที
+                  ⚡ ระบบค้นหาอัตโนมัติเมื่อใช้หัวอ่านบาร์โค้ด (Auto-Scan Ready)
                 </div>
 
                 <!-- Parser Analytics -->
@@ -491,11 +505,14 @@
 
                 <!-- Quick Presets -->
                 <div style="margin-top: 20px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">ครุภัณฑ์ทดสอบด่วน:</div>
+                  <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">📌 ลองใช้รหัสตัวอย่าง:</div>
                   <div class="preset-chips-row">
-                    <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne 440 (AIO)</span>
-                    <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (ICU Cart)</span>
-                    <span class="preset-chip" onclick="selectPreset('CIT-2021-AIO-01')">💻 Dell OptiPlex (Emergency)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (OPD มีประกัน)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (ICU ชำรุด/ล้างข้อมูล)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2023-AIO-11')">⚠️ Dell OptiPlex (Lab ใกล้หมดประกัน)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (วอร์ด 20)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2023-PRN-06')">🖨️ TSC Printer (ห้องยา ชำรุด)</span>
+                    <span class="preset-chip" onclick="selectPreset('041309040002')">📦 Acer Notebook (รอจำหน่าย EOL)</span>
                   </div>
                 </div>
               </div>
@@ -503,7 +520,7 @@
               <!-- Right Side: Asset Details & RMA Action Board -->
               <div class="card" id="it-details-card" style="display: none;">
                 <div class="card-header">
-                  <h3 class="card-title" style="color: var(--primary);">🛠️ แผงควบคุมรายการเคลม (RMA Action Board)</h3>
+                  <h3 class="card-title" style="color: var(--primary);">🛠️ แผงควบคุมการส่งซ่อม & เคลม (RMA Action Board)</h3>
                 </div>
 
                 <div>
@@ -516,11 +533,11 @@
                     <span class="detail-value" id="it-detail-name">-</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">Serial Number</span>
+                    <span class="detail-label">หมายเลขเครื่อง (S/N)</span>
                     <span class="detail-value" id="it-detail-serial">-</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-label">สถานที่ตั้ง (Location)</span>
+                    <span class="detail-label">สถานที่ติดตั้ง (Location)</span>
                     <span class="detail-value" id="it-detail-loc">-</span>
                   </div>
                   <div class="detail-item">
@@ -538,18 +555,18 @@
                   <!-- Template & PDF Buttons -->
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
                     <button id="btn-open-template-modal-it" class="btn btn-secondary btn-sm" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent)">
-                      🖨️ แบบฟอร์มทางการ
+                      🖨️ ศูนย์แบบฟอร์มเอกสาร
                     </button>
                     <button id="btn-download-pdf" class="btn btn-secondary btn-sm" onclick="downloadPDF(document.getElementById('it-detail-tag').textContent)">
-                      📄 ดาวน์โหลด PDF
+                      📄 ดาวน์โหลด PDF สรุป
                     </button>
                   </div>
 
                   <!-- PDPA Safeguard Panel -->
                   <div id="sanitize-panel" class="pdpa-safeguard-box" style="display: none;">
-                    <div class="pdpa-title">🛡️ PDPA Data Sanitization Safeguard</div>
+                    <div class="pdpa-title">🛡️ มาตรการความปลอดภัยข้อมูลผู้ป่วย (PDPA Data Sanitization)</div>
                     <div class="pdpa-desc">
-                      ครุภัณฑ์นี้เป็นอุปกรณ์บันทึกข้อมูลหลัก <strong>ต้องทำความสะอาดข้อมูล หรือถอดฮาร์ดไดร์ฟออกก่อนส่งไปยังศูนย์บริการภายนอก</strong> ตามมาตรฐาน ISO/IEC 27001
+                      ครุภัณฑ์นี้เป็นอุปกรณ์บันทึกข้อมูลหลัก <strong>ต้องทำความสะอาดข้อมูล หรือถอดสื่อบันทึกข้อมูลออกก่อนส่งศูนย์บริการภายนอก</strong> ตามมาตรฐาน ISO/IEC 27001
                     </div>
 
                     <div class="pdpa-toggle" id="sanitize-chk">
@@ -564,32 +581,32 @@
                       <input type="text" id="sanitize-code-input" class="form-control" placeholder="พิมพ์ WIPED เพื่อยืนยัน" style="text-transform: uppercase;">
                     </div>
                     <button class="btn btn-danger btn-sm" id="btn-confirm-sanitize" style="width: 100%; margin-top: 10px;">
-                      ยืนยันความปลอดภัยข้อมูล (Confirm Data Wiped)
+                      ยืนยันการล้างข้อมูลความปลอดภัย (Confirm Data Wiped)
                     </button>
                   </div>
 
                   <!-- RMA Initiation Form -->
                   <div id="rma-form-container" style="display: none; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
-                    <h4 style="color: var(--warning-text); margin-bottom: 10px;">📤 รอส่งซ่อมศูนย์บริการ (Pending Vendor Pickup)</h4>
+                    <h4 style="color: var(--warning-text); margin-bottom: 10px;">📤 บันทึกส่งเคลมศูนย์บริการ (Pending Vendor Pickup)</h4>
                     <form id="rma-form">
                       <input type="hidden" id="claim-tag-input">
                       <div class="form-group">
-                        <label for="claim-vendor">ระบุบริษัทศูนย์บริการ (Vendor Name)</label>
+                        <label for="claim-vendor">บริษัทศูนย์บริการ / คู่ค้า (Vendor Name)</label>
                         <select id="claim-vendor" class="form-control" required>
                           <option value="" disabled selected>-- เลือกศูนย์บริการ --</option>
                         </select>
                       </div>
                       <div id="brand-procedure-panel" style="display: none; margin-bottom: 12px; padding: 10px; background: var(--surface-subtle); border-radius: var(--radius-sm); font-size: 12px;"></div>
                       <div class="form-group">
-                        <label for="claim-rma-no">หมายเลขใบรับงานเคลม (RMA / Case ID)</label>
+                        <label for="claim-rma-no">หมายเลขใบเคลม / Case ID (RMA No.)</label>
                         <input type="text" id="claim-rma-no" class="form-control" placeholder="ตัวอย่าง: RMA-9988-77" required>
                       </div>
                       <div class="form-group">
-                        <label for="claim-expected-date">วันที่ศูนย์บริการจะเข้ามารับอุปกรณ์ (Pickup Date)</label>
+                        <label for="claim-expected-date">วันที่ศูนย์บริการจะเข้ามารับเครื่อง (Pickup Date)</label>
                         <input type="date" id="claim-expected-date" class="form-control">
                       </div>
                       <button type="submit" class="btn btn-warning" style="width: 100%; background: var(--warning);">
-                        บันทึกรอรับเคลม (Pending Pickup)
+                        บันทึกรอศูนย์บริการเข้ารับ (Pending Pickup)
                       </button>
                     </form>
                   </div>
@@ -630,20 +647,20 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">📦 รายการใบส่งเคลมศูนย์บริการ (Multi-Asset Claims & RMA)</h3>
-                  <div class="card-subtitle">ระบบรวมใบส่งเคลม 1–5 ชิ้น ประเมินความคุ้มค่า และควบคุมวงจรสถานะ</div>
+                  <h3 class="card-title">📦 รายการใบส่งเคลมศูนย์บริการ (Multi-Asset RMA Claims)</h3>
+                  <div class="card-subtitle">ระบบรวมใบส่งเคลม 1–5 รายการ ประเมินความคุ้มค่า และควบคุมสถานะการส่งซ่อม</div>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                   <select id="filter-claim-status" class="form-control" style="width: auto; font-size: 12.5px;">
                     <option value="">-- ทุกสถานะเคลม --</option>
-                    <option value="DRAFT">DRAFT (ร่าง)</option>
-                    <option value="VIABLE">VIABLE (คุ้มค่าส่ง)</option>
-                    <option value="CONFIRMED">CONFIRMED (อนุมัติส่ง)</option>
-                    <option value="SUBMITTED">SUBMITTED (ส่งศูนย์แล้ว)</option>
-                    <option value="VENDOR_RESPONSE">VENDOR_RESPONSE (ศูนย์ตอบกลับ)</option>
-                    <option value="RETURNED">RETURNED (รับคืนแล้ว)</option>
-                    <option value="CLOSED">CLOSED (ปิดงาน)</option>
-                    <option value="CANCELLED">CANCELLED (ยกเลิก)</option>
+                    <option value="DRAFT">DRAFT (ร่างเอกสาร)</option>
+                    <option value="VIABLE">VIABLE (ผ่านเกณฑ์คุ้มค่า)</option>
+                    <option value="CONFIRMED">CONFIRMED (อนุมัติส่งเคลม)</option>
+                    <option value="SUBMITTED">SUBMITTED (ส่งศูนย์บริการแล้ว)</option>
+                    <option value="VENDOR_RESPONSE">VENDOR_RESPONSE (ศูนย์บริการตอบกลับ)</option>
+                    <option value="RETURNED">RETURNED (รับเครื่องคืนแล้ว)</option>
+                    <option value="CLOSED">CLOSED (ปิดงานสมบูรณ์)</option>
+                    <option value="CANCELLED">CANCELLED (ยกเลิกรายการ)</option>
                   </select>
                   <button class="btn btn-sm" id="btn-open-new-claim-modal">
                     ➕ สร้างใบเคลมใหม่ (1-5 รายการ)
@@ -678,23 +695,23 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">📋 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
-                  <div class="card-subtitle">ระบบจัดการครุภัณฑ์ การจำหน่าย และสถิติสถานะ</div>
+                  <h3 class="card-title">📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)</h3>
+                  <div class="card-subtitle">ระบบสืบค้นครุภัณฑ์ ตรวจสอบรอบบำรุงรักษา และส่งออกรายงาน</div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                   <select id="filter-status" class="form-control" style="width: auto; font-size: 12.5px;">
                     <option value="">-- ทุกสถานะ --</option>
-                    <option value="Working">ปกติ (Working)</option>
-                    <option value="Broken">ชำรุด (Broken)</option>
-                    <option value="Pending Pickup">รอศูนย์มารับ</option>
+                    <option value="Working">ใช้งานปกติ (Working)</option>
+                    <option value="Broken">ชำรุด/แจ้งซ่อม (Broken)</option>
+                    <option value="Pending Pickup">รอศูนย์บริการเข้ารับ</option>
                     <option value="expiring_6m">⚠️ ใกล้หมดประกันใน 6 เดือน</option>
                     <option value="expired">หมดประกันแล้ว (Expired)</option>
                     <option value="Pending Sell">รอขายทอดตลาด</option>
-                    <option value="Pending Donation">รอดำเนินการบริจาค</option>
+                    <option value="Pending Donation">ขอบริจาค (Pending Donation)</option>
                     <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
                   </select>
-                  <button class="btn btn-secondary btn-sm" id="btn-export-excel-main">📊 Excel ทั้งหมด</button>
-                  <button class="btn btn-secondary btn-sm" id="btn-copy-data">📋 คัดลอก (TSV)</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-export-excel-main">📊 ส่งออก Excel</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-copy-data">📋 คัดลอกตาราง (TSV)</button>
                   <button class="btn btn-sm" id="btn-open-add-asset-modal">➕ เพิ่มครุภัณฑ์ใหม่</button>
                 </div>
               </div>
@@ -960,7 +977,7 @@
   <div id="add-asset-modal" class="modal-backdrop">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>➕ เพิ่มรายการครุภัณฑ์ใหม่</h3>
+        <h3>➕ ลงทะเบียนครุภัณฑ์ใหม่</h3>
         <button class="modal-close-btn" aria-label="ปิด" id="close-asset-modal-btn">✕</button>
       </div>
       <form id="add-asset-form">
@@ -973,11 +990,11 @@
             <input type="text" id="new-asset-tag" class="form-control" placeholder="ตัวอย่าง: CIT-2026-MON-01" required>
           </div>
           <div class="form-group">
-            <label>ชื่ออุปกรณ์ (Device Name) *</label>
+            <label>ชื่อครุภัณฑ์ (Device Name) *</label>
             <input type="text" id="new-device-name" class="form-control" placeholder="ตัวอย่าง: Dell Monitor 24-inch" required>
           </div>
           <div class="form-group">
-            <label>หมวดหมู่ (Category) *</label>
+            <label>หมวดหมู่อุปกรณ์ (Category) *</label>
             <select id="new-category" class="form-control" required>
               <option value="Computer">Computer (PC / AIO)</option>
               <option value="Monitor">Monitor</option>
@@ -1000,11 +1017,11 @@
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div class="form-group">
-              <label>Serial Number *</label>
+              <label>หมายเลขเครื่อง (S/N) *</label>
               <input type="text" id="new-serial" class="form-control" placeholder="SN12345678" required>
             </div>
             <div class="form-group">
-              <label>สถานที่ติดตั้ง *</label>
+              <label>สถานที่ติดตั้ง / แผนก *</label>
               <input type="text" id="new-location" class="form-control" placeholder="Ward 20, ER" required>
             </div>
           </div>
@@ -1014,7 +1031,7 @@
               <input type="date" id="new-warranty-start" class="form-control" required>
             </div>
             <div class="form-group">
-              <label>ระยะเวลา</label>
+              <label>ระยะเวลารับประกัน</label>
               <select id="new-warranty-months" class="form-control">
                 <option value="12">1 ปี (12 ด.)</option>
                 <option value="24">2 ปี (24 ด.)</option>
@@ -1040,13 +1057,13 @@
           <div class="form-group">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
               <input type="checkbox" id="new-sanitization-req" checked>
-              <span>ต้องทำความสะอาดข้อมูล (PDPA Storage Device)</span>
+              <span>เป็นอุปกรณ์จัดเก็บข้อมูลหลักที่ต้องล้างข้อมูลก่อนส่งเคลม (PDPA Storage Device)</span>
             </label>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-asset-modal').style.display='none'">ยกเลิก</button>
-          <button type="submit" class="btn" id="btn-submit-add-asset">บันทึกครุภัณฑ์</button>
+          <button type="submit" class="btn" id="btn-submit-add-asset">บันทึกข้อมูลครุภัณฑ์</button>
         </div>
       </form>
     </div>
@@ -1062,26 +1079,26 @@
       <form id="add-user-form">
         <div class="modal-body">
           <div class="form-group">
-            <label>Username *</label>
-            <input type="text" id="new-username" class="form-control" placeholder="username" required>
+            <label>ชื่อผู้ใช้งาน (Username) *</label>
+            <input type="text" id="new-username" class="form-control" placeholder="ระบุ username" required>
           </div>
           <div class="form-group">
-            <label>Password *</label>
-            <input type="password" id="new-password" class="form-control" placeholder="รหัสผ่าน" required>
+            <label>รหัสผ่าน (Password) *</label>
+            <input type="password" id="new-password" class="form-control" placeholder="ระบุรหัสผ่าน" required>
           </div>
           <div class="form-group">
             <label>ชื่อ-นามสกุล *</label>
-            <input type="text" id="new-fullname" class="form-control" placeholder="ชื่อ สกุล" required>
+            <input type="text" id="new-fullname" class="form-control" placeholder="ระบุชื่อ-นามสกุล" required>
           </div>
           <div class="form-group">
             <label>แผนก / หอผู้ป่วย *</label>
-            <input type="text" id="new-user-dept" class="form-control" placeholder="Ward 20, IT" required>
+            <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น Ward 20, IT" required>
           </div>
           <div class="form-group">
-            <label>สิทธิ์ (Role) *</label>
+            <label>สิทธิ์การใช้งาน (Role) *</label>
             <select id="new-user-role" class="form-control" required>
-              <option value="staff">Staff (ช่างไอทีภาคสนาม / ผู้ใช้ทั่วไป)</option>
-              <option value="admin">Admin (ผู้ดูแลระบบไอที)</option>
+              <option value="staff">Staff (ช่างเทคนิคประจำตึก / ภาคสนาม)</option>
+              <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
             </select>
           </div>
         </div>
@@ -1104,7 +1121,7 @@
         <input type="hidden" id="edit-user-id">
         <div class="modal-body">
           <div class="form-group">
-            <label>Username</label>
+            <label>ชื่อผู้ใช้งาน (Username)</label>
             <input type="text" id="edit-user-username" class="form-control" readonly style="background: var(--surface-subtle);">
           </div>
           <div class="form-group">
@@ -1112,14 +1129,14 @@
             <input type="text" id="edit-user-fullname" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>แผนก (Department) *</label>
+            <label>แผนก / หอผู้ป่วย (Department) *</label>
             <input type="text" id="edit-user-department" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>สิทธิ์ (Role) *</label>
+            <label>สิทธิ์การใช้งาน (Role) *</label>
             <select id="edit-user-role" class="form-control" required>
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
+              <option value="staff">Staff (ช่างเทคนิคประจำตึก / ภาคสนาม)</option>
+              <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
             </select>
           </div>
         </div>
@@ -1135,26 +1152,26 @@
   <div id="add-config-modal" class="modal-backdrop">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>⚙️ เพิ่ม / แก้ไขการตั้งค่า</h3>
+        <h3>⚙️ เพิ่ม / แก้ไขการตั้งค่าระบบ</h3>
         <button class="modal-close-btn" aria-label="ปิด" id="close-config-modal-btn">✕</button>
       </div>
       <form id="add-config-form">
         <input type="hidden" id="config-id">
         <div class="modal-body">
           <div class="form-group">
-            <label>ประเภท (Type) *</label>
+            <label>ประเภทการตั้งค่า (Type) *</label>
             <select id="config-type" class="form-control" required>
-              <option value="brand">แบรนด์ (Brand / Vendor)</option>
-              <option value="category">หมวดหมู่ (Category)</option>
-              <option value="location">สถานที่ (Location)</option>
+              <option value="brand">แบรนด์ศูนย์บริการ (Brand / Vendor)</option>
+              <option value="category">หมวดหมู่อุปกรณ์ (Category)</option>
+              <option value="location">สถานที่ติดตั้ง (Location)</option>
             </select>
           </div>
           <div class="form-group">
-            <label>ค่า (Value) *</label>
+            <label>ชื่อการตั้งค่า (Value) *</label>
             <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, Ward 20" required>
           </div>
           <div class="form-group">
-            <label>รายละเอียด / ขั้นตอนการเคลม</label>
+            <label>รายละเอียด / ขั้นตอนการส่งเคลม</label>
             <textarea id="config-details" class="form-control" rows="4" placeholder="ระบุขั้นตอนการเคลมของแบรนด์นี้..."></textarea>
           </div>
         </div>
@@ -1170,7 +1187,7 @@
   <div id="new-multi-claim-modal" class="modal-backdrop">
     <div class="modal-dialog" style="max-width: 580px;">
       <div class="modal-header">
-        <h3>📦 สร้างใบส่งเคลมใหม่ (1–5 ครุภัณฑ์)</h3>
+        <h3>📦 สร้างใบส่งเคลมศูนย์บริการ (1–5 รายการ)</h3>
         <button class="modal-close-btn" aria-label="ปิด" id="close-new-claim-modal-btn">✕</button>
       </div>
       <form id="new-multi-claim-form">
@@ -1182,7 +1199,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="multi-claim-rma">หมายเลขใบรับงานเคลม (RMA No. / Case ID)</label>
+            <label for="multi-claim-rma">หมายเลขใบเคลม / Case ID (RMA No.)</label>
             <input type="text" id="multi-claim-rma" class="form-control" placeholder="เช่น RMA-2026-001">
           </div>
           <div class="form-group">
@@ -1215,26 +1232,26 @@
   <div id="claim-details-modal" class="modal-backdrop">
     <div class="modal-dialog" style="max-width: 700px;">
       <div class="modal-header">
-        <h3 id="cd-modal-title">📋 รายละเอียดใบส่งเคลม</h3>
+        <h3 id="cd-modal-title">📋 รายละเอียดใบส่งเคลมศูนย์บริการ</h3>
         <button class="modal-close-btn" aria-label="ปิด" id="close-claim-details-modal-btn">✕</button>
       </div>
       <div class="modal-body">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; background: var(--surface-subtle); padding: 12px; border-radius: var(--radius-md);">
-          <div><strong>หมายเลข:</strong> <span id="cd-claim-no">-</span></div>
+          <div><strong>หมายเลขใบเคลม:</strong> <span id="cd-claim-no">-</span></div>
           <div><strong>ศูนย์บริการ:</strong> <span id="cd-vendor">-</span></div>
-          <div><strong>สถานะ:</strong> <span id="cd-status" class="badge">-</span></div>
+          <div><strong>สถานะใบเคลม:</strong> <span id="cd-status" class="badge">-</span></div>
           <div><strong>ความคุ้มค่า:</strong> <span id="cd-viability">-</span></div>
           <div><strong>วันที่ทำรายการ:</strong> <span id="cd-date">-</span></div>
-          <div><strong>ผู้สร้าง:</strong> <span id="cd-created-by">-</span></div>
+          <div><strong>ผู้สร้างรายการ:</strong> <span id="cd-created-by">-</span></div>
         </div>
 
-        <h4 style="font-size: 13.5px; margin-bottom: 8px;">ครุภัณฑ์ในใบเคลมนี้ (Attached Assets):</h4>
+        <h4 style="font-size: 13.5px; margin-bottom: 8px;">ครุภัณฑ์ในใบส่งเคลมนี้:</h4>
         <div class="table-container" style="margin-bottom: 16px;">
           <table>
             <thead>
               <tr>
                 <th>รหัสครุภัณฑ์</th>
-                <th>ชื่ออุปกรณ์</th>
+                <th>ชื่อครุภัณฑ์</th>
                 <th>สถานะชิ้นงาน</th>
                 <th>ความคุ้มค่า</th>
               </tr>
@@ -1256,7 +1273,7 @@
         </div>
       </div>
       <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn" id="cd-btn-download-pdf">📄 ดาวน์โหลด PDF</button>
+        <button type="button" class="btn" id="cd-btn-download-pdf">📄 ดาวน์โหลด PDF สรุป</button>
         <button type="button" class="btn btn-secondary" id="close-claim-details-modal-btn2">ปิด</button>
       </div>
     </div>
@@ -1268,7 +1285,7 @@
       <div class="modal-header">
         <div>
           <h3 style="margin: 0;">🖨️ ศูนย์แบบฟอร์มเอกสารทางการ (Official Document & Print Center)</h3>
-          <div style="font-size: 12px; color: var(--text-muted);">แบบฟอร์มโรงพยาบาลพญาไท 3 และศูนย์บริการมาตรฐาน</div>
+          <div style="font-size: 12px; color: var(--text-muted);">แบบฟอร์มโรงพยาบาลและศูนย์บริการมาตรฐาน</div>
         </div>
         <button class="modal-close-btn" aria-label="ปิด" id="close-template-modal-btn">✕</button>
       </div>
@@ -1277,7 +1294,7 @@
         <div style="display: flex; align-items: center; gap: 8px;">
           <label style="font-size: 12.5px; font-weight: 600;">เลือกแบบฟอร์ม:</label>
           <select id="template-selector" class="form-control" style="width: auto; font-size: 12.5px;">
-            <option value="repair_order" selected>📑 1. ใบรับงานซ่อม / ใบรับเคลมสินค้า (Hospital Work Order)</option>
+            <option value="repair_order" selected>📑 1. ใบรับงานซ่อม / ใบแจ้งซ่อม (Hospital Work Order)</option>
             <option value="claim_888">📑 2. ใบรับเคลม / นำส่งสินค้า (888 Tech Claim Form)</option>
             <option value="warranty_888">📑 3. ใบรับประกันสินค้า (888 Tech Warranty Certificate)</option>
             <option value="talent_delivery">📑 4. ใบส่งมอบ / ใบรับประกัน (Talent Tech Form)</option>
@@ -1307,7 +1324,7 @@
           </div>
           <div>
             <label style="font-weight: 600;">อาการเสีย</label>
-            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ปริ้นเป็นเส้น / สแกนเนอร์ไม่ตอบสนอง">
+            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="พิมพ์เป็นเส้น / สแกนเนอร์ไม่ตอบสนอง">
           </div>
           <div>
             <label style="font-weight: 600;">ชื่อช่าง / ผู้ดำเนินการ</label>
@@ -1331,7 +1348,7 @@
   <div id="email-preview-modal" class="modal-backdrop">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3>📧 ตัวอย่างข้อความส่งเคลม (Email Preview)</h3>
+        <h3>📧 ตัวอย่างข้อความแจ้งเตือนทางอีเมล (Email Preview)</h3>
         <button class="modal-close-btn" aria-label="ปิด" id="close-email-modal-btn">✕</button>
       </div>
       <div class="modal-body">
@@ -1368,13 +1385,13 @@
           <div class="form-group">
             <label>ผลการซ่อม / เคลม *</label>
             <select id="resolve-type" class="form-control" required>
-              <option value="Repaired">ซ่อมเรียบร้อย อะไหล่เดิม/เปลี่ยนอะไหล่ (Repaired)</option>
-              <option value="Replaced">เปลี่ยนเครื่องใหม่ยกชุด (Replaced)</option>
-              <option value="Scrapped">ซ่อมไม่ได้/หมดสภาพ (Scrapped)</option>
+              <option value="Repaired">ซ่อมเรียบร้อย / เปลี่ยนอะไหล่ (Repaired)</option>
+              <option value="Replaced">เปลี่ยนเครื่องใหม่ทดแทน (Replaced)</option>
+              <option value="Scrapped">ซ่อมไม่ได้ / แทงจำหน่าย (Scrapped)</option>
             </select>
           </div>
           <div class="form-group">
-            <label>หมายเลข Serial Number ใหม่ (หากเปลี่ยนเครื่องใหม่)</label>
+            <label>หมายเลขเครื่องใหม่ (S/N ใหม่ หากได้รับเครื่องเปลี่ยน)</label>
             <input type="text" id="resolve-new-serial" class="form-control" placeholder="ระบุ S/N ใหม่ หรือเว้นว่างหากใช้เครื่องเดิม">
           </div>
           <div class="form-group">
@@ -1394,7 +1411,7 @@
   <div id="mobile-ip-modal" class="modal-backdrop">
     <div class="modal-dialog" style="max-width: 440px;">
       <div class="modal-header">
-        <h3>📱 เชื่อมต่อผ่านมือถือ / iPhone (Hospital LAN)</h3>
+        <h3>📱 เชื่อมต่อผ่านอุปกรณ์มือถือ (Hospital LAN)</h3>
         <button class="modal-close-btn" aria-label="ปิด" onclick="document.getElementById('mobile-ip-modal').style.display='none'">✕</button>
       </div>
       <div class="modal-body">

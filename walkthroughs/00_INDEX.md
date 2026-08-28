@@ -26,7 +26,7 @@
 | 15_system_configurations.md | ตั้งค่าระบบ — แบรนด์ หมวดหมู่ สถานที่ | Admin |
 | 16_excel_csv_export.md | ส่งออกข้อมูล Excel / CSV | Staff / IT |
 | 17_quick_sidebar.md | Quick Hub Sidebar — ข้อมูลด่วนและ Hotlines | ทุกคน |
-| 18_email_notifications.md | การส่งอีเมลแจ้งเตือน (SendGrid Integration) | IT/Admin |
+| 18_email_notifications.md | การส่งอีเมลแจ้งเตือน (Resend Integration) | IT/Admin |
 | 19_security_and_rbac.md | ความปลอดภัย — JWT, RBAC, Rate Limiting | Admin / Dev |
 | 20_installation_and_devops.md | ติดตั้งระบบ — Node.js & Docker | Developer |
 
@@ -49,9 +49,9 @@ ClaimIT ออกแบบมาเพื่อกระบวนการทำ
 
 ## 🌿 โครงสร้าง Git Branches บน GitHub
 
-- **`finalhtinmc`** *(Current Production Release)*: โค้ดหลักระบบ ClaimIT v1.0 แบบ Clean Core (Non-AI), ไม่มีโค้ดทดสอบ, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone, และไร้ Outer Scroller
-- **`main`** *(Production Master)*: รวมโค้ดหลักของ `finalhtinmc` สำหรับ Production Deployment
-- **`finalhtinmc-experiment`** *(Experimental AI Branch)*: สาขาสำหรับทดลองระบบปัญญาประดิษฐ์ Multi-provider AI (Groq Cloud, OpenRouter, Google Gemini, OCR และ Vision Inspection)
+- **`rewrite`** *(Target Production Release Branch)*: โค้ดหลักระบบ ClaimIT v1.0 ปรับปรุงโครงสร้าง Full-Stack ใหม่, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone/มือถือ, และระบบ Multi-Asset Claim
+- **`finalhtinmc`**: โค้ดหลักระบบ ClaimIT ก่อนการจัดโครงสร้าง
+- **`main`**: รวมโค้ดหลักสำหรับ Production Deployment
 
 ---
 

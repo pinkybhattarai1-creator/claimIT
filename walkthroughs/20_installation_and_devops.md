@@ -105,10 +105,9 @@ Response:
 ---
 
 ## โครงสร้างไฟล์
-
 ```
 claimIT/
-├── server.js                    # Entry point (Port, Security, Route Mount, Backup)
+├── server.js                    # Express Entry point (Port, Security, Route Mount, Backup)
 ├── db/index.js                  # SQLite connection, migrations, audit logging, bcrypt
 ├── routes/
 │   ├── auth.js                  # POST /login, POST /change-password
@@ -123,41 +122,57 @@ claimIT/
 │   └── email.js                 # Direct email via Resend API
 ├── services/
 │   ├── claimService.js          # Viability engine, state machine, multi-asset
-│   ├── emailService.js          # SendGrid background notifications
+│   ├── emailService.js          # Resend notifications and HTML templates
 │   └── evidenceService.js       # multer upload, UUID storage, IDOR check
 ├── middleware/
 │   ├── auth.js                  # JWT verifyToken, staffOnly, adminOnly
 │   └── security.js              # Custom headers, CORS, Rate Limiting, errorHandler
 ├── utils/
 │   ├── dateNormalizer.js        # Date parsing & normalization
-│   └── envValidator.js          # Startup env validation & export
+│   ├── envValidator.js          # Startup env validation & export
+│   └── fontResolver.js          # Cross-platform Thai font resolution
 ├── scripts/
-│   └── backup.js                # Database backup utility
+│   ├── backup.js                # Database backup utility
+│   ├── hostile_qa_test.js       # Hostile QA & stress verification suite
+│   ├── qa_audit.js              # DOM & ID integrity audit
+│   └── verify_frontend_workflows.js # Frontend and workflow validator
 ├── public/
-│   ├── index.html               # SPA (931 lines)
-│   ├── js/app.js                # Frontend JS (432 lines)
-│   └── css/style.css            # Dark theme CSS
-├── claim_calculator.js          # Viability score algorithm (standalone)
-├── schema.sql                   # Database schema
-├── seed_configs.js              # Seed data
+│   ├── index.html               # Main SPA shell
+│   ├── ward.html, it.html, ...  # Standalone companion portal pages
+│   ├── css/style.css            # Responsive dark/clinical theme CSS
+│   └── js/                      # Modular client architecture
+│       ├── app.js               # Main application controller
+│       ├── state.js             # Client state management
+│       ├── templates.js         # Document center & print templates
+│       ├── claims.js            # Claim & RMA processing
+│       ├── assets.js            # Asset management & inventory
+│       ├── auth.js              # Auth & session handler
+│       ├── admin.js             # User & configuration admin
+│       ├── audit.js             # Audit trail viewer
+│       ├── scanner.js           # Barcode scanner engine
+│       └── sidebar.js           # Quick hub sidebar
+├── claim_calculator.js          # Viability score algorithm & 14 output dimensions
+├── schema.sql                   # Database schema definition
+├── seed_configs.js              # Seed data for vendors, categories, locations
+├── test_suite.js                # Comprehensive 12-stage test suite
+├── test_workflow.js             # End-to-end integration workflow test
+├── test_samples_validation.js   # Real-world data & accounting validator
 ├── storage/evidence/            # Private file storage (outside public)
-├── backups/                     # Backup files
-└── walkthroughs/                # User documentation (this folder)
+├── backups/                     # Database backups
+└── walkthroughs/                # 21 User documentation guides
 ```
 
 ---
 
 ## การทดสอบอัตโนมัติ (Automated Tests)
 
-ชุดทดสอบหลัก (10 ขั้นตอน):
-  node test_suite.js
-ครอบคลุม: Auth, RBAC, Viability Score, Max 5 Assets, Evidence, Wipe Code, Health
-
-Integration Workflow:
-  node test_workflow.js
-
-Sample Validation:
-  node test_samples_validation.js
+ชุดทดสอบครอบคลุมทุกระดับ:
+1. `node test_suite.js` — ทดสอบ 12 ขั้นตอน (Auth, RBAC, Viability, 1-5 Assets, Evidence, PDPA, Backup)
+2. `node test_workflow.js` — End-to-end Integration Workflow
+3. `node test_samples_validation.js` — ตรวจสอบตัวอย่างข้อมูลจริงและการคำนวณทางบัญชี
+4. `node scripts/qa_audit.js` — ตรวจสอบ DOM IDs และ Event Listeners
+5. `node scripts/hostile_qa_test.js` — Hostile QA & Security Stress Test (34/34 Passed)
+6. `node scripts/verify_frontend_workflows.js` — จำลองการทำงาน Frontend & Workflows (40/40 Passed)
 
 ---
 

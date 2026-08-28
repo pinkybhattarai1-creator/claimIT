@@ -41,8 +41,10 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   if (!state.user) return;
+  const isAdmin = state.user && state.user.role === 'admin';
+
   if (userNameEl) userNameEl.textContent = state.user.name;
-  if (userRoleEl) userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
+  if (userRoleEl) userRoleEl.textContent = `${isAdmin ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
   const avatarEl = document.getElementById('user-avatar');
   if (avatarEl) {
     avatarEl.textContent = (state.user.name || state.user.username || 'U').charAt(0).toUpperCase();
@@ -51,10 +53,22 @@ function showUserNavigation() {
   if (appSidebar) appSidebar.style.display = 'flex';
   if (userBadge) userBadge.style.display = 'flex';
 
+  // Left Sidebar Links & Groups
   const itBtn = document.getElementById('btn-to-it');
   const configBtn = document.getElementById('btn-to-config');
-  if (itBtn) itBtn.style.display = state.user.role === 'admin' ? 'flex' : 'none';
-  if (configBtn) configBtn.style.display = state.user.role === 'admin' ? 'flex' : 'none';
+  const opGroup = document.getElementById('sidebar-group-operations');
+  const exportGroup = document.getElementById('sidebar-group-exports');
+  
+  if (itBtn) itBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (configBtn) configBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (opGroup) opGroup.style.display = isAdmin ? 'block' : 'none';
+  if (exportGroup) exportGroup.style.display = isAdmin ? 'block' : 'none';
+
+  // Top Bar Navigation Tabs
+  const btnTopIt = document.getElementById('btn-top-it');
+  const btnTopConfig = document.getElementById('btn-top-config');
+  if (btnTopIt) btnTopIt.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (btnTopConfig) btnTopConfig.style.display = isAdmin ? 'inline-flex' : 'none';
 }
 
 function logout() {
@@ -63,6 +77,21 @@ function logout() {
   const appSidebar = document.getElementById('app-sidebar');
   if (appSidebar) appSidebar.style.display = 'none';
   if (userBadge) userBadge.style.display = 'none';
+
+  const itBtn = document.getElementById('btn-to-it');
+  const configBtn = document.getElementById('btn-to-config');
+  const opGroup = document.getElementById('sidebar-group-operations');
+  const exportGroup = document.getElementById('sidebar-group-exports');
+  const btnTopIt = document.getElementById('btn-top-it');
+  const btnTopConfig = document.getElementById('btn-top-config');
+
+  if (itBtn) itBtn.style.display = 'none';
+  if (configBtn) configBtn.style.display = 'none';
+  if (opGroup) opGroup.style.display = 'none';
+  if (exportGroup) exportGroup.style.display = 'none';
+  if (btnTopIt) btnTopIt.style.display = 'none';
+  if (btnTopConfig) btnTopConfig.style.display = 'none';
+
   switchView('auth');
   showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
 }

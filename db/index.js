@@ -307,18 +307,18 @@ function initializeDatabase() {
       }
     });
 
-    // Seed 4 Admins and 4 Staff (IT Field/On-Site Technicians)
+    // Seed 4 Admins and 4 Staff (IT Leadership & On-Site Technicians)
     const adminPass = hashPassword('admin123');
     const staffPass = hashPassword('staff123');
     const standardUsers = [
-      ['admin', adminPass, 'admin', 'Admin 1 (Technical Support Head)', 'Technical Support & Infrastructure'],
-      ['admin2', adminPass, 'admin', 'Admin 2 (Senior IT Support)', 'Technical Support & Infrastructure'],
-      ['admin3', adminPass, 'admin', 'Admin 3 (Systems & Network IT)', 'Technical Support & Infrastructure'],
-      ['admin4', adminPass, 'admin', 'Admin 4 (Hardware & Claim IT)', 'Technical Support & Infrastructure'],
-      ['staff', staffPass, 'staff', 'Staff 1 (IT Field Technician - On-Site)', 'Technical Support & Infrastructure'],
-      ['staff2', staffPass, 'staff', 'Staff 2 (IT On-site Support)', 'Technical Support & Infrastructure'],
-      ['staff3', staffPass, 'staff', 'Staff 3 (IT Mobile Hardware Support)', 'Technical Support & Infrastructure'],
-      ['staff4', staffPass, 'staff', 'Staff 4 (IT Ward Support Staff)', 'Technical Support & Infrastructure']
+      ['admin', adminPass, 'admin', 'นายณรงค์ฤทธิ์ ธนกิจโภคิน (Technical Support Head)', 'Technical Support & Infrastructure'],
+      ['admin2', adminPass, 'admin', 'นายวิศรุต เกียรติอนันต์ (IT Operations & Infrastructure Manager)', 'Technical Support & Infrastructure'],
+      ['admin3', adminPass, 'admin', 'นายธีรศักดิ์ วงศ์สวรรค์ (Senior Systems & Network Engineer)', 'Technical Support & Infrastructure'],
+      ['admin4', adminPass, 'admin', 'น.ส.กัญญาพัชร สิทธิวัฒน์ (Hardware & RMA Claim Administrator)', 'Technical Support & Infrastructure'],
+      ['staff', staffPass, 'staff', 'นายประสิทธิ์ มั่นคง (IT Field Technician - On-Site)', 'Technical Support & Infrastructure'],
+      ['staff2', staffPass, 'staff', 'นายธนดล เจริญสุข (Ward & Emergency Support Technician)', 'Technical Support & Infrastructure'],
+      ['staff3', staffPass, 'staff', 'นายอนุสรณ์ พงษ์ศิริ (Mobile & Hardware Technician)', 'Technical Support & Infrastructure'],
+      ['staff4', staffPass, 'staff', 'น.ส.พัชรินทร์ สมบูรณ์ (IT Helpdesk & Loaner Coordinator)', 'Technical Support & Infrastructure']
     ];
 
     standardUsers.forEach(u => {
@@ -334,32 +334,39 @@ function initializeDatabase() {
       if (row && row.count === 0) {
         db.run(
           `INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
-          ('Building 1', '1', 'ฉุกเฉิน (ER)', 0),
-          ('Building 1', '2', 'ศูนย์ระบบทางเดินอาหาร (GI)', 0),
+          ('Building 1', '1', 'ฉุกเฉิน (Emergency Room / ER)', 0),
+          ('Building 1', '1', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 0),
+          ('Building 1', '1', 'ห้องจ่ายยากลาง (Central Pharmacy)', 0),
+          ('Building 1', '2', 'ศูนย์เอกซเรย์และรังสีวิทยา (Radiology & Imaging)', 0),
+          ('Building 1', '2', 'ห้องปฏิบัติการทางการแพทย์ (Central Lab)', 0),
+          ('Building 1', '2', 'ศูนย์ส่องกล้องระบบทางเดินอาหาร (GI Endoscopy Center)', 0),
+          ('Building 1', '2', 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', 0),
+          ('Building 1', '3', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 0),
+          ('Building 1', '4', 'ฝ่ายการเงินและบัญชี (Finance & Billing)', 0),
+          ('Building 1', '4', 'เวชระเบียนและสถิติ (Medical Records)', 0),
           ('Building 1', '4', 'Technical Support & Infrastructure', 1),
-          ('Building 1', '4', 'อายุรกรรม', 0),
-          ('Building 1', '5', 'สำนักงาน ผอ.รพ.', 0),
-          ('Call Center New', '2', 'Call Center Employee Workspace', 0)`
+          ('Building 1', '5', 'สำนักงานผู้อำนวยการ (Executive Administration)', 0),
+          ('Building 2', '2', 'ศูนย์รับเรื่องคอลเซ็นเตอร์ (Call Center Workspace)', 0)`
         );
 
         db.run(
           `INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status) VALUES 
-          ('032186040006', 'Webcam', 'Logitech', 'C930E', 'SN9988', 'Logitech C930E', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working', 4500, 36, 60, 'None'),
-          ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J', 'Dell E2318H', 'Technical Support & Infrastructure', '2019-05-10', '2022-05-10', 0, 'Broken', 4800, 36, 48, 'Pending Sell'),
-          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB123456', 'Barcode Scanner W20', 'Ward 20', '2023-01-15', '2026-01-15', 0, 'Working', 6500, 36, 60, 'None'),
-          ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024', 'HP ProOne (ต้อนรับ หน้า รพ.)', 'ต้อนรับ หน้า รพ.', '2024-01-01', '2027-01-01', 1, 'Working', 24500, 36, 60, 'None'),
-          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air (ICU Cart)', 'ICU', '2022-03-10', '2025-03-10', 1, 'Broken', 22000, 36, 60, 'None'),
-          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090', 'DELL-OPT-21', 'Dell OptiPlex (Emergency)', 'ฉุกเฉิน (ER)', '2018-06-01', '2021-06-01', 1, 'Broken', 18500, 36, 48, 'Pending Donation')`
+          ('032186040006', 'Webcam', 'Logitech', 'C930E', 'LGT-C930-9988', 'Logitech C930E Telemed HD', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working', 4500, 36, 60, 'None'),
+          ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J-E2318', 'Dell E2318H 23-inch FHD Monitor', 'Technical Support & Infrastructure', '2019-05-10', '2022-05-10', 0, 'Scrapped', 4800, 36, 48, 'Scrapped'),
+          ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB2208-W20-881', 'Barcode Scanner 2D (เคาน์เตอร์พยาบาล)', 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', '2023-01-15', '2026-01-15', 0, 'Working', 6500, 36, 60, 'None'),
+          ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024-G901', 'HP ProOne 440 G9 (โต๊ะตรวจ 1)', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', '2024-01-01', '2027-01-01', 1, 'Working', 24500, 36, 60, 'None'),
+          ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air 5 (รถเข็น ICU Cart 1)', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', '2022-03-10', '2025-03-10', 1, 'Broken', 22000, 36, 60, 'None'),
+          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090 Micro', 'DELL-OPT-21', 'Dell OptiPlex 7090 Micro (ฉุกเฉิน เดิม)', 'ฉุกเฉิน (Emergency Room / ER)', '2018-06-01', '2021-06-01', 1, 'Pending Donation', 18500, 36, 48, 'Pending Donation')`
         );
 
         db.run(
-          `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username) VALUES 
-          ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system'),
-          ('CIT-2023-SCN-01', 'Ward 20', 'Fl 2', 'Working', 'IN', 'system'),
-          ('CIT-2022-TAB-03', 'ICU', 'Fl 3', 'Broken', 'OUT', 'staff')`
+          `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES 
+          ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system', 'ลงทะเบียนครุภัณฑ์ Webcam ประจำศูนย์เทคโนโลยี'),
+          ('CIT-2023-SCN-01', 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', 'Fl 2', 'Working', 'IN', 'system', 'ตรวจรับเครื่องสแกนเนอร์บาร์โค้ดประจำเคาน์เตอร์พยาบาล วอร์ด 20'),
+          ('CIT-2022-TAB-03', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 'Fl 3', 'Broken', 'OUT', 'staff2', 'แจ้งชำรุด: จอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม')`
         );
 
-        console.log('ClaimIT database initialized with core tables and demo presets [DEMO ONLY].');
+        console.log('ClaimIT database initialized with core tables and realistic hospital presets.');
       }
     });
   });

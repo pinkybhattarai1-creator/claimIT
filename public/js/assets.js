@@ -29,10 +29,10 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย</span>`;
   }
   if (status === 'Broken') {
-    return `<span class="badge badge-broken">🔴 ชำรุด</span>`;
+    return `<span class="badge badge-broken">🔴 ชำรุด/แจ้งซ่อม</span>`;
   }
   if (status === 'Pending Pickup') {
-    return `<span class="badge badge-vendor">🟡 รอศูนย์เข้ามารับ</span>`;
+    return `<span class="badge badge-vendor">🟡 รอศูนย์บริการเข้ารับ</span>`;
   }
   if (isExpired) {
     return `<span class="badge" style="background:#64748b; color:#fff;">⚪ หมดประกันแล้ว</span>`;
@@ -54,7 +54,7 @@ function populateAssetTable(assets) {
       <tr>
         <td colspan="8" style="text-align:center; padding:40px 20px;">
           <div style="font-size:36px; margin-bottom:8px;">📋</div>
-          <div style="font-size:16px; font-weight:600; color:var(--text-main);">ไม่พบคลังรายการครุภัณฑ์</div>
+          <div style="font-size:16px; font-weight:600; color:var(--text-main);">ไม่พบรายการครุภัณฑ์ในระบบ</div>
           <div style="font-size:13.5px; color:var(--text-muted); margin-top:4px;">กดปุ่ม "➕ เพิ่มครุภัณฑ์ใหม่" เพื่อลงทะเบียนครุภัณฑ์เข้าสู่ระบบ</div>
         </td>
       </tr>`;
@@ -146,12 +146,12 @@ async function fetchAndDisplayEvaluation(assetTag, prefix) {
         container.style.background = 'rgba(16, 185, 129, 0.1)';
         container.style.border = '1px solid rgba(16, 185, 129, 0.3)';
         container.style.color = '#10b981';
-        html = `<strong>💡 ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
+        html = `<strong>💡 ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
       } else {
         container.style.background = 'rgba(239, 68, 68, 0.1)';
         container.style.border = '1px solid rgba(239, 68, 68, 0.3)';
         container.style.color = '#ef4444';
-        html = `<strong>⚠️ ผลการวิเคราะห์ความคุ้มค่า (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
+        html = `<strong>⚠️ ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
       }
 
       container.innerHTML = html;
@@ -182,11 +182,11 @@ function displayAssetDetails(asset) {
   
   let warrantyHTML = '';
   if (diffDays > 180) {
-    warrantyHTML = `<span style="color:var(--success); font-weight:600;">ปกติ ในประกัน (เหลือ ${diffDays} วัน)</span>`;
+    warrantyHTML = `<span style="color:var(--success); font-weight:600;">อยู่ในระยะเวลารับประกัน (เหลือ ${diffDays} วัน)</span>`;
   } else if (diffDays > 0) {
-    warrantyHTML = `<span style="color:var(--warning); font-weight:700; background:rgba(245,158,11,0.15); padding:2px 8px; border-radius:4px;">⚠️ ใกล้หมดประกันใน 6 เดือน (เหลือ ${diffDays} วัน / ${Math.ceil(diffDays / 30)} เดือน)</span>`;
+    warrantyHTML = `<span style="color:var(--warning); font-weight:700; background:rgba(245,158,11,0.15); padding:2px 8px; border-radius:4px;">⚠️ ใกล้สิ้นสุดการรับประกันใน 6 เดือน (เหลือ ${diffDays} วัน / ${Math.ceil(diffDays / 30)} เดือน)</span>`;
   } else {
-    warrantyHTML = `<span style="color:var(--danger); font-weight:600;">หมดอายุแล้ว (Expired ${Math.abs(diffDays)} วัน)</span>`;
+    warrantyHTML = `<span style="color:var(--danger); font-weight:600;">สิ้นสุดการรับประกันแล้ว (หมดประกันมาแล้ว ${Math.abs(diffDays)} วัน)</span>`;
   }
   
   document.getElementById(`${prefix}-detail-tag`).textContent = asset.asset_tag;

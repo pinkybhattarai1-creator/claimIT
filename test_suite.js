@@ -125,13 +125,28 @@ function assert(condition, message) {
   console.log(`  ✅ ${message}`);
 }
 
+let localServerInstance = null;
+
 async function runTests() {
   console.log('===============================================================');
   console.log(`🚀 ClaimIT Comprehensive Automated Test Suite (Port: ${PORT})`);
   console.log('===============================================================\n');
 
-  if (server && !server.listening) {
-    await new Promise(resolve => server.on('listening', resolve));
+  // Check if server is already running on port
+  const isRunning = await new Promise(resolve => {
+    const testReq = http.get(`http://127.0.0.1:${PORT}/health`, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    testReq.on('error', () => resolve(false));
+    testReq.setTimeout(500, () => {
+      testReq.destroy();
+      resolve(false);
+    });
+  });
+
+  if (!isRunning) {
+    localServerInstance = app.listen(PORT, '127.0.0.1');
+    await new Promise(resolve => localServerInstance.on('listening', resolve));
   }
 
   // Allow database initialization to settle
@@ -213,7 +228,8 @@ async function runTests() {
     assert(editUserRes.status === 200, 'Admin successfully updated user details (200)');
 
     // Admin trying to deactivate self blocked by safeguard
-    const selfDeleteRes = await makeRequest('DELETE', `/api/users/1`, null, adminToken);
+    const adminId = (adminLogin.data && adminLogin.data.user && adminLogin.data.user.id) ? adminLogin.data.user.id : 1;
+    const selfDeleteRes = await makeRequest('DELETE', `/api/users/${adminId}`, null, adminToken);
     assert(selfDeleteRes.status === 400, 'Admin deactivating own account blocked by system safeguard (400)');
 
     // Deactivate user
@@ -346,16 +362,20 @@ async function runTests() {
 
     // TEST 8: Claim State Machine Transitions
     console.log('\n--- TEST 8: Controlled State Machine Transitions ---');
-    // Valid transition: DRAFT -> VIABLE
-    const trans1 = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'VIABLE' }, staffToken);
+    // Staff attempting claim status transition blocked by RBAC
+    const staffTrans = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'VIABLE' }, staffToken);
+    assert(staffTrans.status === 403, 'Staff access to claim status transition blocked by RBAC (403)');
+
+    // Valid transition: DRAFT -> VIABLE (Admin)
+    const trans1 = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'VIABLE' }, adminToken);
     assert(trans1.status === 200, 'Valid transition DRAFT -> VIABLE succeeded (200)');
 
-    // Valid transition: VIABLE -> CONFIRMED
-    const trans2 = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'CONFIRMED' }, staffToken);
+    // Valid transition: VIABLE -> CONFIRMED (Admin)
+    const trans2 = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'CONFIRMED' }, adminToken);
     assert(trans2.status === 200, 'Valid transition VIABLE -> CONFIRMED succeeded (200)');
 
     // Invalid transition: CONFIRMED -> CLOSED (Arbitrary jump blocked)
-    const transInvalid = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'CLOSED' }, staffToken);
+    const transInvalid = await makeRequest('PUT', `/api/claims/${createdClaimId}/status`, { status: 'CLOSED' }, adminToken);
     assert(transInvalid.status === 400, 'Arbitrary invalid state transition blocked by backend (400)');
 
     // 8.1 Test Asset State Synchronization on Claim Cancellation
@@ -370,8 +390,8 @@ async function runTests() {
     const checkBeforeCancel = await makeRequest('GET', '/api/assets/031709030031', null, staffToken);
     assert(checkBeforeCancel.data.status === 'Pending Pickup', 'Asset status set to Pending Pickup upon claim creation');
 
-    // Cancel the claim
-    const cancelRes = await makeRequest('PUT', `/api/claims/${syncClaimId}/status`, { status: 'CANCELLED' }, staffToken);
+    // Cancel the claim (Admin)
+    const cancelRes = await makeRequest('PUT', `/api/claims/${syncClaimId}/status`, { status: 'CANCELLED' }, adminToken);
     assert(cancelRes.status === 200, 'Claim transitioned to CANCELLED (200)');
 
     // Verify asset status was synchronized back to Working
@@ -443,8 +463,8 @@ async function runTests() {
     console.log('===============================================================\n');
 
   } finally {
-    if (server && server.listening) {
-      server.close();
+    if (localServerInstance && localServerInstance.listening) {
+      localServerInstance.close();
     }
   }
 

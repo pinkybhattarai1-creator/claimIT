@@ -447,12 +447,12 @@ router.post('/resolve-claim', verifyToken, staffOnly, (req, res) => {
   });
 });
 
-// EOL Salvage Management (Pending Sell / Pending Donation / Scrapped) (Staff/Admin)
-router.post('/salvage', verifyToken, staffOnly, (req, res) => {
+// EOL Salvage Management (Pending Sell / Pending Donation / Scrapped) (Admin-only)
+router.post('/salvage', verifyToken, adminOnly, (req, res) => {
   const { asset_tag, salvage_status, action_by_username } = req.body;
   if (!asset_tag || !salvage_status) return res.status(400).json({ error: 'Missing asset_tag or salvage_status' });
 
-  const actionUser = action_by_username || (req.user ? req.user.username : 'staff');
+  const actionUser = action_by_username || (req.user ? req.user.username : 'admin');
   let newAssetStatus = 'Broken';
   if (salvage_status === 'Pending Sell') newAssetStatus = 'Pending Sell';
   else if (salvage_status === 'Sold') newAssetStatus = 'Sold';

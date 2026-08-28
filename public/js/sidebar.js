@@ -81,13 +81,16 @@ function setupQuickSidebar() {
 
   if (viewTodayBtn) {
     viewTodayBtn.addEventListener('click', () => {
+      if (sidebar) sidebar.classList.remove('open');
       if (state.user && state.user.role === 'admin') {
         switchView('it');
+        if (typeof switchItTab === 'function') switchItTab('tab-it-audit');
+        filterAuditSpan('today');
+        const auditTable = document.getElementById('audit-table-body');
+        if (auditTable) auditTable.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        showToast('กิจกรรมวันนี้ถูกบันทึกและรวบรวมเข้าสู่ศูนย์ IT เรียบร้อยแล้ว', 'info', 3000);
       }
-      if (sidebar) sidebar.classList.remove('open');
-      filterAuditSpan('today');
-      const auditTable = document.getElementById('audit-table-body');
-      if (auditTable) auditTable.scrollIntoView({ behavior: 'smooth' });
     });
   }
 }
@@ -127,6 +130,11 @@ function renderSidebarRecentScans() {
 }
 
 function switchDashboardSection(viewName, tabId) {
+  // RBAC Guard
+  if ((viewName === 'it' || viewName === 'config') && (!state.user || state.user.role !== 'admin')) {
+    showToast('สิทธิ์การเข้าถึงถูกจำกัด: เฉพาะผู้ดูแลระบบไอที (IT Admin) เท่านั้น', 'warning', 3500);
+    return;
+  }
   const sidebar = document.getElementById('quick-sidebar');
   if (sidebar) sidebar.classList.remove('open');
   const appSidebar = document.getElementById('app-sidebar');

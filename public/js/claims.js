@@ -322,7 +322,7 @@ function renderClaimsTable(claims) {
     tr.innerHTML = `
       <td><strong>${c.claim_number}</strong></td>
       <td>${c.vendor_name}</td>
-      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${c.asset_count || 1} ชิ้น</span></td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${c.asset_count || 1} รายการ</span></td>
       <td>${dateText}</td>
       <td>${scoreText}</td>
       <td>${badge}</td>
@@ -441,7 +441,7 @@ async function handleNewMultiClaimSubmit(e) {
   }
 
   if (assetTags.length > 5) {
-    showToast('ระบบจำกัดการส่งเคลมได้ไม่เกิน 5 ชิ้นต่อ 1 ใบเคลม', 'warning');
+    showToast('ระบบจำกัดการส่งเคลมได้ไม่เกิน 5 รายการต่อ 1 ใบเคลม', 'warning');
     return;
   }
 
@@ -500,10 +500,11 @@ async function openClaimDetailsModal(claimId) {
     assetsTbody.innerHTML = '';
     (claim.assets || []).forEach(a => {
       const tr = document.createElement('tr');
+      const itemStatusLabel = a.item_status === 'Pending Pickup' ? 'รอศูนย์บริการเข้ารับ' : (a.item_status === 'Returned' ? 'รับเครื่องคืนแล้ว' : (a.item_status || 'รอส่งเคลม'));
       tr.innerHTML = `
         <td><strong>${a.asset_tag}</strong></td>
         <td>${a.device_name || '-'} (${a.brand || '-'} ${a.model || ''})</td>
-        <td><span class="badge">${a.item_status || 'Pending Pickup'}</span></td>
+        <td><span class="badge">${itemStatusLabel}</span></td>
         <td>${a.viability_score !== null ? a.viability_score : '-'}</td>
       `;
       assetsTbody.appendChild(tr);
@@ -524,7 +525,7 @@ async function openClaimDetailsModal(claimId) {
         else if (ns === 'RETURNED' || ns === 'CLOSED') btn.className = 'btn btn-success';
         else btn.className = 'btn btn-secondary';
 
-        btn.textContent = `➡️ เปลี่ยนเป็น ${ns}`;
+        btn.textContent = `➡️ ปรับเป็น ${ns}`;
         btn.onclick = () => handleAdvanceClaimStatus(claimId, ns);
         actionsContainer.appendChild(btn);
       });
