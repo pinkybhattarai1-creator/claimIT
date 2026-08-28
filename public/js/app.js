@@ -22,34 +22,23 @@ function initApp() {
     }
   }
 
-  // Detect initial view from URL path or physical page filename
+  // If user is not logged in, always show login form cleanly
   const path = (window.location.pathname || '').toLowerCase();
   let defaultView = 'auth';
 
-  if (path.includes('ward') || path.includes('staff')) {
-    defaultView = 'ward';
-  } else if (path.includes('config') || path.includes('admin')) {
-    defaultView = (state.user && state.user.role === 'admin') ? 'config' : 'ward';
-  } else if (path.includes('it')) {
-    defaultView = (state.user && state.user.role === 'admin') ? 'it' : 'ward';
-  } else if (path.includes('login')) {
+  if (!state.user) {
     defaultView = 'auth';
   } else {
-    // Root index / default based on session role
-    if (state.user) {
+    // Authenticated user: navigate to requested portal
+    if (path.includes('config') || path.includes('admin')) {
+      defaultView = (state.user.role === 'admin') ? 'config' : 'ward';
+    } else if (path.includes('it')) {
       defaultView = (state.user.role === 'admin') ? 'it' : 'ward';
+    } else if (path.includes('ward') || path.includes('staff')) {
+      defaultView = 'ward';
     } else {
-      defaultView = 'auth';
+      defaultView = (state.user.role === 'admin') ? 'it' : 'ward';
     }
-  }
-
-  // Check if a section is statically marked active in DOM (e.g. standalone ward.html / config.html)
-  const staticActive = document.querySelector('.view-section.active');
-  if (staticActive) {
-    if (staticActive.id === 'ward-section') defaultView = 'ward';
-    else if (staticActive.id === 'config-section' && state.user?.role === 'admin') defaultView = 'config';
-    else if (staticActive.id === 'it-section' && state.user?.role === 'admin') defaultView = 'it';
-    else if (staticActive.id === 'auth-section') defaultView = 'auth';
   }
 
   switchView(defaultView, false);
