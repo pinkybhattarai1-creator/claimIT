@@ -33,14 +33,16 @@ const state = {
 // Page Titles
 const PAGE_TITLES = {
   auth: 'ClaimIT — เข้าสู่ระบบ',
-  ward: 'ClaimIT — Staff Portal (แจ้งซ่อมครุภัณฑ์)',
-  it:   'ClaimIT — IT Dashboard (จัดการระบบ)'
+  ward: 'ClaimIT — Staff Portal (ช่างไอทีภาคสนาม)',
+  it:   'ClaimIT — IT Portal (ศูนย์เคลม & ครุภัณฑ์)',
+  config: 'ClaimIT — System Configuration (ตั้งค่า & จัดการระบบ)'
 };
 
 // Core DOM Elements
 const authSection = document.getElementById('auth-section');
 const wardSection = document.getElementById('ward-section');
 const itSection = document.getElementById('it-section');
+const configSection = document.getElementById('config-section');
 
 const navTabs = document.getElementById('nav-tabs');
 const userBadge = document.getElementById('user-badge');
