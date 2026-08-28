@@ -157,6 +157,22 @@ const server = app.listen(PORT, HOST, () => {
     otherIps.forEach(ip => {
       console.log(`[ClaimIT Network] 📱 เข้าใช้งานผ่านเครือข่าย: http://${ip}:${PORT}`);
     });
+
+    // 9. Automatically open browser on startup when launched directly (npm start / node server.js)
+    if (require.main === module && !process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
+      const openUrl = `http://${hostLabel}:${PORT}`;
+      const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+                       process.platform === 'darwin' ? `open ${openUrl}` :
+                       `xdg-open ${openUrl}`;
+      try {
+        const { exec } = require('child_process');
+        exec(startCmd, (err) => {
+          if (!err) {
+            console.log(`[ClaimIT Browser] 🌐 เปิดหน้าต่างเว็บเบราว์เซอร์อัตโนมัติ: ${openUrl}`);
+          }
+        });
+      } catch {}
+    }
   } catch {}
 });
 
