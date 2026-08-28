@@ -34,15 +34,20 @@ ClaimIT คือระบบบริหารจัดการการรั
 2. กรอก Username และ Password หรือกดปุ่ม **เข้าสู่ระบบด่วน 1-Click (Fast Login)**
 3. มีปุ่มกดเข้าสู่ระบบด่วน 8 บัญชีแบ่งตามบทบาท:
    - **4 เจ้าหน้าที่ไอที (Admins)**:
-     - `admin` (Technical Support Head)
-     - `it_somchai` (นายสมชาย ชาญวิทย์ - Senior IT Support)
-     - `it_wichai` (นายวิชัย สุขเกษม - Systems Administrator)
-     - `it_natthaporn` (น.ส.ณัฐพร รวดเร็ว - Claim Specialist)
-   - **4 เจ้าหน้าที่ประจำแผนก (Staff)**:
-     - `staff` (เจ้าหน้าที่เวชระเบียนทั่วไป)
-     - `staff_icu` (พว.สายใจ ใฝ่บริการ - พยาบาล ICU)
-     - `staff_er` (นพ.เกียรติศักดิ์ มุ่งมั่น - แพทย์ห้องฉุกเฉิน ER)
-     - `staff_opd` (นางสาวอรทัย ยิ้มแย้ม - เจ้าหน้าที่ OPD)
+     - `admin` (Admin 1 - Technical Support Head)
+     - `admin2` (Admin 2 - Senior IT Support)
+     - `admin3` (Admin 3 - Systems & Network IT)
+     - `admin4` (Admin 4 - Hardware & Claim IT)
+   - **4 ช่างไอทีภาคสนาม (Staff)**:
+     - `staff` (Staff 1 - IT Field Technician)
+     - `staff2` (Staff 2 - IT On-site Support)
+     - `staff3` (Staff 3 - IT Mobile Support / iPhone)
+     - `staff4` (Staff 4 - IT Ward Support Staff)
+
+4. **การเชื่อมต่อผ่าน iPhone / มือถือใน รพ.**:
+   - แถบใต้ฟอร์มล็อกอินจะแสดง URL เชื่อมต่อผ่านเครือข่าย รพ. อัตโนมัติ (เช่น `http://10.33.43.xx:8847`)
+   - มีปุ่ม [📋 คัดลอก] เพื่อนำไปเปิดใน Safari / Chrome บน iPhone ได้ทันที
+   - สามารถกด [⚙️ เปลี่ยน IP] เพื่อระบุ IP Address เองได้หากใช้วงเครือข่ายเฉพาะ
 
 ข้อสำคัญ:
 - Token หมดอายุใน 8 ชั่วโมง
@@ -62,13 +67,15 @@ Nav Bar ด้านบนประกอบด้วย:
 - ปุ่มส่งออก Excel
 - ปุ่มออกจากระบบ (Logout)
 - ปุ่ม [Staff Portal] — สำหรับแจ้งซ่อมจากวอร์ด
-- ปุ่ม [IT Portal] — สำหรับจัดการเคลม (เฉพาะ Admin เท่านั้น)
+- ปุ่ม [🛠️ ช่างไอทีภาคสนาม (Staff Portal)] — สำหรับสแกน ตรวจเช็คประกัน และแจ้งซ่อม
+- ปุ่ม [💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)] — สำหรับเปิดใบเคลม RMA, ทะเบียนครุภัณฑ์ และ Audit Trail (เฉพาะ Admin)
+- ปุ่ม [⚙️ ตั้งค่า & จัดการระบบ (System Admin)] — ส่วนจัดการแยกเฉพาะ: Users, Configurations, Database Backup (เฉพาะ Admin)
 - ปุ่ม [ข้อมูลด่วน / Quick Sidebar] — เปิด Quick Hub
 - ปุ่ม [ส่งออก Excel] — ดาวน์โหลดรายงาน
 - ปุ่ม [ออกจากระบบ] — Logout
 
-Staff ที่ไม่ใช่ Admin จะเห็นปุ่ม IT Portal แต่กดแล้วได้รับแจ้งเตือน
-"เฉพาะเจ้าหน้าที่ IT (Admin) เท่านั้น"
+Staff ที่ไม่ใช่ Admin จะเห็นปุ่มทั้ง 3 ส่วนเพื่อความโปร่งใสของโครงสร้างระบบ แต่หากกดส่วนของ Admin จะได้รับแจ้งเตือน
+"เฉพาะเจ้าหน้าที่ผู้ดูแลระบบ (Admin) เท่านั้น"
 
 ---
 
@@ -86,12 +93,21 @@ POST /api/auth/change-password
 Body: { username, current_password, new_password }
 ผู้ใช้สามารถเปลี่ยนรหัสผ่านตัวเองได้โดยไม่ต้องขอ Admin
 
-## เข้าสู่ระบบด่วนตามสิทธิ์ (Fast Login Buttons)
+## เข้าสู่ระบบด่วนตามสิทธิ์ (Fast Login 8 Accounts)
 
-หน้าเข้าสู่ระบบมีปุ่ม Fast Login เพื่อความสะดวกในการสลับสิทธิ์การทำงาน:
-- 👑 เข้าสู่ระบบ IT Admin (ผู้ดูแลระบบ)
-- 🛡️ เข้าสู่ระบบพนักงานทั่วไป (เจ้าหน้าที่ประจำแผนก)
-คลิกเพื่อเข้าสู่ระบบตามสิทธิ์ที่ต้องการทันที
+หน้าเข้าสู่ระบบมีปุ่ม Fast Login 8 บัญชีแบ่งเป็น 2 ฝั่งเพื่อความสะดวกในการสลับสิทธิ์การทำงาน:
+- **💻 ฝ่ายไอที (4 Admins)**:
+  - 👑 `admin` (Admin 1 - หัวหน้าไอที)
+  - 💻 `admin2` (Admin 2 - ช่างอาวุโส)
+  - 🖥️ `admin3` (Admin 3 - ดูแลระบบ/เน็ตเวิร์ก)
+  - 🏷️ `admin4` (Admin 4 - ฝ่ายเคลม/ฮาร์ดแวร์)
+- **🛠️ ช่างภาคสนาม (4 Staff)**:
+  - 🛠️ `staff` (Staff 1 - ช่างไอทีภาคสนาม)
+  - 📱 `staff2` (Staff 2 - ช่างประจำวอร์ด)
+  - ⚡ `staff3` (Staff 3 - ไอทีโมบาย/iPhone)
+  - 📋 `staff4` (Staff 4 - ผู้ช่วยไอที)
+
+คลิกปุ่มใดก็ได้เพื่อเข้าสู่ระบบตามสิทธิ์ทันทีแบบ 1-Click โดยไม่ต้องพิมพ์รหัสผ่าน
 
 ---
 

@@ -32,39 +32,49 @@
 
 ---
 
-## 🏥 ภาพรวมระบบ (System Overview)
+## 🏥 ภาพรวมระบบและโครงสร้างสิทธิ์ (System Overview & Roles)
 
-ClaimIT ออกแบบมาเพื่อรองรับกระบวนการงานจริงของฝ่าย IT Support โรงพยาบาล:
+ClaimIT ออกแบบมาเพื่อกระบวนการทำงานจริงของฝ่ายเทคโนโลยีสารสนเทศ (IT Department) โรงพยาบาล:
 
-    Hospital Staff (พนักงานทั่วไปและเจ้าหน้าที่ทุกแผนก)
-      สแกนบาร์โค้ด → แจ้งชำรุด → พิมพ์แบบฟอร์มส่งซ่อม
+    IT Field Staff (ช่างไอทีภาคสนาม / On-site Support)
+      เปิดผ่าน iPhone/มือถือ หรือคอมพิวเตอร์ → สแกนบาร์โค้ด / ถ่ายรูปความเสียหาย → ตรวจเช็คประกัน (พ.ศ./ค.ศ.) → แจ้งซ่อม / ขอยืมเครื่องสำรอง
 
-    IT Staff (เจ้าหน้าที่ไอที)
-      รับแจ้ง → ล้างข้อมูล (PDPA) → สร้างใบเคลม → ส่งศูนย์บริการ → รับเครื่องคืน → ปิดงาน
+    IT Admin / Supervisor (ผู้ดูแลระบบและหัวหน้าไอที)
+      รับแจ้งซ่อม → ตรวจสอบความคุ้มค่า (Viability Score) → ล้างข้อมูล PDPA → ออกใบเคลม RMA (1-5 รายการ) → ประสานงานศูนย์ซ่อม → ปิดงานเคลม
 
-    Admin (หัวหน้า IT / ผู้ดูแลระบบ)
-      จัดการผู้ใช้ → กำหนดการตั้งค่า → ดู Audit Trail → Export รายงาน
+    System Management (ผู้บริหารระบบ)
+      จัดการบัญชีผู้ใช้ (RBAC) → ตั้งค่าหมวดหมู่/แบรนด์ → ดู Audit Trail แบบ Real-time → ส่งออก Excel/TSV → สำรองฐานข้อมูลอัตโนมัติ
 
 ---
 
-## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Pre-seeded Accounts: 4 Admins + 4 Staff)
+## 🌿 โครงสร้าง Git Branches บน GitHub
+
+- **`finalhtinmc`** *(Current Production Release)*: โค้ดหลักระบบ ClaimIT v1.0 แบบ Clean Core (Non-AI), ไม่มีโค้ดทดสอบ, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone, และไร้ Outer Scroller
+- **`main`** *(Production Master)*: รวมโค้ดหลักของ `finalhtinmc` สำหรับ Production Deployment
+- **`finalhtinmc-experiment`** *(Experimental AI Branch)*: สาขาสำหรับทดลองระบบปัญญาประดิษฐ์ Multi-provider AI (Groq Cloud, OpenRouter, Google Gemini, OCR และ Vision Inspection)
+
+---
+
+## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Pre-seeded Accounts: 4 IT Admins + 4 IT Staff)
 
 ### 💻 บัญชีเจ้าหน้าที่ฝ่ายไอที (4 IT Admins)
 | Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
 |---|---|---|---|
-| `admin` | `admin123` | Technical Support Head (หัวหน้าไอที) | Technical Support & Infrastructure |
-| `it_somchai` | `admin123` | นายสมชาย ชาญวิทย์ (Senior IT Support) | Technical Support & Infrastructure |
-| `it_wichai` | `admin123` | นายวิชัย สุขเกษม (Systems Administrator) | Technical Support & Infrastructure |
-| `it_natthaporn` | `admin123` | น.ส.ณัฐพร รวดเร็ว (Claim Specialist) | Technical Support & Infrastructure |
+| `admin` | `admin123` | Admin 1 (Technical Support Head - หัวหน้าไอที) | Technical Support & Infrastructure |
+| `admin2` | `admin123` | Admin 2 (Senior IT Support - ช่างอาวุโส) | Technical Support & Infrastructure |
+| `admin3` | `admin123` | Admin 3 (Systems & Network IT - ดูแลระบบ) | Technical Support & Infrastructure |
+| `admin4` | `admin123` | Admin 4 (Hardware & Claim IT - ฝ่ายเคลม) | Technical Support & Infrastructure |
 
-### 🧑‍💼 บัญชีเจ้าหน้าที่ประจำแผนก (4 Hospital Staff)
+### 🛠️ บัญชีช่างไอทีภาคสนาม / On-site Support (4 IT Staff)
 | Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
 |---|---|---|---|
-| `staff` | `staff123` | เจ้าหน้าที่เวชระเบียนทั่วไป | เวชระเบียนและต้อนรับ |
-| `staff_icu` | `staff123` | พว.สายใจ ใฝ่บริการ (พยาบาล ICU) | ICU |
-| `staff_er` | `staff123` | นพ.เกียรติศักดิ์ มุ่งมั่น (แพทย์ห้องฉุกเฉิน ER) | ฉุกเฉิน (ER) |
-| `staff_opd` | `staff123` | นางสาวอรทัย ยิ้มแย้ม (เจ้าหน้าที่ OPD) | ศูนย์ระบบทางเดินอาหาร (GI) |
+| `staff` | `staff123` | Staff 1 (IT Field Technician - On-Site) | Technical Support & Infrastructure |
+| `staff2` | `staff123` | Staff 2 (IT On-site Support - ช่างประจำวอร์ด) | Technical Support & Infrastructure |
+| `staff3` | `staff123` | Staff 3 (IT Mobile Hardware Support - โมบาย/iPhone) | Technical Support & Infrastructure |
+| `staff4` | `staff123` | Staff 4 (IT Ward Support Staff - ผู้ช่วยไอที) | Technical Support & Infrastructure |
+
+*(หมายเหตุ: ทุกบัญชีสามารถกดปุ่ม "✏️ แก้ไขชื่อ" เพื่อเปลี่ยนชื่อและแผนกของตนเองได้ตลอดเวลาตามต้องการ)*
 
 ---
 
-*อัปเดต: สิงหาคม 2026 — ครอบคลุมทุก Feature ในระบบ ClaimIT v1.0 พร้อมระบบ 6 เดือน, วันที่สองปี พ.ศ./ค.ศ., และโปรไฟล์ส่วนตัว*
+*อัปเดต: สิงหาคม 2026 — ครอบคลุมระบบช่างไอทีภาคสนาม, ใช้งานผ่าน iPhone/มือถือ, อัปโหลดภาพถ่ายครุภัณฑ์, ระบบ 6 เดือน, และวันที่สองปี พ.ศ./ค.ศ.*

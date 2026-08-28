@@ -1,4 +1,4 @@
-﻿# 17 — Quick Hub Sidebar (ข้อมูลด่วน)
+# 17 — Quick Hub Sidebar (ข้อมูลด่วน)
 
 กลุ่มผู้ใช้: ทุกคน (Staff / IT Admin)
 
@@ -18,7 +18,12 @@
 
 ---
 
-## 4 แผงใน Sidebar
+## 6 แผงใน Sidebar (Quick Hub Panels)
+
+### แผง 0: 📱 เปิดบนมือถือ / iPhone (Mobile & Hospital IP)
+- แสดง URL สำหรับเปิดใช้งาน ClaimIT บน iPhone/มือถือ (เช่น `http://10.33.43.xx:8847`)
+- ปุ่ม **[📋]** คัดลอก URL เข้าคลิปบอร์ด 1-Click
+- ปุ่ม **[⚙️ ตั้ง IP]** สำหรับเปลี่ยน Host หรือ IP ให้ตรงกับวงเน็ตเวิร์กที่ใช้งาน
 
 ### แผง 1: กิจกรรมวันนี้ (Today's Cases)
 - แสดงจำนวน Audit Log ที่เกิดขึ้นวันนี้
@@ -42,6 +47,9 @@
 ### แผง 4: ส่งออกข้อมูล (Quick Export)
 - ปุ่ม [ดาวน์โหลด Excel ทั้งหมด (.xls)]
 - ปุ่ม [ดาวน์โหลด CSV ครุภัณฑ์ (.csv)]
+
+### แผง 5: 🧭 สลับส่วนงานด่วน (Dashboard Section Switcher)
+- สลับไปยัง Staff Portal, Scanner Console, Claims Tracking, Inventory, Audit Trail, และ System Configurations ได้ทันทีแบบ 1-Click โดยไม่ต้องเลื่อนหาปุ่มในหน้าจอหลัก
 
 ---
 

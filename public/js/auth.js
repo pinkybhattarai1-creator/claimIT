@@ -4,70 +4,6 @@
  * RBAC navigation display, and logout.
  */
 
-// ─── Entry Gate Passcode (Default: 1) ───────────────────────────────────────
-function checkSecurityGate() {
-  const gateModal = document.getElementById('security-gate-modal');
-  if (!gateModal) return true;
-
-  const isUnlocked = localStorage.getItem('claimit_gate_passed') === 'true' ||
-                     document.cookie.includes('claimit_gate=1');
-
-  if (!isUnlocked) {
-    gateModal.style.display = 'flex';
-    setTimeout(() => {
-      const input = document.getElementById('gate-passcode-input');
-      if (input) input.focus();
-    }, 100);
-    return false;
-  } else {
-    gateModal.style.display = 'none';
-    return true;
-  }
-}
-
-async function handleGateSubmit(e) {
-  e.preventDefault();
-  const input = document.getElementById('gate-passcode-input');
-  const passcode = input ? input.value.trim() : '';
-
-  try {
-    const res = await fetch('/api/verify-gate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode })
-    });
-
-    if (res.ok || passcode === '1') {
-      localStorage.setItem('claimit_gate_passed', 'true');
-      document.cookie = 'claimit_gate=1; Path=/; Max-Age=2592000';
-      const gateModal = document.getElementById('security-gate-modal');
-      if (gateModal) gateModal.style.display = 'none';
-      showToast('🔓 ปลดล็อกเข้าใช้งานระบบสำเร็จ ยินดีต้อนรับ!', 'success', 3000);
-    } else {
-      const err = await res.json();
-      showToast(err.error || 'รหัสผ่านไม่ถูกต้อง (รหัสผ่านเริ่มต้นคือ 1)', 'error', 4000);
-      if (input) {
-        input.value = '';
-        input.focus();
-      }
-    }
-  } catch {
-    // Client-side fallback if offline
-    if (passcode === '1') {
-      localStorage.setItem('claimit_gate_passed', 'true');
-      const gateModal = document.getElementById('security-gate-modal');
-      if (gateModal) gateModal.style.display = 'none';
-      showToast('🔓 ปลดล็อกเข้าใช้งานระบบสำเร็จ!', 'success', 3000);
-    } else {
-      showToast('รหัสผ่านไม่ถูกต้อง (รหัสผ่านเริ่มต้นคือ 1)', 'error', 4000);
-      if (input) {
-        input.value = '';
-        input.focus();
-      }
-    }
-  }
-}
-
 // ─── Login & Session Management ─────────────────────────────────────────────
 async function handleLogin(e) {
   e.preventDefault();
@@ -104,14 +40,13 @@ async function handleLogin(e) {
 }
 
 function showUserNavigation() {
+  if (!state.user) return;
   userNameEl.textContent = state.user.name;
   userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
   const itBtn = document.getElementById('btn-to-it');
-  if (state.user.role === 'admin') {
-    itBtn.style.display = 'flex';
-  } else {
-    itBtn.style.display = 'none';
-  }
+  const configBtn = document.getElementById('btn-to-config');
+  if (itBtn) itBtn.style.display = 'inline-flex';
+  if (configBtn) configBtn.style.display = 'inline-flex';
 }
 
 function logout() {

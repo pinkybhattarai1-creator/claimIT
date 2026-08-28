@@ -29,6 +29,11 @@ if (SECRET_PORTAL_PATH) {
   });
 }
 
+// Direct portal & convenience routes
+app.get(['/index', '/index.html', '/config', '/admin', '/it', '/ward', '/staff'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // 3. Static Files
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -65,6 +70,37 @@ app.post('/api/verify-gate', (req, res) => {
     return res.json({ success: true, message: 'Passcode verified successfully' });
   }
   return res.status(401).json({ success: false, error: 'รหัสผ่านไม่ถูกต้อง (รหัสผ่านคือ 1)' });
+});
+
+// Network & Mobile Connection Info Endpoint
+app.get('/api/network-info', (req, res) => {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  let hospitalIp = null;
+  let primaryIp = null;
+  const allIps = [];
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        allIps.push(net.address);
+        if (net.address.startsWith('10.33.') || net.address.startsWith('10.')) {
+          if (!hospitalIp) hospitalIp = net.address;
+        } else if (!primaryIp) {
+          primaryIp = net.address;
+        }
+      }
+    }
+  }
+
+  const detectedIp = hospitalIp || primaryIp || '127.0.0.1';
+  res.json({
+    detectedIp,
+    hospitalIp: hospitalIp || detectedIp,
+    allIps,
+    port: PORT,
+    mobileUrl: `http://${detectedIp}:${PORT}`
+  });
 });
 
 // 6. Mount API Route Modules
@@ -121,6 +157,22 @@ const server = app.listen(PORT, HOST, () => {
     otherIps.forEach(ip => {
       console.log(`[ClaimIT Network] 📱 เข้าใช้งานผ่านเครือข่าย: http://${ip}:${PORT}`);
     });
+
+    // 9. Automatically open browser on startup when launched directly (npm start / node server.js)
+    if (require.main === module && !process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
+      const openUrl = `http://${hostLabel}:${PORT}`;
+      const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+                       process.platform === 'darwin' ? `open ${openUrl}` :
+                       `xdg-open ${openUrl}`;
+      try {
+        const { exec } = require('child_process');
+        exec(startCmd, (err) => {
+          if (!err) {
+            console.log(`[ClaimIT Browser] 🌐 เปิดหน้าต่างเว็บเบราว์เซอร์อัตโนมัติ: ${openUrl}`);
+          }
+        });
+      } catch {}
+    }
   } catch {}
 });
 

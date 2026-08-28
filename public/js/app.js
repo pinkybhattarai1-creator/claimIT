@@ -10,9 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Check security entry gate (passcode: 1)
-  checkSecurityGate();
-
   // Check local storage for existing session
   const storedUser = localStorage.getItem('claimit_user');
   if (storedUser) {
@@ -49,31 +46,49 @@ function switchView(viewName) {
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
+  if (configSection) configSection.classList.remove('active');
+
+  const btnWard = document.getElementById('btn-to-ward');
+  const btnIt = document.getElementById('btn-to-it');
+  const btnConfig = document.getElementById('btn-to-config');
+
+  btnWard?.classList.remove('active');
+  btnIt?.classList.remove('active');
+  btnConfig?.classList.remove('active');
   
   if (viewName === 'auth') {
     authSection.classList.add('active');
     navTabs.style.display = 'none';
     userBadge.style.display = 'none';
+    updateBreadcrumb('', '');
   } else if (viewName === 'ward') {
     wardSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
-    document.getElementById('btn-to-ward').classList.add('active');
-    document.getElementById('btn-to-it').classList.remove('active');
+    btnWard?.classList.add('active');
+    updateBreadcrumb('Staff Portal', 'สแกน & แจ้งซ่อมภาคสนาม');
     refreshData();
     setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
     itSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
-    document.getElementById('btn-to-it').classList.add('active');
-    document.getElementById('btn-to-ward').classList.remove('active');
+    btnIt?.classList.add('active');
     const currentActiveTab = document.querySelector('.it-tab-btn.active')?.getAttribute('data-tab') || 'tab-it-scanner';
     switchItTab(currentActiveTab);
     refreshData();
     setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
+  } else if (viewName === 'config') {
+    if (configSection) configSection.classList.add('active');
+    navTabs.style.display = 'flex';
+    userBadge.style.display = 'flex';
+    btnConfig?.classList.add('active');
+    const currentActiveCfgTab = document.querySelector('.config-tab-btn.active')?.getAttribute('data-tab') || 'tab-cfg-settings';
+    switchConfigTab(currentActiveCfgTab);
+    refreshData();
   }
 }
+window.switchView = switchView;
 
 // Switch IT sub-navigation tab (Eliminates infinite scrolling)
 function switchItTab(tabId) {
@@ -83,7 +98,42 @@ function switchItTab(tabId) {
   document.querySelectorAll('.it-tab-pane').forEach(pane => {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
+  const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${tabId}"]`);
+  updateBreadcrumb('IT Portal', activeBtn ? activeBtn.textContent.trim() : '');
 }
+window.switchItTab = switchItTab;
+
+// Switch System Configuration sub-navigation tab (Separate Part)
+function switchConfigTab(tabId) {
+  document.querySelectorAll('.config-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.config-tab-pane').forEach(pane => {
+    pane.style.display = pane.id === tabId ? 'block' : 'none';
+  });
+  const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${tabId}"]`);
+  updateBreadcrumb('System Admin', activeBtn ? activeBtn.textContent.trim() : '');
+}
+window.switchConfigTab = switchConfigTab;
+
+// Contextual Breadcrumb Manager
+function updateBreadcrumb(sectionName, tabName) {
+  const bar = document.getElementById('breadcrumb-bar');
+  const secEl = document.getElementById('breadcrumb-section');
+  const tabEl = document.getElementById('breadcrumb-tab');
+  if (!bar || !secEl || !tabEl) return;
+
+  if (state.activeView === 'auth' || !state.user) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  secEl.textContent = sectionName || 'IT Portal';
+  tabEl.textContent = tabName || '';
+  tabEl.style.display = tabName ? 'inline-flex' : 'none';
+}
+window.updateBreadcrumb = updateBreadcrumb;
 
 // Global Refresh Data & Real-Time Sync
 async function refreshData() {
@@ -164,10 +214,6 @@ function closeEmailModal() {
 }
 
 function setupEventListeners() {
-  // Security Entry Gate Form (Passcode: 1)
-  const gateForm = document.getElementById('security-gate-form');
-  if (gateForm) gateForm.addEventListener('submit', handleGateSubmit);
-
   // Login & Navigation
   const loginForm = document.getElementById('login-form');
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
@@ -185,6 +231,17 @@ function setupEventListeners() {
       }
     });
   }
+
+  const toConfigBtn = document.getElementById('btn-to-config');
+  if (toConfigBtn) {
+    toConfigBtn.addEventListener('click', () => {
+      if (state.user && state.user.role === 'admin') {
+        switchView('config');
+      } else {
+        showToast('เฉพาะเจ้าหน้าที่ผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าถึงการตั้งค่าระบบได้', 'warning');
+      }
+    });
+  }
   
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
   
@@ -193,6 +250,14 @@ function setupEventListeners() {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-tab');
       if (tabId) switchItTab(tabId);
+    });
+  });
+
+  // System Configuration Sub-Navigation Tabs Click Listener
+  document.querySelectorAll('.config-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      if (tabId) switchConfigTab(tabId);
     });
   });
 
@@ -280,13 +345,20 @@ function setupEventListeners() {
     });
   }
   
-  // Action Buttons - Report Broken with Symptom Details
+  // Action Buttons - Report Broken with Symptom Details & Mobile Photo Evidence
   const btnReportBroken = document.getElementById('btn-report-broken');
   if (btnReportBroken) {
-    btnReportBroken.addEventListener('click', () => {
+    btnReportBroken.addEventListener('click', async () => {
       const issueInput = document.getElementById('ward-issue-input');
-      const issueText = issueInput ? issueInput.value.trim() : '';
-      updateAssetStatus('Broken', issueText);
+      let issueText = issueInput ? issueInput.value.trim() : '';
+      if (state.wardCapturedPhotoFile) {
+        issueText = (issueText ? issueText + ' ' : '') + '[📷 แนบภาพถ่ายจากมือถือแล้ว]';
+      }
+      const tag = state.selectedAsset ? state.selectedAsset.asset_tag : null;
+      await updateAssetStatus('Broken', issueText);
+      if (tag && state.wardCapturedPhotoFile) {
+        await uploadWardCapturedPhoto(tag);
+      }
     });
   }
   
@@ -647,3 +719,159 @@ async function loadStaffTracker() {
   }
 }
 window.loadStaffTracker = loadStaffTracker;
+
+// ─── Mobile Connection & Hospital IP Manager ────────────────────────────────
+let currentMobileUrl = '';
+
+async function fetchNetworkInfo() {
+  try {
+    const res = await fetch('/api/network-info');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    const savedCustomIp = localStorage.getItem('claimit_custom_ip');
+    const activeHost = savedCustomIp || data.detectedIp || window.location.hostname;
+    currentMobileUrl = `http://${activeHost}:${data.port || window.location.port || 8847}`;
+
+    const loginInput = document.getElementById('mobile-connect-url-input');
+    if (loginInput) loginInput.value = currentMobileUrl;
+
+    const sidebarInput = document.getElementById('sidebar-mobile-url-input');
+    if (sidebarInput) sidebarInput.value = currentMobileUrl;
+
+    const modalInput = document.getElementById('modal-mobile-url-input');
+    if (modalInput) modalInput.value = currentMobileUrl;
+
+    const customInput = document.getElementById('custom-ip-input');
+    if (customInput && savedCustomIp) customInput.value = savedCustomIp;
+  } catch (e) {
+    console.warn('Network info fetch error:', e);
+    currentMobileUrl = window.location.origin;
+  }
+}
+
+function copyMobileUrl() {
+  const url = currentMobileUrl || window.location.origin;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('📋 คัดลอกลิงก์สำหรับ iPhone/มือถือแล้ว!', 'success'))
+    .catch(() => prompt('คัดลอกลิงก์นี้เปิดบนมือถือ:', url));
+}
+window.copyMobileUrl = copyMobileUrl;
+
+function openMobileIpModal() {
+  fetchNetworkInfo();
+  const modal = document.getElementById('mobile-ip-modal');
+  if (modal) modal.style.display = 'flex';
+}
+window.openMobileIpModal = openMobileIpModal;
+
+function saveCustomIP() {
+  const input = document.getElementById('custom-ip-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    localStorage.setItem('claimit_custom_ip', val);
+    showToast(`💾 บันทึก IP กำหนดเอง: ${val} แล้ว`, 'success');
+  } else {
+    localStorage.removeItem('claimit_custom_ip');
+    showToast('🔄 คืนค่า IP เป็นระบบตรวจจับอัตโนมัติ', 'info');
+  }
+  fetchNetworkInfo();
+}
+window.saveCustomIP = saveCustomIP;
+
+function promptChangeMobileIP() {
+  openMobileIpModal();
+}
+window.promptChangeMobileIP = promptChangeMobileIP;
+
+// ─── Ward / Staff Photo Capture (Mobile & iPhone Camera) ─────────────────────
+state.wardCapturedPhotoFile = null;
+
+function handleWardPhotoCapture(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  state.wardCapturedPhotoFile = file;
+
+  // Show status tag in Upper Bar
+  const statusTag = document.getElementById('ward-camera-status-tag');
+  if (statusTag) statusTag.style.display = 'flex';
+
+  // Show preview in Details Card
+  const previewBox = document.getElementById('ward-photo-preview-box');
+  const imgEl = document.getElementById('ward-photo-img');
+  if (previewBox && imgEl) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imgEl.src = e.target.result;
+      previewBox.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  showToast('📷 แนบภาพถ่ายจากมือถือสำเร็จ!', 'success');
+}
+window.handleWardPhotoCapture = handleWardPhotoCapture;
+
+function clearWardPhoto() {
+  state.wardCapturedPhotoFile = null;
+  const input = document.getElementById('ward-camera-input');
+  if (input) input.value = '';
+
+  const statusTag = document.getElementById('ward-camera-status-tag');
+  if (statusTag) statusTag.style.display = 'none';
+
+  const previewBox = document.getElementById('ward-photo-preview-box');
+  if (previewBox) previewBox.style.display = 'none';
+}
+window.clearWardPhoto = clearWardPhoto;
+
+async function uploadWardCapturedPhoto(assetTag) {
+  if (!state.wardCapturedPhotoFile || !assetTag) return;
+  try {
+    const formData = new FormData();
+    formData.append('file', state.wardCapturedPhotoFile);
+    formData.append('asset_tag', assetTag);
+
+    const token = localStorage.getItem('claimit_token') || sessionStorage.getItem('claimit_token');
+    await fetch('/api/evidence/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    console.log(`[Photo Evidence] Uploaded photo evidence for ${assetTag}`);
+    clearWardPhoto();
+  } catch (err) {
+    console.warn('Photo evidence upload warning:', err);
+  }
+}
+window.uploadWardCapturedPhoto = uploadWardCapturedPhoto;
+
+async function triggerManualBackup() {
+  const statusText = document.getElementById('backup-status-text');
+  if (statusText) statusText.textContent = '⏳ กำลังสร้างไฟล์สำรอง...';
+  try {
+    const res = await fetch('/api/backup', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ สำรองฐานข้อมูลสำเร็จ: ${data.fileName}`, 'success');
+      if (statusText) statusText.textContent = `✅ สำรองสำเร็จล่าสุด: ${data.fileName}`;
+    } else {
+      showToast(data.error || 'การสำรองข้อมูลล้มเหลว', 'error');
+      if (statusText) statusText.textContent = '❌ การสำรองข้อมูลล้มเหลว';
+    }
+  } catch (err) {
+    console.error('Backup error:', err);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+  }
+}
+window.triggerManualBackup = triggerManualBackup;
+
+// Initialize Network info on load
+document.addEventListener('DOMContentLoaded', () => {
+  fetchNetworkInfo();
+});

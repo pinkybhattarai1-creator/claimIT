@@ -85,6 +85,18 @@ function populateAssetTable(assets) {
   if (!tbody) return;
   
   tbody.innerHTML = '';
+  if (!assets || assets.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center; padding:40px 20px;">
+          <div style="font-size:36px; margin-bottom:8px;">📋</div>
+          <div style="font-size:16px; font-weight:600; color:var(--text-main);">ไม่พบคลังรายการครุภัณฑ์</div>
+          <div style="font-size:13.5px; color:var(--text-muted); margin-top:4px;">กดปุ่ม "➕ เพิ่มครุภัณฑ์ใหม่" เพื่อลงทะเบียนครุภัณฑ์เข้าสู่ระบบ</div>
+        </td>
+      </tr>`;
+    return;
+  }
+
   assets.forEach(asset => {
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
