@@ -50,6 +50,9 @@ app.get(['/index', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Favicon handler
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // 3. Static Files
 app.use(express.static(path.join(__dirname, 'public')));
 
