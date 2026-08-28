@@ -41,17 +41,28 @@ async function handleLogin(e) {
 
 function showUserNavigation() {
   if (!state.user) return;
-  userNameEl.textContent = state.user.name;
-  userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
+  if (userNameEl) userNameEl.textContent = state.user.name;
+  if (userRoleEl) userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
+  const avatarEl = document.getElementById('user-avatar');
+  if (avatarEl) {
+    avatarEl.textContent = (state.user.name || state.user.username || 'U').charAt(0).toUpperCase();
+  }
+  const appSidebar = document.getElementById('app-sidebar');
+  if (appSidebar) appSidebar.style.display = 'flex';
+  if (userBadge) userBadge.style.display = 'flex';
+
   const itBtn = document.getElementById('btn-to-it');
   const configBtn = document.getElementById('btn-to-config');
-  if (itBtn) itBtn.style.display = 'inline-flex';
-  if (configBtn) configBtn.style.display = 'inline-flex';
+  if (itBtn) itBtn.style.display = state.user.role === 'admin' ? 'flex' : 'none';
+  if (configBtn) configBtn.style.display = state.user.role === 'admin' ? 'flex' : 'none';
 }
 
 function logout() {
   localStorage.removeItem('claimit_user');
   state.user = null;
+  const appSidebar = document.getElementById('app-sidebar');
+  if (appSidebar) appSidebar.style.display = 'none';
+  if (userBadge) userBadge.style.display = 'none';
   switchView('auth');
   showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
 }

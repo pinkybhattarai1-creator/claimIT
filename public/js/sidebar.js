@@ -129,6 +129,8 @@ function renderSidebarRecentScans() {
 function switchDashboardSection(viewName, tabId) {
   const sidebar = document.getElementById('quick-sidebar');
   if (sidebar) sidebar.classList.remove('open');
+  const appSidebar = document.getElementById('app-sidebar');
+  if (appSidebar && window.innerWidth <= 900) appSidebar.classList.remove('open');
   if (typeof switchView === 'function') switchView(viewName);
   if (viewName === 'it' && tabId && typeof switchItTab === 'function') {
     switchItTab(tabId);
@@ -137,3 +139,24 @@ function switchDashboardSection(viewName, tabId) {
   }
 }
 window.switchDashboardSection = switchDashboardSection;
+
+// Mobile Navigation Drawer Toggle
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('open');
+  }
+}
+window.toggleMobileSidebar = toggleMobileSidebar;
+
+// Close mobile sidebar on outside click or nav item click
+document.addEventListener('click', (e) => {
+  const sidebar = document.getElementById('app-sidebar');
+  const toggleBtn = e.target.closest('.mobile-menu-btn');
+  if (sidebar && sidebar.classList.contains('open') && !toggleBtn) {
+    if (!sidebar.contains(e.target) || e.target.closest('.sidebar-item')) {
+      sidebar.classList.remove('open');
+    }
+  }
+});
+

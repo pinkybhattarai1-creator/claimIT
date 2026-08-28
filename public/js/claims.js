@@ -53,7 +53,7 @@ async function handleResolveRma(e) {
     resolution_type: document.getElementById('resolve-type').value,
     replacement_serial_no: document.getElementById('resolve-new-serial').value.trim(),
     repair_cost: parseFloat(document.getElementById('resolve-cost').value) || 0,
-    action_by_username: state.user.username
+    action_by_username: state.user ? state.user.username : 'staff'
   };
 
   try {
@@ -97,7 +97,7 @@ async function confirmSanitization() {
   
   const payload = {
     asset_tag: state.selectedAsset.asset_tag,
-    action_by_username: state.user.username,
+    action_by_username: state.user ? state.user.username : 'staff',
     sanitization_note: 'Verified data wipe via IT Security Safeguard Panel (Code: ' + wipeCode.toUpperCase() + ')',
     wipe_code: wipeCode
   };
@@ -159,7 +159,7 @@ async function handleClaimInitiate(e) {
     expected_return_date: expectedDate || '',
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
     sanitization_note: 'Verified data wipe prior to vendor RMA dispatch',
-    action_by_username: state.user.username
+    action_by_username: state.user ? state.user.username : 'staff'
   };
 
   const to = `support@${vendorName.toLowerCase().replace(/\s+/g, '')}.com`;

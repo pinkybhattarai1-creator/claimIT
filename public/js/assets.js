@@ -246,7 +246,8 @@ function displayAssetDetails(asset) {
   quickPanel.appendChild(linkBtn);
 
   const serialEl = document.getElementById(`${prefix}-detail-serial`);
-  if (serialEl) serialEl.closest('.detail-item').after(quickPanel);
+  const detailItem = serialEl ? serialEl.closest('.detail-item') : null;
+  if (detailItem) detailItem.after(quickPanel);
   // --- END WARRANTY QUICK-ACCESS PANEL ---
 
   document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
