@@ -9,24 +9,6 @@
 </head>
 <body>
 
-  <!-- ENTRY SECURITY GATE (Password: 1) -->
-  <div id="security-gate-modal" style="display: none; position: fixed; inset: 0; background: radial-gradient(circle at center, #1e293b, #0f172a); z-index: 99999; justify-content: center; align-items: center; padding: 20px;">
-    <div class="glass-panel" style="max-width: 440px; width: 100%; text-align: center; padding: 36px 28px; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border: 1px solid rgba(56, 189, 248, 0.3);">
-      <div style="font-size: 48px; margin-bottom: 12px;">🏥 🔐</div>
-      <h2 style="font-size: 21px; font-weight: 800; color: #fff; margin-bottom: 6px;">ระบบ ClaimIT โรงพยาบาล</h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">กรุณากรอกรหัสผ่านเพื่อปลดล็อกเข้าใช้งานระบบ</p>
-      
-      <form id="security-gate-form">
-        <div class="form-group" style="margin-bottom: 16px;">
-          <input type="password" id="gate-passcode-input" class="form-control" placeholder="ระบุรหัสผ่านเข้าสู่ระบบ" style="font-size: 20px; text-align: center; letter-spacing: 4px; padding: 12px; border-color: rgba(56, 189, 248, 0.5); background: rgba(0,0,0,0.4);" autofocus autocomplete="off">
-        </div>
-        <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);">
-          🔓 ปลดล็อกเข้าใช้งาน (Unlock)
-        </button>
-      </form>
-    </div>
-  </div>
-
   <!-- Header -->
   <header>
     <div class="nav-container">
@@ -48,7 +30,6 @@
           <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
         </div>
         <button class="btn btn-secondary" id="btn-edit-profile" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="แก้ไขชื่อและแผนกของคุณ">✏️ แก้ไขชื่อ</button>
-        <button class="btn btn-secondary" id="btn-header-mobile-ip" onclick="openMobileIpModal()" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="ลิงก์และ IP สำหรับเปิดในมือถือหรือ iPhone">📱 มือถือ / IP</button>
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน</button>
         <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
         <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">ออกจากระบบ</button>
@@ -66,21 +47,6 @@
       <button class="btn btn-secondary" id="close-sidebar-btn" style="padding: 4px 10px; font-size: 12px;">✕</button>
     </div>
     <div class="quick-sidebar-body">
-      <!-- Panel 0: Mobile / iPhone Connect URL & IP -->
-      <div class="sidebar-panel" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3);">
-        <div class="sidebar-panel-title">
-          <span>📱 เปิดบนมือถือ / iPhone</span>
-          <button type="button" class="btn btn-secondary" onclick="promptChangeMobileIP()" style="font-size: 10px; padding: 2px 6px;">⚙️ ตั้ง IP</button>
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">
-          ใช้เปิดตรวจเช็คงานในวอร์ดผ่าน Wi-Fi รพ.:
-        </div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <input type="text" id="sidebar-mobile-url-input" class="form-control" readonly style="font-size: 11px; padding: 5px 8px; flex: 1; background: rgba(0,0,0,0.3); color: #38bdf8;" value="กำลังโหลด IP...">
-          <button type="button" class="btn" onclick="copyMobileUrl()" style="font-size: 11px; padding: 5px 10px; white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5);">📋</button>
-        </div>
-      </div>
-
       <!-- Panel 1: Today's Case Volume -->
       <div class="sidebar-panel">
         <div class="sidebar-panel-title">
@@ -201,58 +167,6 @@
           
           <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">เข้าสู่ระบบ (Sign In)</button>
         </form>
-        
-        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-color);">
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-align: center;">
-            🚀 เข้าสู่ระบบด่วน 1-Click (4 IT Admins & 4 IT Staff):
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <!-- IT Admins (4 accounts) -->
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-              <div style="font-size: 11px; font-weight: 700; color: #60a5fa; margin-bottom: 2px;">💻 ฝ่ายไอที (4 Admins):</div>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;">
-                👑 <strong>admin</strong> (Admin 1 - หัวหน้าไอที)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin2', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                💻 <strong>admin2</strong> (Admin 2 - ช่างอาวุโส)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin3', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                🖥️ <strong>admin3</strong> (Admin 3 - ดูแลระบบ/เน็ตเวิร์ก)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('admin4', 'admin123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25); color: #bfdbfe;">
-                🏷️ <strong>admin4</strong> (Admin 4 - ฝ่ายเคลม/ฮาร์ดแวร์)
-              </button>
-            </div>
-            <!-- Staff (4 accounts - IT Field/On-Site Staff) -->
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-              <div style="font-size: 11px; font-weight: 700; color: #34d399; margin-bottom: 2px;">🛠️ ช่างภาคสนาม (4 Staff):</div>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7;">
-                🛠️ <strong>staff</strong> (Staff 1 - ช่างไอทีภาคสนาม)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff2', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                📱 <strong>staff2</strong> (Staff 2 - ช่างประจำวอร์ด)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff3', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                ⚡ <strong>staff3</strong> (Staff 3 - ไอทีโมบาย/iPhone)
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="quickLogin('staff4', 'staff123')" style="font-size: 11px; padding: 6px 8px; text-align: left; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #a7f3d0;">
-                📋 <strong>staff4</strong> (Staff 4 - ผู้ช่วยไอที)
-              </button>
-            </div>
-          </div>
-
-          <!-- Mobile / iPhone Connect URL & IP Configuration Strip -->
-          <div style="margin-top: 14px; padding: 10px 12px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; font-size: 11.5px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-weight: 700; color: #a5b4fc;">📱 เปิดใช้งานบน iPhone / มือถือใน รพ.:</span>
-              <button type="button" class="btn btn-secondary" onclick="promptChangeMobileIP()" style="font-size: 10.5px; padding: 2px 7px;">⚙️ เปลี่ยน IP</button>
-            </div>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="mobile-connect-url-input" class="form-control" readonly style="font-size: 11px; padding: 5px 8px; flex: 1; background: rgba(0,0,0,0.3); color: #38bdf8;" value="กำลังโหลด IP...">
-              <button type="button" class="btn" id="btn-copy-mobile-url" onclick="copyMobileUrl()" style="font-size: 11px; padding: 5px 10px; white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5);">📋 คัดลอก</button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1457,36 +1371,6 @@
     </div>
   </div>
 
-  <!-- Mobile & iPhone IP Connection Modal -->
-  <div id="mobile-ip-modal" class="modal-backdrop" style="display: none;">
-    <div class="glass-panel modal-content" style="max-width: 440px; padding: 22px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-        <h3 style="margin: 0; font-size: 16px; color: #fff;">📱 เชื่อมต่อ ClaimIT ผ่านมือถือ / iPhone</h3>
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mobile-ip-modal').style.display='none';" style="padding: 4px 10px; font-size: 12px;">✕</button>
-      </div>
-      <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
-        เปิดใช้งาน ClaimIT บน iPhone หรือสมาร์ทโฟนของช่างไอที โดยเชื่อมต่อ Wi-Fi เดียวกันกับโรงพยาบาล:
-      </p>
-      <div class="form-group">
-        <label style="font-size: 12px; color: #a5b4fc;">🔗 URL สำหรับเปิดบนมือถือ</label>
-        <div style="display: flex; gap: 6px; margin-top: 4px;">
-          <input type="text" id="modal-mobile-url-input" class="form-control" readonly style="font-size: 12.5px; font-weight: 600; color: #38bdf8; background: rgba(0,0,0,0.3);">
-          <button type="button" class="btn" onclick="copyMobileUrl()" style="white-space: nowrap; background: linear-gradient(135deg, #6366f1, #4f46e5); font-size: 12px; padding: 6px 12px;">📋 คัดลอก</button>
-        </div>
-      </div>
-      <div class="form-group" style="margin-top: 14px;">
-        <label style="font-size: 12px; color: var(--text-muted);">⚙️ กำหนด Host / IP เอง (กรณีใช้ Hotspot หรือ Subnet อื่น):</label>
-        <div style="display: flex; gap: 6px; margin-top: 4px;">
-          <input type="text" id="custom-ip-input" class="form-control" placeholder="เช่น 10.33.43.50 หรือ 192.168.1.100" style="font-size: 12px;">
-          <button type="button" class="btn btn-secondary" onclick="saveCustomIP()" style="white-space: nowrap; font-size: 12px; padding: 6px 12px;">💾 บันทึก</button>
-        </div>
-      </div>
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('mobile-ip-modal').style.display='none';">ปิด</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Footer -->
   <footer>
     <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1499,15 +1383,15 @@
   <div id="toast-container"></div>
 
   <!-- Modular Architecture Scripts (Cache-Busted) -->
-  <script src="js/state.js?v=1.3.0"></script>
-  <script src="js/templates.js?v=1.3.0"></script>
-  <script src="js/scanner.js?v=1.3.0"></script>
-  <script src="js/sidebar.js?v=1.3.0"></script>
-  <script src="js/assets.js?v=1.3.0"></script>
-  <script src="js/claims.js?v=1.3.0"></script>
-  <script src="js/audit.js?v=1.3.0"></script>
-  <script src="js/admin.js?v=1.3.0"></script>
-  <script src="js/auth.js?v=1.3.0"></script>
-  <script src="js/app.js?v=1.3.0"></script>
+  <script src="js/state.js?v=1.4.0"></script>
+  <script src="js/templates.js?v=1.4.0"></script>
+  <script src="js/scanner.js?v=1.4.0"></script>
+  <script src="js/sidebar.js?v=1.4.0"></script>
+  <script src="js/assets.js?v=1.4.0"></script>
+  <script src="js/claims.js?v=1.4.0"></script>
+  <script src="js/audit.js?v=1.4.0"></script>
+  <script src="js/admin.js?v=1.4.0"></script>
+  <script src="js/auth.js?v=1.4.0"></script>
+  <script src="js/app.js?v=1.4.0"></script>
 </body>
 </html>
