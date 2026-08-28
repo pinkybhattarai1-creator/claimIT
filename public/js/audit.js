@@ -126,7 +126,14 @@ function populateAuditTable(logs) {
   tbody.innerHTML = '';
   
   if (!logs || logs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">ไม่พบรายการบันทึกประวัติตามเงื่อนไขที่ระบุ</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center; padding:40px 20px;">
+          <div style="font-size:36px; margin-bottom:8px;">📜</div>
+          <div style="font-size:16px; font-weight:600; color:var(--text-main);">ไม่พบรายการบันทึกประวัติการเปลี่ยนแปลง</div>
+          <div style="font-size:13.5px; color:var(--text-muted); margin-top:4px;">ลองปรับช่วงเวลาหรือคำค้นหาเพื่อแสดงบันทึก Audit Logs</div>
+        </td>
+      </tr>`;
     return;
   }
 

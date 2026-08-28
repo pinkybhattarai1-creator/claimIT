@@ -301,7 +301,14 @@ function renderClaimsTable(claims) {
 
   tbody.innerHTML = '';
   if (!claims || claims.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">ไม่พบรายการใบส่งเคลม</td></tr>`;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align:center; padding:40px 20px;">
+          <div style="font-size:36px; margin-bottom:8px;">📦</div>
+          <div style="font-size:16px; font-weight:600; color:var(--text-main);">ไม่พบรายการใบส่งเคลมในระบบ</div>
+          <div style="font-size:13.5px; color:var(--text-muted); margin-top:4px;">กดปุ่ม "➕ สร้างใบเคลมใหม่" เพื่อรวมรายการครุภัณฑ์และส่งเคลมศูนย์บริการ</div>
+        </td>
+      </tr>`;
     return;
   }
 
@@ -322,10 +329,10 @@ function renderClaimsTable(claims) {
       <td>${c.created_by || '-'}</td>
       <td>
         <div style="display:flex; gap:6px;">
-          <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="openClaimDetailsModal(${c.id})">
+          <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; min-height:auto;" onclick="openClaimDetailsModal(${c.id})">
             📋 รายละเอียด
           </button>
-          <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="downloadClaimPDF(${c.id})">
+          <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; min-height:auto;" onclick="downloadClaimPDF(${c.id})">
             📄 PDF
           </button>
         </div>
@@ -359,7 +366,7 @@ async function downloadClaimPDF(claimId) {
   }
 }
 
-// Open New Multi-Asset Claim Modal
+// Open New Multi-Asset Claim Modal (Forward/Backward State Persistence)
 function openNewClaimModal() {
   const modal = document.getElementById('new-multi-claim-modal');
   if (!modal) return;
@@ -378,13 +385,40 @@ function openNewClaimModal() {
     });
   }
 
-  // If an asset is currently selected, pre-fill its tag
+  // Restore draft state if present, or pre-fill selected asset
   const tagsInput = document.getElementById('multi-claim-tags');
-  if (tagsInput && state.selectedAsset) {
+  const rmaInput = document.getElementById('multi-claim-rma');
+  const notesInput = document.getElementById('multi-claim-notes');
+
+  if (state.draftClaim) {
+    if (state.draftClaim.vendor && vendorSelect) vendorSelect.value = state.draftClaim.vendor;
+    if (state.draftClaim.rma && rmaInput) rmaInput.value = state.draftClaim.rma;
+    if (state.draftClaim.tags && tagsInput) tagsInput.value = state.draftClaim.tags;
+    if (state.draftClaim.notes && notesInput) notesInput.value = state.draftClaim.notes;
+  } else if (tagsInput && state.selectedAsset) {
     tagsInput.value = state.selectedAsset.asset_tag;
   }
 
+  // Bind live draft persistence listeners
+  ['multi-claim-vendor', 'multi-claim-rma', 'multi-claim-tags', 'multi-claim-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el._hasDraftListener) {
+      el.addEventListener('input', persistClaimDraft);
+      el.addEventListener('change', persistClaimDraft);
+      el._hasDraftListener = true;
+    }
+  });
+
   modal.style.display = 'flex';
+}
+
+function persistClaimDraft() {
+  state.draftClaim = {
+    vendor: document.getElementById('multi-claim-vendor')?.value || '',
+    rma: document.getElementById('multi-claim-rma')?.value || '',
+    tags: document.getElementById('multi-claim-tags')?.value || '',
+    notes: document.getElementById('multi-claim-notes')?.value || ''
+  };
 }
 
 // Submit New Multi-Asset Claim
@@ -512,16 +546,14 @@ async function openClaimDetailsModal(claimId) {
   }
 }
 
-// Advance Claim Status
+// Advance Claim Status (Streamlined - Smooth One-Click Transitions, No Disruptive Prompts)
 async function handleAdvanceClaimStatus(claimId, targetStatus) {
   let resolutionType = undefined;
   if (targetStatus === 'RETURNED' || targetStatus === 'CLOSED') {
-    const resChoice = prompt('กรุณาระบุผลการเคลม (Repaired / Replaced / Scrapped):', 'Repaired');
-    if (!resChoice) return;
-    resolutionType = resChoice;
+    resolutionType = 'Repaired';
   }
 
-  const notes = prompt(`ระบุหมายเหตุสำหรับการเปลี่ยนสถานะเป็น [${targetStatus}] (ถ้ามี):`, '') || '';
+  const notes = `สถานะปรับปรุงเป็น [${targetStatus}] โดย ${state.user ? state.user.name : 'เจ้าหน้าที่ไอที'}`;
 
   try {
     const res = await fetch(`/api/claims/${claimId}/status`, {
@@ -579,46 +611,34 @@ async function loadAssetEvidence(assetTag) {
   }
 }
 
-// Render Evidence Items
+// Render Evidence Items (Streamlined - Secure View, Zero Delete Prompts)
 function renderEvidenceList(container, items, refreshCallback) {
   container.innerHTML = '';
   if (!items || items.length === 0) {
-    container.innerHTML = `<div style="color:var(--text-muted); font-size:11px;">ยังไม่มีไฟล์หลักฐานแนบ</div>`;
+    container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:4px 0;">ยังไม่มีไฟล์หลักฐานแนบ</div>`;
     return;
   }
 
   items.forEach(item => {
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,0,0,0.25); border-radius:6px;';
+    div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:6px;';
     const isImage = item.file_type && item.file_type.startsWith('image/');
     const icon = isImage ? '🖼️' : '📄';
 
     div.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span>${icon}</span>
-        <a href="/api/evidence/${item.id}/view" target="_blank" style="color:#38bdf8; text-decoration:underline;">
-          ${item.original_filename} (${(item.file_size / 1024).toFixed(1)} KB)
-        </a>
+      <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+        <span style="font-size:16px;">${icon}</span>
+        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          <a href="/api/evidence/${item.id}/view" target="_blank" style="color:#38bdf8; font-weight:600; text-decoration:none;">
+            ${item.original_filename}
+          </a>
+          <span style="color:var(--text-muted); font-size:12px; margin-left:8px;">(${(item.file_size / 1024).toFixed(1)} KB)</span>
+        </div>
       </div>
-      <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;">ลบ</button>
+      <a href="/api/evidence/${item.id}/view" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11.5px; text-decoration:none; min-height:auto;">
+        👁️ เปิดดู
+      </a>
     `;
-    const delBtn = div.querySelector('button');
-    delBtn.onclick = async () => {
-      if (!confirm(`ต้องการลบไฟล์ "${item.original_filename}" หรือไม่?`)) return;
-      try {
-        const delRes = await fetch(`/api/evidence/${item.id}`, { method: 'DELETE', headers: getAuthHeaders() });
-        if (delRes.ok) {
-          showToast('ลบไฟล์หลักฐานสำเร็จ', 'success');
-          if (refreshCallback) refreshCallback();
-        } else {
-          const err = await delRes.json();
-          showToast(err.error || 'ไม่สามารถลบไฟล์ได้', 'error');
-        }
-      } catch {
-        showToast('เกิดข้อผิดพลาดในการลบไฟล์', 'error');
-      }
-    };
-
     container.appendChild(div);
   });
 }
