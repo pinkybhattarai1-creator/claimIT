@@ -10,9 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Check security entry gate (passcode: 1)
-  checkSecurityGate();
-
   // Check local storage for existing session
   const storedUser = localStorage.getItem('claimit_user');
   if (storedUser) {
@@ -217,10 +214,6 @@ function closeEmailModal() {
 }
 
 function setupEventListeners() {
-  // Security Entry Gate Form (Passcode: 1)
-  const gateForm = document.getElementById('security-gate-form');
-  if (gateForm) gateForm.addEventListener('submit', handleGateSubmit);
-
   // Login & Navigation
   const loginForm = document.getElementById('login-form');
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
