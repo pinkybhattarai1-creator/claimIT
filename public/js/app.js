@@ -16,32 +16,74 @@ function initApp() {
     try {
       state.user = JSON.parse(storedUser);
       showUserNavigation();
-      if (state.user.role === 'admin') {
-        switchView('it');
-      } else {
-        switchView('ward');
-      }
     } catch {
       localStorage.removeItem('claimit_user');
-      switchView('auth');
+      state.user = null;
     }
-  } else {
-    switchView('auth');
   }
-  
+
+  // Detect initial view from URL path or physical page filename
+  const path = (window.location.pathname || '').toLowerCase();
+  let defaultView = 'auth';
+
+  if (path.includes('ward') || path.includes('staff')) {
+    defaultView = 'ward';
+  } else if (path.includes('config') || path.includes('admin')) {
+    defaultView = (state.user && state.user.role === 'admin') ? 'config' : 'ward';
+  } else if (path.includes('it')) {
+    defaultView = (state.user && state.user.role === 'admin') ? 'it' : 'ward';
+  } else if (path.includes('login')) {
+    defaultView = 'auth';
+  } else {
+    // Root index / default based on session role
+    if (state.user) {
+      defaultView = (state.user.role === 'admin') ? 'it' : 'ward';
+    } else {
+      defaultView = 'auth';
+    }
+  }
+
+  // Check if a section is statically marked active in DOM (e.g. standalone ward.html / config.html)
+  const staticActive = document.querySelector('.view-section.active');
+  if (staticActive) {
+    if (staticActive.id === 'ward-section') defaultView = 'ward';
+    else if (staticActive.id === 'config-section' && state.user?.role === 'admin') defaultView = 'config';
+    else if (staticActive.id === 'it-section' && state.user?.role === 'admin') defaultView = 'it';
+    else if (staticActive.id === 'auth-section') defaultView = 'auth';
+  }
+
+  switchView(defaultView, false);
+
   // Set up all event listeners across modules
   setupEventListeners();
-  
+
+  // Listen for browser forward/back buttons
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.view) {
+      switchView(e.state.view, false);
+    }
+  });
+
   // Initial data sync if logged in
   if (state.user) {
     refreshData();
   }
 }
 
-// Routing & View Switcher
-function switchView(viewName) {
+// Routing & View Switcher with URL Path Synchronization
+function switchView(viewName, pushHistory = true) {
   state.activeView = viewName;
   document.title = PAGE_TITLES[viewName] || 'ClaimIT';
+
+  // Synchronize browser address bar with view name
+  if (pushHistory && window.history && window.history.pushState) {
+    const targetPath = viewName === 'auth' ? '/' : '/' + viewName;
+    if (window.location.pathname !== targetPath) {
+      try {
+        window.history.pushState({ view: viewName }, '', targetPath);
+      } catch {}
+    }
+  }
 
   authSection.classList.remove('active');
   wardSection.classList.remove('active');

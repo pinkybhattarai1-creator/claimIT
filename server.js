@@ -29,8 +29,24 @@ if (SECRET_PORTAL_PATH) {
   });
 }
 
-// Direct portal & convenience routes
-app.get(['/index', '/index.html', '/config', '/admin', '/it', '/ward', '/staff'], (req, res) => {
+// Direct portal & convenience routes (Serving dedicated page files)
+app.get(['/ward', '/staff', '/ward.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'ward.html'));
+});
+
+app.get(['/it', '/it.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'it.html'));
+});
+
+app.get(['/config', '/admin', '/config.html', '/admin.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'config.html'));
+});
+
+app.get(['/login', '/auth', '/login.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get(['/index', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

@@ -17,7 +17,7 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
 const SENDGRID_FROM = process.env.SENDGRID_FROM || process.env.EMAIL_FROM || 'no-reply@claimit.local';
 const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10);
 const MAX_CLAIM_ASSETS = parseInt(process.env.MAX_CLAIM_ASSETS || '5', 10);
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 const SECRET_PORTAL_PATH = process.env.SECRET_PORTAL_PATH || '';
 
 // Strict validation of JWT Secret in production
