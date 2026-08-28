@@ -63,11 +63,13 @@ function switchView(viewName) {
     authSection.classList.add('active');
     navTabs.style.display = 'none';
     userBadge.style.display = 'none';
+    updateBreadcrumb('', '');
   } else if (viewName === 'ward') {
     wardSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
     btnWard?.classList.add('active');
+    updateBreadcrumb('Staff Portal', 'สแกน & แจ้งซ่อมภาคสนาม');
     refreshData();
     setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
@@ -99,6 +101,8 @@ function switchItTab(tabId) {
   document.querySelectorAll('.it-tab-pane').forEach(pane => {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
+  const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${tabId}"]`);
+  updateBreadcrumb('IT Portal', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchItTab = switchItTab;
 
@@ -110,8 +114,29 @@ function switchConfigTab(tabId) {
   document.querySelectorAll('.config-tab-pane').forEach(pane => {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
+  const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${tabId}"]`);
+  updateBreadcrumb('System Admin', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchConfigTab = switchConfigTab;
+
+// Contextual Breadcrumb Manager
+function updateBreadcrumb(sectionName, tabName) {
+  const bar = document.getElementById('breadcrumb-bar');
+  const secEl = document.getElementById('breadcrumb-section');
+  const tabEl = document.getElementById('breadcrumb-tab');
+  if (!bar || !secEl || !tabEl) return;
+
+  if (state.activeView === 'auth' || !state.user) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  secEl.textContent = sectionName || 'IT Portal';
+  tabEl.textContent = tabName || '';
+  tabEl.style.display = tabName ? 'inline-flex' : 'none';
+}
+window.updateBreadcrumb = updateBreadcrumb;
 
 // Global Refresh Data & Real-Time Sync
 async function refreshData() {

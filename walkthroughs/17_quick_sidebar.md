@@ -18,7 +18,7 @@
 
 ---
 
-## 5 แผงใน Sidebar (Quick Hub Panels)
+## 6 แผงใน Sidebar (Quick Hub Panels)
 
 ### แผง 0: 📱 เปิดบนมือถือ / iPhone (Mobile & Hospital IP)
 - แสดง URL สำหรับเปิดใช้งาน ClaimIT บน iPhone/มือถือ (เช่น `http://10.33.43.xx:8847`)
@@ -47,6 +47,9 @@
 ### แผง 4: ส่งออกข้อมูล (Quick Export)
 - ปุ่ม [ดาวน์โหลด Excel ทั้งหมด (.xls)]
 - ปุ่ม [ดาวน์โหลด CSV ครุภัณฑ์ (.csv)]
+
+### แผง 5: 🧭 สลับส่วนงานด่วน (Dashboard Section Switcher)
+- สลับไปยัง Staff Portal, Scanner Console, Claims Tracking, Inventory, Audit Trail, และ System Configurations ได้ทันทีแบบ 1-Click โดยไม่ต้องเลื่อนหาปุ่มในหน้าจอหลัก
 
 ---
 
