@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClaimIT - ระบบติดตามรับประกันและส่งเคลมไอทีโรงพยาบาล</title>
+  <title>ศูนย์เคลม & ครุภัณฑ์ | ClaimIT</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
   <link rel="stylesheet" href="css/style.css?v=1.4.0">
 </head>
@@ -17,9 +17,9 @@
         <span class="logo-text">ClaimIT</span>
       </a>
       
-      <div class="nav-tabs" id="nav-tabs" style="display: flex;">
-        <button class="nav-btn" id="btn-to-ward">🛠️ ช่างไอทีภาคสนาม (Staff Portal)</button>
-        <button class="nav-btn active" id="btn-to-it">💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)</button>
+      <div class="nav-tabs" id="nav-tabs" style="display: none;">
+        <button class="nav-btn active" id="btn-to-ward">🛠️ ช่างไอทีภาคสนาม (Staff Portal)</button>
+        <button class="nav-btn" id="btn-to-it">💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)</button>
         <button class="nav-btn" id="btn-to-config">⚙️ ตั้งค่า & จัดการระบบ (System Admin)</button>
       </div>
       
@@ -148,7 +148,7 @@
     </div>
     
     <!-- 1. AUTH SECTION -->
-    <section id="auth-section" class="view-section">
+    <section id="auth-section" class="view-section active">
       <div class="login-container glass-panel">
         <div class="login-header">
           <h2 style="font-weight: 800;">ยินดีต้อนรับสู่ ClaimIT</h2>
@@ -415,7 +415,7 @@
     </section>
 
     <!-- 3. IT STAFF PORTAL (Admin View) -->
-    <section id="it-section" class="view-section active">
+    <section id="it-section" class="view-section">
       <!-- Sticky IT Sub-Navigation Bar ("Stuck so it wouldn't get moved around") -->
       <div class="it-subnav-bar" style="position: sticky; top: 68px; z-index: 50; margin-bottom: 20px; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 6px 20px rgba(0,0,0,0.55); align-items: center;">
         <button type="button" class="it-tab-btn active" data-tab="tab-it-scanner">🔍 แผงสแกน & จัดการเคลม</button>

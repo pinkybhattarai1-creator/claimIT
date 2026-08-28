@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClaimIT - ระบบติดตามรับประกันและส่งเคลมไอทีโรงพยาบาล</title>
+  <title>ช่างไอทีภาคสนาม | ClaimIT</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
   <link rel="stylesheet" href="css/style.css?v=1.4.0">
 </head>
@@ -17,7 +17,7 @@
         <span class="logo-text">ClaimIT</span>
       </a>
       
-      <div class="nav-tabs" id="nav-tabs" style="display: flex;">
+      <div class="nav-tabs" id="nav-tabs" style="display: none;">
         <button class="nav-btn active" id="btn-to-ward">🛠️ ช่างไอทีภาคสนาม (Staff Portal)</button>
         <button class="nav-btn" id="btn-to-it">💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)</button>
         <button class="nav-btn" id="btn-to-config">⚙️ ตั้งค่า & จัดการระบบ (System Admin)</button>
@@ -148,7 +148,7 @@
     </div>
     
     <!-- 1. AUTH SECTION -->
-    <section id="auth-section" class="view-section">
+    <section id="auth-section" class="view-section active">
       <div class="login-container glass-panel">
         <div class="login-header">
           <h2 style="font-weight: 800;">ยินดีต้อนรับสู่ ClaimIT</h2>
@@ -171,7 +171,7 @@
     </section>
 
     <!-- 2. STAFF / DEPARTMENT PORTAL (Staff View) -->
-    <section id="ward-section" class="view-section active">
+    <section id="ward-section" class="view-section">
       <!-- Upper Sticky Scanner Bar (Stuck at the top so it won't get moved around) -->
       <div class="glass-panel upper-sticky-bar" style="position: sticky; top: 68px; z-index: 40; margin-bottom: 20px; padding: 16px 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
