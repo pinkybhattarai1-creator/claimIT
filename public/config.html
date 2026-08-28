@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClaimIT - ระบบติดตามรับประกันและส่งเคลมไอทีโรงพยาบาล</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <link rel="stylesheet" href="css/style.css?v=1.3.0">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">C</div>
+        <span class="logo-text">ClaimIT</span>
+      </a>
+      
+      <div class="nav-tabs" id="nav-tabs" style="display: flex;">
+        <button class="nav-btn" id="btn-to-ward">🛠️ ช่างไอทีภาคสนาม (Staff Portal)</button>
+        <button class="nav-btn" id="btn-to-it">💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)</button>
+        <button class="nav-btn active" id="btn-to-config">⚙️ ตั้งค่า & จัดการระบบ (System Admin)</button>
+      </div>
+      
+      <div class="user-badge" id="user-badge" style="display: none;">
+        <div class="user-avatar" id="user-avatar" style="cursor: pointer;" title="คลิกเพื่อแก้ไขข้อมูลของคุณ">U</div>
+        <div style="text-align: left; cursor: pointer;" id="user-profile-info" title="คลิกเพื่อแก้ไขข้อมูลของคุณ">
+          <div style="font-size: 13px; font-weight: 600;" id="user-name">Name</div>
+          <div style="font-size: 11px; color: var(--text-muted);" id="user-role">Role</div>
+        </div>
+        <button class="btn btn-secondary" id="btn-edit-profile" style="padding: 6px 10px; font-size: 12px; margin-left: 6px;" title="แก้ไขชื่อและแผนกของคุณ">✏️ แก้ไขชื่อ</button>
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="เปิดแผงข้อมูลด่วน">📌 ข้อมูลด่วน</button>
+        <button class="btn btn-secondary" id="btn-export-excel-header" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">📊 ส่งออก Excel</button>
+        <button class="btn btn-secondary" id="logout-btn" style="padding: 6px 12px; font-size: 12px; margin-left: 6px;">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Quick-Check Sidebar (Accessible anytime) -->
+  <aside id="quick-sidebar" class="quick-sidebar">
+    <div class="quick-sidebar-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">📌</span>
+        <strong style="font-size: 14px; color: #fff;">ข้อมูลด่วน (Quick Hub)</strong>
+      </div>
+      <button class="btn btn-secondary" id="close-sidebar-btn" style="padding: 4px 10px; font-size: 12px;">✕</button>
+    </div>
+    <div class="quick-sidebar-body">
+      <!-- Panel 1: Today's Case Volume -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📊 กิจกรรมวันนี้ (Today's Cases)</span>
+          <span id="sidebar-volume-badge" class="audit-volume-badge audit-volume-normal">0 รายการ</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;" id="sidebar-volume-desc">
+          กำลังโหลดข้อมูลสถิติ...
+        </div>
+        <button class="btn btn-secondary" id="btn-sidebar-view-today" style="width: 100%; font-size: 12px; padding: 6px;">
+          🔍 กรองเฉพาะกิจกรรมวันนี้
+        </button>
+      </div>
+
+      <!-- Panel 2: Recent Scans -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>⚡ สแกนล่าสุด (Recent Scans)</span>
+          <span style="font-size: 10px; color: var(--text-muted);">5 รายการ</span>
+        </div>
+        <div id="sidebar-recent-scans" style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+          <div style="color: var(--text-muted); font-size: 11px;">ยังไม่มีประวัติการสแกนในเซสชันนี้</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Vendor Claim & Support Hotlines -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📞 เบอร์ติดต่อศูนย์เคลม (Hotlines)</span>
+        </div>
+        <div style="font-size: 11.5px; line-height: 1.7; color: var(--text-muted);">
+          <div>💻 <strong>Dell Support:</strong> <a href="tel:026707250" style="color: #38bdf8;">02-670-7250</a></div>
+          <div>💻 <strong>Lenovo Support:</strong> <a href="tel:1800011936" style="color: #38bdf8;">1800-011-936</a></div>
+          <div>💻 <strong>Acer Call Center:</strong> <a href="tel:021539600" style="color: #38bdf8;">02-153-9600</a></div>
+          <div>🏷️ <strong>IDA RMA Service:</strong> support@idagroup.co.th</div>
+          <div>🖨️ <strong>TSC Barcode Printer:</strong> ติดต่อ Line Service</div>
+          <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); color: #34d399;">
+            🛡️ <strong>IT Helpdesk รพ.:</strong> โทรภายใน 4401 - 4403
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Quick Excel Export -->
+      <div class="sidebar-panel">
+        <div class="sidebar-panel-title">
+          <span>📥 ส่งออกข้อมูล (Quick Export)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn" id="btn-sidebar-export-excel" style="font-size: 12px; padding: 8px; width: 100%; background: linear-gradient(135deg, #10b981, #059669);">
+            📊 ดาวน์โหลด Excel ทั้งหมด (.xls)
+          </button>
+          <button class="btn btn-secondary" id="btn-sidebar-export-csv" style="font-size: 12px; padding: 6px; width: 100%;">
+            📄 ดาวน์โหลด CSV ครุภัณฑ์ (.csv)
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 5: Dashboard Section Switcher -->
+      <div class="sidebar-panel" style="background: rgba(15, 23, 42, 0.6); border-color: rgba(56, 189, 248, 0.3);">
+        <div class="sidebar-panel-title">
+          <span>🧭 สลับส่วนงาน (Section Switcher)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('ward')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px;">
+            🛠️ ช่างไอทีภาคสนาม (Staff Portal)
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('it', 'tab-it-scanner')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px;">
+            🔍 แผงสแกนเนอร์ & RMA Board
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('it', 'tab-it-claims')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px;">
+            📑 รายการใบส่งเคลม (1-5 รายการ)
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('it', 'tab-it-inventory')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px;">
+            📋 ทะเบียนครุภัณฑ์ไอที (Inventory)
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('it', 'tab-it-audit')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px;">
+            📜 ประวัติ & Audit Trail
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('config', 'tab-cfg-settings')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px; border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+            ⚙️ ตั้งค่าระบบ (Configurations)
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchDashboardSection('config', 'tab-cfg-users')" style="justify-content: flex-start; font-size: 12.5px; padding: 8px 12px; border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+            👥 จัดการบัญชีผู้ใช้ (User Management)
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main>
+    <!-- Contextual Breadcrumbs -->
+    <div id="breadcrumb-bar" class="breadcrumb-bar" style="display: none;">
+      <span class="breadcrumb-item">🏠 ClaimIT</span>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-item" id="breadcrumb-section">IT Portal</span>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-item active" id="breadcrumb-tab">แผงสแกน & จัดการเคลม</span>
+    </div>
+    
+    <!-- 1. AUTH SECTION -->
+    <section id="auth-section" class="view-section">
+      <div class="login-container glass-panel">
+        <div class="login-header">
+          <h2 style="font-weight: 800;">ยินดีต้อนรับสู่ ClaimIT</h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-top: 6px;">ระบบเคลมครุภัณฑ์คอมพิวเตอร์และเครือข่ายภายในโรงพยาบาล</p>
+        </div>
+        
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-username">ชื่อผู้ใช้งาน (Username)</label>
+            <input type="text" id="login-username" class="form-control" placeholder="ระบุชื่อผู้ใช้งาน" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-password">รหัสผ่าน (Password)</label>
+            <input type="password" id="login-password" class="form-control" placeholder="ระบุรหัสผ่าน" required autocomplete="current-password">
+          </div>
+          
+          <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">เข้าสู่ระบบ (Sign In)</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 2. STAFF / DEPARTMENT PORTAL (Staff View) -->
+    <section id="ward-section" class="view-section">
+      <!-- Upper Sticky Scanner Bar (Stuck at the top so it won't get moved around) -->
+      <div class="glass-panel upper-sticky-bar" style="position: sticky; top: 68px; z-index: 40; margin-bottom: 20px; padding: 16px 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">📸</span>
+            <div>
+              <h3 style="font-size: 16px; margin: 0; color: #fff;">ระบบแจ้งซ่อมครุภัณฑ์ (Staff Portal)</h3>
+              <div id="ward-scanner-status" style="font-size: 11px; color: #38bdf8;">
+                ⚡ สแกนปุ๊บ ค้นหาทันที (พร้อมระบบตรวจจับการพิมพ์ผิด)
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 8px; align-items: center; flex: 1; max-width: 540px; min-width: 260px;">
+            <input type="text" id="ward-search-input" class="form-control" style="flex: 1; padding: 9px 14px; font-size: 13px;" placeholder="สแกนหรือระบุรหัส เช่น CIT-2024-AIO-02" autofocus>
+            <button class="btn" id="ward-search-btn" style="padding: 9px 16px; font-size: 13px; white-space: nowrap;">🔍 ค้นหา</button>
+            <input type="file" id="ward-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleWardPhotoCapture(event)">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" style="padding: 9px 12px; font-size: 12.5px; white-space: nowrap; display: flex; align-items: center; gap: 5px;" title="ถ่ายรูปครุภัณฑ์ด้วยมือถือหรือ iPhone">
+              📷 ถ่ายรูป
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label class="scanner-mode-switch" style="font-size: 12px;" title="โหมดสแกนเนอร์: ป้องกันการพิมพ์ตกหล่น รับเฉพาะการสแกนความเร็วสูงจากหัวอ่าน">
+              <input type="checkbox" id="ward-scanner-only-mode">
+              <span>🔒 หัวอ่านเท่านั้น</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Compact Presets Inline Strip -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color); flex-wrap: wrap;">
+          <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">⚡ รหัสยอดนิยม:</span>
+          <button type="button" class="preset-tag" onclick="selectPreset('CIT-2024-AIO-02')" style="font-size: 11.5px; padding: 4px 10px;">💻 HP ProOne (ต้อนรับ)</button>
+          <button type="button" class="preset-tag" onclick="selectPreset('CIT-2022-TAB-03')" style="font-size: 11.5px; padding: 4px 10px;">📱 iPad Air (ICU)</button>
+          <button type="button" class="preset-tag" onclick="selectPreset('CIT-2023-SCN-01')" style="font-size: 11.5px; padding: 4px 10px;">🏷️ Zebra Scanner</button>
+          <div id="ward-camera-status-tag" style="display: none; align-items: center; gap: 6px; margin-left: auto; font-size: 11.5px; color: #34d399; background: rgba(16,185,129,0.12); padding: 3px 10px; border-radius: 6px;">
+            📷 แนบรูปภาพแล้ว
+            <span style="cursor: pointer; color: #f87171;" onclick="clearWardPhoto()" title="ลบภาพ">✕</span>
+          </div>
+        </div>
+
+        <!-- Parser Analytics Panel -->
+        <div id="parser-analytics-ward" class="glass-panel" style="margin-top: 10px; display: none; background: rgba(6, 182, 212, 0.05); border-color: rgba(6, 182, 212, 0.2); padding: 10px;"></div>
+
+        <!-- Fuzzy Match Suggestion Banner (Ward) -->
+        <div id="fuzzy-suggestion-ward" style="display: none; margin-top: 10px; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; align-items: center; gap: 10px;">
+          <span style="font-size: 18px;">🔍</span>
+          <div style="flex: 1; font-size: 12px;">
+            <div style="color: var(--warning); font-weight: 700;">ไม่พบรหัสที่ระบุ — พบรหัสใกล้เคียง:</div>
+            <div style="color: var(--text-main);" id="fuzzy-suggestion-ward-text"></div>
+          </div>
+          <button class="btn" id="fuzzy-confirm-ward" style="background: var(--warning); font-size: 12px; padding: 6px 12px;">ใช่ ใช้รหัสนี้ ✓</button>
+          <button class="btn btn-secondary" id="fuzzy-dismiss-ward" style="font-size: 12px; padding: 6px 12px;">ยกเลิก</button>
+        </div>
+      </div>
+
+      <!-- Staff Portal Initial Hub (Rich, mostly buttons, zero scrolling) -->
+      <div id="ward-empty-placeholder" class="glass-panel" style="padding: 22px; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="font-size: 32px; margin-bottom: 6px;">🛡️ 📱</div>
+          <h3 style="font-size: 17px; color: #fff; margin-bottom: 4px;">Staff Portal: สำหรับช่างไอทีภาคสนาม / On-site IT Support</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); max-width: 620px; margin: 0 auto; line-height: 1.5;">
+            สแกนบาร์โค้ด หรือถ่ายรูปครุภัณฑ์ด้วยกล้องมือถือ/iPhone เพื่อตรวจเช็ค บันทึกงาน หรือเบิกอุปกรณ์สำรองได้ทันที
+          </p>
+        </div>
+
+        <!-- Staff Sub-Views Buttons Strip -->
+        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-scan" onclick="switchStaffSubView('scan')" style="padding: 7px 15px; font-size: 12.5px; background: rgba(99, 102, 241, 0.2); border-color: rgba(99, 102, 241, 0.4); color: #fff;">
+            📸 สแกนตรวจเช็ค & แจ้งซ่อม
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-tracker" onclick="switchStaffSubView('tracker')" style="padding: 7px 15px; font-size: 12.5px;">
+            📑 ติดตามงานซ่อมของแผนก
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-staff-sub-loaner" onclick="switchStaffSubView('loaner')" style="padding: 7px 15px; font-size: 12.5px;">
+            🔄 ขอยืมอุปกรณ์สำรองฉุกเฉิน
+          </button>
+        </div>
+
+        <!-- Sub-View 1: Quick Services Buttons (Embedded inside scan view) -->
+        <div id="staff-sub-pane-scan">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 6px;">
+            <!-- Quick PM 6-Month Inspection -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">🛠️</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">ตรวจเช็คบำรุงรักษา (PM)</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">แจ้งเจ้าหน้าที่ IT เข้าตรวจสภาพอุปกรณ์ตามรอบ 6 เดือน</div>
+              <button type="button" class="btn btn-secondary" onclick="requestStaffPM()" style="width: 100%; font-size: 11.5px; padding: 7px;">
+                🗓️ ขอรับการตรวจเช็ค 6 เดือน
+              </button>
+            </div>
+
+            <!-- Quick Loaner Requisition -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">🔄</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">เบิกอุปกรณ์สำรองฉุกเฉิน</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">ขอยืมเครื่อง PC หรือ Scanner ทดแทนชั่วคราว</div>
+              <button type="button" class="btn btn-secondary" onclick="switchStaffSubView('loaner')" style="width: 100%; font-size: 11.5px; padding: 7px;">
+                ⚡ ขอยืมเครื่องสำรองด่วน
+              </button>
+            </div>
+
+            <!-- IT Helpdesk Contacts -->
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; text-align: center;">
+              <div style="font-size: 22px; margin-bottom: 4px;">📞</div>
+              <strong style="font-size: 13px; color: #fff; display: block; margin-bottom: 4px;">สายด่วน IT Support</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">ติดต่อช่างไอทีเวรประจำวัน รพ.</div>
+              <div style="display: flex; gap: 6px; justify-content: center;">
+                <a href="tel:4401" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4401</a>
+                <a href="tel:4402" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4402</a>
+                <a href="tel:4403" class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px; text-decoration: none;">☎️ 4403</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-View 2: Department Repair Tracker Table -->
+        <div id="staff-sub-pane-tracker" style="display: none; margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 13px; font-weight: 600; color: #fff;">📑 รายการครุภัณฑ์และใบเคลมที่แผนกกำลังส่งซ่อม:</div>
+            <button type="button" class="btn btn-secondary" onclick="loadStaffTracker()" style="font-size: 11.5px; padding: 4px 10px;">🔄 รีเฟรชข้อมูล</button>
+          </div>
+          <div class="table-container" style="max-height: calc(100vh - 360px);">
+            <table>
+              <thead>
+                <tr>
+                  <th>รหัสครุภัณฑ์ / ใบเคลม</th>
+                  <th>ชื่ออุปกรณ์</th>
+                  <th>สถานที่/แผนก</th>
+                  <th>วันที่แจ้ง (พ.ศ. / ค.ศ.)</th>
+                  <th>สถานะงานซ่อม</th>
+                  <th>แบบฟอร์ม</th>
+                </tr>
+              </thead>
+              <tbody id="staff-tracker-tbody">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">กำลังโหลดข้อมูลงานซ่อม...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sub-View 3: Emergency Loaner Unit Buttons -->
+        <div id="staff-sub-pane-loaner" style="display: none; margin-top: 10px;">
+          <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; text-align: center;">
+            🔄 เลือกประเภทอุปกรณ์สำรองที่ต้องการขอยืมฉุกเฉิน (คลิกส่งคำขอทันที):
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('คอมพิวเตอร์ All-in-One สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(99, 102, 241, 0.12); border-color: rgba(99, 102, 241, 0.3);">
+              💻 ขอยืม AIO PC สำรอง
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('หัวอ่านบาร์โค้ด Zebra สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+              🏷️ ขอยืมเครื่องสแกนสำรอง
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('เครื่องพิมพ์ฉลากยา/สติกเกอร์สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
+              🖨️ ขอยืมเครื่องพิมพ์สติกเกอร์
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('แท็บเล็ต iPad สำหรับงาน Ward สำรอง')" style="padding: 12px; font-size: 12px; text-align: center; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
+              📱 ขอยืมแท็บเล็ตสำรอง
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Asset Details Card (Compact 2-Column Layout, fits comfortably on screen) -->
+      <div class="glass-panel" id="ward-details-card" style="display: none; padding: 22px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+          <h3 style="margin: 0; color: var(--primary); font-size: 17px;">📋 ข้อมูลครุภัณฑ์และรายการแจ้งซ่อม</h3>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-details-card').style.display='none'; document.getElementById('ward-empty-placeholder').style.display='block';" style="padding: 4px 10px; font-size: 12px;">✕ ปิดการดู</button>
+        </div>
+        
+        <div class="portal-grid" style="align-items: start; gap: 20px;">
+          <!-- Left Column: Specs -->
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <div class="detail-item">
+              <div class="detail-label">รหัสครุภัณฑ์ (Asset Tag)</div>
+              <div class="detail-value" id="ward-detail-tag">-</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">ชื่อครุภัณฑ์ (Device Name)</div>
+              <div class="detail-value" id="ward-detail-name">-</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">หมายเลขซีเรียล (Serial Number)</div>
+              <div class="detail-value" id="ward-detail-serial">-</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">สถานที่ติดตั้ง (Location)</div>
+              <div class="detail-value" id="ward-detail-loc">-</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">ระยะเวลารับประกัน (Warranty)</div>
+              <div class="detail-value" id="ward-detail-warranty">-</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">สถานะการทำงาน (Status)</div>
+              <div class="detail-value" id="ward-detail-status">-</div>
+            </div>
+            <!-- Claim Worthiness Indicator Banner -->
+            <div id="ward-detail-evaluate" style="margin-top: 12px; padding: 10px; border-radius: 8px; font-size: 12px; display: none;"></div>
+          </div>
+
+          <!-- Right Column: Issue & Actions -->
+          <div style="background: rgba(255, 255, 255, 0.02); padding: 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <div style="margin-bottom: 12px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px;">
+              <label style="font-size: 12px; color: #fca5a5; font-weight: 600; display: block; margin-bottom: 6px;">ระบุอาการเสีย / ข้อผิดพลาด:</label>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                <button type="button" class="preset-tag" onclick="setWardIssue('เครื่องเปิดไม่ติด / ไฟไม่เข้า')">⚡ เปิดไม่ติด</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('จอฟ้า / จอมืด / ภาพลาย')">🖥️ จอดับ/จอฟ้า</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('หัวอ่านสแกนเนอร์ไม่ตอบสนอง')">🏷️ สแกนไม่ติด</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('พิมพ์เป็นเส้น / กระดาษติด')">🖨️ เครื่องพิมพ์ขัดข้อง</button>
+                <button type="button" class="preset-tag" onclick="setWardIssue('เชื่อมต่อเครือข่ายไม่ได้')">🌐 เชื่อมเน็ตไม่ได้</button>
+              </div>
+              <input type="text" id="ward-issue-input" class="form-control" style="font-size: 12px; padding: 8px;" placeholder="ระบุอาการเสียเพิ่มเติม...">
+            </div>
+
+            <!-- Photo Evidence for On-site IT Staff -->
+            <div style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; font-weight: 600; color: #94a3b8;">📷 ภาพถ่ายครุภัณฑ์ / จุดชำรุด:</span>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" style="font-size: 11px; padding: 3px 8px;">
+                  📸 ถ่ายรูป/แนบภาพ
+                </button>
+              </div>
+              <div id="ward-photo-preview-box" style="display: none; align-items: center; gap: 8px; margin-top: 8px;">
+                <img id="ward-photo-img" src="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);">
+                <div style="font-size: 11px; color: #34d399; flex: 1;" id="ward-photo-status">✅ แนบรูปภาพแล้ว</div>
+                <button type="button" class="btn btn-secondary" onclick="clearWardPhoto()" style="padding: 2px 7px; font-size: 11px;">✕ ลบ</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-danger" id="btn-report-broken" style="width: 100%; font-size: 13.5px; padding: 11px;">🚨 แจ้งชำรุดเข้าส่วนกลาง</button>
+              <button id="btn-open-template-modal-ward" class="btn btn-secondary" onclick="openTemplateCenter(document.getElementById('ward-detail-tag').textContent)" style="width: 100%; font-size: 12.5px; padding: 9px;">
+                🖨️ พิมพ์แบบฟอร์มส่งซ่อม/เคลม
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. IT STAFF PORTAL (Admin View) -->
+    <section id="it-section" class="view-section">
+      <!-- Sticky IT Sub-Navigation Bar ("Stuck so it wouldn't get moved around") -->
+      <div class="it-subnav-bar" style="position: sticky; top: 68px; z-index: 50; margin-bottom: 20px; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 6px 20px rgba(0,0,0,0.55); align-items: center;">
+        <button type="button" class="it-tab-btn active" data-tab="tab-it-scanner">🔍 แผงสแกน & จัดการเคลม</button>
+        <button type="button" class="it-tab-btn" data-tab="tab-it-claims">📑 รายการใบส่งเคลม</button>
+        <button type="button" class="it-tab-btn" data-tab="tab-it-inventory">📋 ทะเบียนครุภัณฑ์ไอที</button>
+        <button type="button" class="it-tab-btn" data-tab="tab-it-audit">📜 ประวัติ & Audit Trail</button>
+        <button type="button" class="btn btn-secondary" onclick="switchView('config')" style="margin-left: auto; font-size: 12px; padding: 7px 14px; border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+          ⚙️ ไปที่หน้าตั้งค่าระบบ (System Admin) →
+        </button>
+      </div>
+
+      <!-- TAB 1: SCANNER & ACTIONS -->
+      <div id="tab-it-scanner" class="it-tab-pane">
+        <!-- Statistics Row -->
+        <div class="stats-row">
+          <div class="glass-panel stat-card">
+            <div class="stat-title">📦 ทรัพย์สินทั้งหมด</div>
+            <div class="stat-num" id="stat-total-assets">0</div>
+            <div style="font-size: 11px; color: var(--text-muted);">รายการไอทีทั้งหมด</div>
+          </div>
+          <div class="glass-panel stat-card">
+            <div class="stat-title">🟢 เครื่องใช้งานปกติ</div>
+            <div class="stat-num" id="stat-working-assets" style="color: var(--success);">0</div>
+            <div style="font-size: 11px; color: var(--text-muted);">พร้อมใช้งานประจำแผนก</div>
+          </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">🔴 รอดำเนินการเคลม</div>
+          <div class="stat-num" id="stat-broken-assets" style="color: var(--danger);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">เสียหาย / ชำรุดสะสม</div>
+        </div>
+        <div class="glass-panel stat-card">
+          <div class="stat-title">🟡 รอศูนย์เข้ามารับ</div>
+          <div class="stat-num" id="stat-vendor-claims" style="color: var(--warning);">0</div>
+          <div style="font-size: 11px; color: var(--text-muted);">รอศูนย์มารับอุปกรณ์</div>
+        </div>
+      </div>
+
+      <div class="portal-grid" style="margin-bottom: 30px;">
+        <!-- Left Side: Scanner & Selection -->
+        <div class="glass-panel">
+          <h3 style="margin-bottom: 16px;">🔍 จัดการและสแกนส่งเคลม (IT Control)</h3>
+          
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 13px; color: var(--text-muted); font-weight: 500;">ระบุรหัสครุภัณฑ์ หรือใช้เครื่องสแกนบาร์โค้ด</label>
+              <label class="scanner-mode-switch" title="โหมดสแกนเนอร์: ป้องกันการพิมพ์ตกหล่น รับเฉพาะการสแกนความเร็วสูงจากหัวอ่าน">
+                <input type="checkbox" id="it-scanner-only-mode">
+                <span>🔒 สแกนเนอร์เท่านั้น (Anti-Typo)</span>
+              </label>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="it-search-input" class="form-control" style="flex: 1;" placeholder="ตัวอย่าง: CIT-2022-TAB-03 (สแกนหรือระบุรหัส)" autofocus>
+              <button class="btn" id="it-search-btn" style="padding: 10px 18px;">ค้นหา</button>
+            </div>
+            <div id="it-scanner-status" style="font-size: 11px; color: #38bdf8; margin-top: 6px;">
+              ⚡ ตรวจจับอัตโนมัติ: สแกนปุ๊บ ค้นหาทันที (ช่วงความยาวรหัส 6 – 30 ตัวอักษร)
+            </div>
+          </div>
+
+          <!-- Parser Analytics Panel -->
+          <div id="parser-analytics-it" class="glass-panel" style="margin-top: 16px; display: none; background: rgba(6, 182, 212, 0.05); border-color: rgba(6, 182, 212, 0.2);">
+          </div>
+
+          <!-- Fuzzy Match Suggestion Banner (IT) -->
+          <div id="fuzzy-suggestion-it" style="display: none; margin-top: 12px; padding: 12px 16px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; align-items: center; gap: 12px;">
+            <span style="font-size: 20px;">🔍</span>
+            <div style="flex: 1; font-size: 13px;">
+              <div style="color: var(--warning); font-weight: 700; margin-bottom: 2px;">ไม่พบรหัสที่ระบุ — พบรหัสใกล้เคียง</div>
+              <div style="color: var(--text-main);" id="fuzzy-suggestion-it-text"></div>
+            </div>
+            <button class="btn" id="fuzzy-confirm-it" style="background: var(--warning); box-shadow: 0 4px 12px rgba(245,158,11,0.3); font-size: 13px; padding: 8px 14px; white-space: nowrap;">ใช่ ใช้รหัสนี้ ✓</button>
+            <button class="btn btn-secondary" id="fuzzy-dismiss-it" style="font-size: 13px; padding: 8px 14px;">ยกเลิก</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div style="margin-top: 24px;">
+            <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--text-muted);">ครุภัณฑ์ที่ใช้งานบ่อย (Quick Tags):</h4>
+            <div class="preset-container">
+              <div class="preset-tag" onclick="selectPreset('CIT-2024-AIO-02')">
+                <span>💻 HP ProOne 440 (AIO)</span>
+                <span class="badge badge-working">Active</span>
+              </div>
+              <div class="preset-tag" onclick="selectPreset('CIT-2022-TAB-03')">
+                <span>📱 iPad Air 5 (ICU Cart)</span>
+                <span class="badge badge-broken">Broken</span>
+              </div>
+              <div class="preset-tag" onclick="selectPreset('CIT-2021-AIO-01')">
+                <span>💻 Dell OptiPlex (Emergency)</span>
+                <span class="badge badge-working">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Action Console -->
+        <div class="glass-panel" id="it-details-card" style="display: none;">
+          <h3 style="margin-bottom: 16px; color: var(--primary);">🛠️ แผงควบคุมรายการเคลม (RMA Action Board)</h3>
+          
+          <div class="detail-item">
+            <div class="detail-label">รหัสครุภัณฑ์ (Asset Tag)</div>
+            <div class="detail-value" id="it-detail-tag">-</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">ชื่อ / ชนิดครุภัณฑ์</div>
+            <div class="detail-value" id="it-detail-name">-</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Serial Number</div>
+            <div class="detail-value" id="it-detail-serial">-</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">สถานที่ตั้ง (Location)</div>
+            <div class="detail-value" id="it-detail-loc">-</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">ระยะเวลารับประกัน (Warranty)</div>
+            <div class="detail-value" id="it-detail-warranty">-</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">สถานะปัจจุบัน (Status)</div>
+            <div class="detail-value" id="it-detail-status">-</div>
+          </div>
+
+          <!-- Claim Worthiness Evaluation Banner -->
+          <div id="it-detail-evaluate" style="margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none;"></div>
+
+          <!-- PDF & Official Template Buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;">
+            <button id="btn-open-template-modal-it" class="btn" onclick="openTemplateCenter(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px; background: linear-gradient(135deg, #0284c7, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);">
+              🖨️ แบบฟอร์มพิมพ์ทางการ (Official Forms)
+            </button>
+            <button id="btn-download-pdf" class="btn btn-secondary" onclick="downloadPDF(document.getElementById('it-detail-tag').textContent)" style="font-size: 13px; padding: 10px;">
+              📄 ดาวน์โหลด PDF
+            </button>
+          </div>
+
+          <!-- SAFEGUARD PANEL (PDPA Sanitization Check) -->
+          <div id="sanitize-panel" class="safeguard-box" style="display: none;">
+            <div class="safeguard-icon">🛡️</div>
+            <div class="safeguard-text" style="width: 100%;">
+              <h4>PDPA-Aware Data Sanitization Safeguard</h4>
+              <p>ครุภัณฑ์นี้จัดเป็นอุปกรณ์บันทึกข้อมูลหลัก (Storage Media) ที่อาจมีข้อมูลประวัติผู้ป่วย (PHI) หรือข้อมูลบุคลากรสะสมอยู่ <strong>ต้องทำความสะอาดข้อมูล หรือ ถอดฮาร์ดไดร์ฟออกก่อนส่งไปยังบุคคลภายนอก</strong> ตามมาตรฐานความปลอดภัยโรงพยาบาล</p>
+              
+              <div class="toggle-switch" id="sanitize-chk">
+                <div class="custom-chk"></div>
+                <span style="font-size: 13px; font-weight: 600; color: #fff;">ฉันขอยืนยันว่าได้ถอดสื่อบันทึกข้อมูล หรือล้างข้อมูลความปลอดภัยเรียบร้อยแล้ว</span>
+              </div>
+              <div style="margin-top: 10px;">
+                <label for="sanitize-code-input" style="font-size: 12px; color: #fecaca; font-weight: 700; display: block; margin-bottom: 4px;">🔐 รหัสยืนยันความปลอดภัย (พิมพ์ "WIPED" หรือรหัสครุภัณฑ์เพื่อยืนยัน):</label>
+                <input type="text" id="sanitize-code-input" class="form-control" placeholder="พิมพ์ WIPED เพื่อยืนยัน" style="background: rgba(0,0,0,0.3); border-color: rgba(239, 68, 68, 0.5); color: #fff; text-transform: uppercase;">
+              </div>
+              <button class="btn btn-secondary" id="btn-confirm-sanitize" style="width: 100%; margin-top: 12px; font-size: 13px;">ยืนยันความปลอดภัยข้อมูล (Confirm Data Wiped)</button>
+            </div>
+          </div>
+
+          <!-- RMA Initiation Form -->
+          <div id="rma-form-container" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 16px; margin-bottom: 14px; color: var(--warning);">📤 รอส่งซ่อมศูนย์บริการ (Pending Vendor Pickup)</h4>
+            
+            <form id="rma-form">
+              <input type="hidden" id="claim-tag-input">
+              <div class="form-group">
+                <label for="claim-vendor">ระบุบริษัทศูนย์บริการ (Vendor Name)</label>
+                <select id="claim-vendor" class="form-control" required>
+                  <option value="" disabled selected>-- กรุณาเลือกศูนย์บริการ --</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div id="brand-procedure-panel" style="display: none; margin-bottom: 15px; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.5;"></div>
+              <div class="form-group">
+                <label for="claim-rma-no">หมายเลขใบรับงานเคลม (RMA / Case ID)</label>
+                <input type="text" id="claim-rma-no" class="form-control" placeholder="ตัวอย่าง: RMA-9988-77" required>
+              </div>
+              <div class="form-group">
+                <label for="claim-expected-date">วันที่บริษัทเคลมจะเข้ามารับอุปกรณ์ (Pickup Date - ระบุถ้ามี หรือเว้นว่างได้หากรอนัดหมาย)</label>
+                <input type="date" id="claim-expected-date" class="form-control">
+              </div>
+              
+              <button type="submit" class="btn" style="width: 100%; margin-top: 10px; background: var(--warning); box-shadow: 0 4px 15px var(--warning-glow);">บันทึกรอรับเคลม (Pending Pickup)</button>
+            </form>
+          </div>
+
+          <!-- EOL Salvage & Disposal Action Panel -->
+          <div id="salvage-panel" style="display: none; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">🔄 การจัดการจำหน่ายครุภัณฑ์หมดสภาพ (EOL / Salvage Actions)</h4>
+            <div class="salvage-card-grid">
+              <div class="salvage-card salvage-card-sell" onclick="handleSalvageAction('Pending Sell')">
+                <div style="font-size: 20px;">💰</div>
+                <div style="font-size: 12px; font-weight: 700; color: #c084fc; margin-top: 4px;">รอขายทอดตลาด</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Pending Sell</div>
+              </div>
+              <div class="salvage-card salvage-card-donation" onclick="handleSalvageAction('Pending Donation')">
+                <div style="font-size: 20px;">🎁</div>
+                <div style="font-size: 12px; font-weight: 700; color: #f472b6; margin-top: 4px;">รอดำเนินการบริจาค</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Pending Donation</div>
+              </div>
+              <div class="salvage-card salvage-card-scrap" onclick="handleSalvageAction('Scrapped')">
+                <div style="font-size: 20px;">🗑️</div>
+                <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-top: 4px;">แทงจำหน่าย (Scrap)</div>
+                <div style="font-size: 10px; color: var(--text-muted);">Scrapped</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence Attachments Section -->
+          <div id="asset-evidence-panel" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">📎 ไฟล์หลักฐาน / รูปภาพความเสียหาย (Evidence Attachments)</h4>
+            <div id="asset-evidence-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 12px;">
+              <div style="color: var(--text-muted); font-size: 11px;">ยังไม่มีไฟล์หลักฐานแนบ</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="file" id="asset-evidence-file-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
+              <button type="button" class="btn btn-secondary" id="btn-upload-asset-evidence" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">
+                📤 อัปโหลด
+              </button>
+            </div>
+          </div>
+
+          <!-- Resolve and Return button -->
+          <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn" id="btn-resolve" style="width: 100%; display: none; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">✅ ตรวจสอบเครื่องและนำเข้าคลังปกติ (Return to Stock)</button>
+          </div>
+        </div>
+      </div>
+      </div> <!-- End #tab-it-scanner -->
+
+      <!-- TAB 2: CLAIMS MANAGEMENT -->
+      <div id="tab-it-claims" class="it-tab-pane" style="display: none;">
+        <!-- Multi-Asset Claims Management Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px;" id="claims-management-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h3>📦 รายการใบส่งเคลมศูนย์บริการ (Multi-Asset Claims & RMA)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบรวมใบส่งเคลม 1–5 ชิ้น ประเมินความคุ้มค่า และควบคุมวงจรสถานะ</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select id="filter-claim-status" class="form-control" style="padding: 6px 12px; font-size: 13px; min-width: 140px;">
+              <option value="">-- ทุกสถานะเคลม --</option>
+              <option value="DRAFT">DRAFT (ร่าง)</option>
+              <option value="VIABLE">VIABLE (คุ้มค่าส่ง)</option>
+              <option value="CONFIRMED">CONFIRMED (อนุมัติส่ง)</option>
+              <option value="SUBMITTED">SUBMITTED (ส่งศูนย์แล้ว)</option>
+              <option value="VENDOR_RESPONSE">VENDOR_RESPONSE (ศูนย์ตอบกลับ)</option>
+              <option value="RETURNED">RETURNED (รับคืนแล้ว)</option>
+              <option value="CLOSED">CLOSED (ปิดงาน)</option>
+              <option value="CANCELLED">CANCELLED (ยกเลิก)</option>
+            </select>
+            <button class="btn" id="btn-open-new-claim-modal" style="font-size: 13px; padding: 8px 16px; background: linear-gradient(135deg, #0284c7, #2563eb);">
+              ➕ สร้างใบเคลมใหม่ (1-5 รายการ)
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>หมายเลขใบเคลม</th>
+                <th>ศูนย์บริการ (Vendor)</th>
+                <th>จำนวนครุภัณฑ์</th>
+                <th>วันที่ทำรายการ</th>
+                <th>คะแนนความคุ้มค่า</th>
+                <th>สถานะ (Status)</th>
+                <th>ผู้สร้าง</th>
+                <th>การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="claims-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div> <!-- End #tab-it-claims -->
+
+      <!-- TAB 3: ASSET INVENTORY -->
+      <div id="tab-it-inventory" class="it-tab-pane" style="display: none;">
+        <!-- Asset Inventory list & ISO 27001 logs -->
+        <div class="glass-panel" style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <h3>📋 รายการครุภัณฑ์ไอทีในระบบ (Registered IT Inventory)</h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบจัดการครุภัณฑ์ การจำหน่าย และสถิติสถานะ</p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select id="filter-status" class="form-control" style="padding: 6px 12px; font-size: 13px; min-width: 140px;">
+              <option value="">-- ทุกสถานะ --</option>
+              <option value="Working">ปกติ (Working)</option>
+              <option value="Broken">ชำรุด (Broken)</option>
+              <option value="Pending Pickup">รอศูนย์มารับ</option>
+              <option value="expiring_6m">⚠️ ใกล้หมดประกันใน 6 เดือน</option>
+              <option value="expired">หมดประกันแล้ว (Expired)</option>
+              <option value="Pending Sell">รอขายทอดตลาด</option>
+              <option value="Pending Donation">รอดำเนินการบริจาค</option>
+              <option value="Scrapped">แทงจำหน่าย (Scrapped)</option>
+            </select>
+            <button class="btn" id="btn-export-excel-main" style="font-size: 13px; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+              📊 ส่งออก Excel ทั้งหมด
+            </button>
+            <button class="btn btn-secondary" id="btn-copy-data" style="font-size: 13px; padding: 8px 16px;">📋 คัดลอกข้อมูล (TSV)</button>
+            <button class="btn" id="btn-open-add-asset-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มครุภัณฑ์ใหม่</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัสครุภัณฑ์</th>
+                <th>ชื่ออุปกรณ์</th>
+                <th>แบรนด์ (Brand)</th>
+                <th>ที่อยู่/จุดติดตั้ง</th>
+                <th>วันหมดอายุรับประกัน (พ.ศ. / ค.ศ.)</th>
+                <th>มูลค่าประเมิน</th>
+                <th>สถานะ</th>
+                <th>เอกสาร</th>
+              </tr>
+            </thead>
+            <tbody id="it-asset-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-container">
+          <div style="font-size: 13px; color: var(--text-muted);" id="pagination-info">แสดง 0 - 0 จาก 0 รายการ</div>
+          <div class="pagination-controls">
+            <button class="pagination-btn" id="btn-prev-page" disabled>‹ ย้อนกลับ</button>
+            <span style="font-size: 13px; font-weight: 600;" id="page-num-display">หน้า 1</span>
+            <button class="pagination-btn" id="btn-next-page">ถัดไป ›</button>
+          </div>
+        </div>
+      </div>
+      </div> <!-- End #tab-it-inventory -->
+
+      <!-- TAB 4: AUDIT TRAIL -->
+      <div id="tab-it-audit" class="it-tab-pane" style="display: none;">
+        <!-- Audit Logs Panel with Rich Time-Span & Volume Controls -->
+        <div class="glass-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <h3 style="margin-bottom: 4px;">📜 บันทึกรายงานการเคลื่อนย้ายและประวัติการเปลี่ยนแปลง (Audit Trail)</h3>
+            <p style="font-size: 13px; color: var(--text-muted);">ระบบล็อกประวัติการเปลี่ยนแปลงถาวร ทุกรายการมีรหัสติดตามเฉพาะตัว (Tracking Code) ไม่ซ้ำกัน</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-export-audit-csv" style="font-size: 12px; padding: 6px 14px;">
+            📥 ส่งออกบันทึกเป็น Excel/CSV
+          </button>
+        </div>
+
+        <!-- Daily Case Volume Indicator Banner -->
+        <div id="audit-volume-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 22px;">📊</span>
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #fff;" id="audit-volume-text">สถิติกิจกรรมวันนี้: กำลังโหลด...</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="audit-peak-text">ตรวจสอบจำนวนเคสในแต่ละวันเพื่อตรวจจับกิจกรรมผิดปกติ</div>
+            </div>
+          </div>
+          <span id="audit-volume-badge-main" class="audit-volume-badge audit-volume-normal">0 รายการวันนี้</span>
+        </div>
+
+        <!-- Time Span & Search Filter Toolbar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+          <div class="time-span-btn-group" id="audit-time-span-group">
+            <button type="button" class="time-span-btn active" data-span="all">ทั้งหมด (All)</button>
+            <button type="button" class="time-span-btn" data-span="today">📅 วันนี้ (Today)</button>
+            <button type="button" class="time-span-btn" data-span="yesterday">เมื่อวาน</button>
+            <button type="button" class="time-span-btn" data-span="7days">ย้อนหลัง 7 วัน</button>
+            <button type="button" class="time-span-btn" data-span="30days">30 วัน</button>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted);">
+              <span>จาก:</span>
+              <input type="date" id="audit-start-date" class="form-control" style="padding: 4px 8px; font-size: 12px; width: 130px;">
+              <span>ถึง:</span>
+              <input type="date" id="audit-end-date" class="form-control" style="padding: 4px 8px; font-size: 12px; width: 130px;">
+              <button class="btn btn-secondary" id="btn-filter-date-range" style="padding: 5px 10px; font-size: 12px;">กรอง</button>
+            </div>
+            <input type="text" id="audit-search-input" class="form-control" style="padding: 6px 12px; font-size: 12px; width: 180px;" placeholder="🔍 ค้นหารหัส/ผู้บันทึก...">
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>รหัสติดตาม (Code)</th>
+                <th>วัน-เวลาบันทึก</th>
+                <th>รหัสครุภัณฑ์</th>
+                <th>จุดติดตั้ง/ศูนย์เคลม</th>
+                <th>สถานะครุภัณฑ์</th>
+                <th>การเคลื่อนย้าย</th>
+                <th>ผู้บันทึกรายการ</th>
+                <th>รายละเอียด</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SYSTEM CONFIGURATION & ADMIN PORTAL (Separate Part) -->
+    <section id="config-section" class="view-section active">
+      <!-- Sticky Config Sub-Navigation Bar -->
+      <div class="config-subnav-bar">
+        <button type="button" class="config-tab-btn active" data-tab="tab-cfg-settings">⚙️ ตั้งค่าระบบ (System Configs)</button>
+        <button type="button" class="config-tab-btn" data-tab="tab-cfg-users">👥 จัดการบัญชีผู้ใช้ (User Management)</button>
+        <button type="button" class="config-tab-btn" data-tab="tab-cfg-backup">💾 สำรองข้อมูล & ความปลอดภัย</button>
+      </div>
+
+      <!-- CONFIG TAB 1: SYSTEM CONFIGURATIONS -->
+      <div id="tab-cfg-settings" class="config-tab-pane">
+        <!-- Admin Configuration Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3>⚙️ ตั้งค่าระบบ (System Configurations)</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">จัดการแบรนด์ หมวดหมู่ สถานที่ และขั้นตอนการเคลม (Dynamic CRUD)</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-open-add-config-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มการตั้งค่า (Add Config)</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ประเภท (Type)</th>
+                  <th>ค่า (Value)</th>
+                  <th>รายละเอียด / ขั้นตอน (Details)</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="config-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIG TAB 2: USER MANAGEMENT -->
+      <div id="tab-cfg-users" class="config-tab-pane" style="display: none;">
+        <!-- Admin User Management Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3>👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มผู้ใช้งานใหม่ (Add User)</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>แผนก (Department)</th>
+                  <th>สิทธิ์การใช้งาน (Role)</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIG TAB 3: BACKUP & MAINTENANCE -->
+      <div id="tab-cfg-backup" class="config-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 24px; margin-bottom: 30px;">
+          <h3 style="margin-bottom: 8px;">💾 สำรองฐานข้อมูลและบำรุงรักษาระบบ (Database Backup & Maintenance)</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+            สร้างจุดสำรองฐานข้อมูล SQLite อัตโนมัติ พร้อมระบบหมุนเวียนไฟล์สำรอง (Backup Rotation)
+          </p>
+          <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn" id="btn-trigger-backup" onclick="triggerManualBackup()" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 13px; padding: 10px 20px;">
+              💾 สำรองฐานข้อมูลทันที (Backup Database Now)
+            </button>
+            <span id="backup-status-text" style="font-size: 12.5px; color: var(--text-muted);">พร้อมทำการสำรองข้อมูล</span>
+          </div>
+          <div style="margin-top: 24px; padding: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+            <h4 style="font-size: 13px; margin-bottom: 8px; color: #a5b4fc;">🛡️ ข้อมูลความปลอดภัยระบบ</h4>
+            <ul style="font-size: 12px; color: var(--text-muted); line-height: 1.8; margin: 0; padding-left: 20px;">
+              <li>JWT Token Authentication: มีอายุการใช้งาน 8 ชั่วโมงต่อเซสชัน</li>
+              <li>Rate Limiting: จำกัดคำขอ 100 คำขอต่อนาที เพื่อป้องกัน DoS</li>
+              <li>PDPA Data Sanitization: บังคับยืนยันการล้างข้อมูลก่อนส่งเคลมทุกชิ้นที่เป็น Storage Media</li>
+              <li>Password Security: เข้ารหัสรหัสผ่านด้วย bcrypt พร้อมระบบป้องกัน Self-deactivation</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: ADD ASSET -->
+  <div id="add-asset-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>➕ เพิ่มรายการครุภัณฑ์ใหม่</h3>
+        <button class="btn btn-secondary" id="close-asset-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div id="add-asset-dup-warning" style="display: none; padding: 10px 14px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 8px; font-size: 12px; color: #fca5a5; margin-bottom: 14px;">
+        ⚠️ ตรวจพบข้อมูลซ้ำ: <span id="add-asset-dup-msg"></span>
+      </div>
+      <form id="add-asset-form">
+        <div class="form-group">
+          <label>รหัสครุภัณฑ์ (Asset Tag)</label>
+          <input type="text" id="new-asset-tag" class="form-control" placeholder="ตัวอย่าง: CIT-2026-MON-01" required>
+        </div>
+        <div class="form-group">
+          <label>ชื่ออุปกรณ์ (Device Name)</label>
+          <input type="text" id="new-device-name" class="form-control" placeholder="ตัวอย่าง: Dell Monitor 24-inch" required>
+        </div>
+        <div class="form-group">
+          <label>หมวดหมู่ (Category)</label>
+          <select id="new-category" class="form-control" required>
+            <option value="Computer">Computer (PC / AIO)</option>
+            <option value="Monitor">Monitor</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Scanner">Barcode Scanner</option>
+            <option value="Printer">Printer</option>
+            <option value="Webcam">Webcam / Audio</option>
+            <option value="Network">Network Device</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ยี่ห้อ (Brand)</label>
+          <input type="text" id="new-brand" class="form-control" placeholder="Dell, HP, Apple, Zebra" required>
+        </div>
+        <div class="form-group">
+          <label>รุ่น (Model)</label>
+          <input type="text" id="new-model" class="form-control" placeholder="OptiPlex 7090, iPad Air" required>
+        </div>
+        <div class="form-group">
+          <label>หมายเลขซีเรียล (Serial No.)</label>
+          <input type="text" id="new-serial" class="form-control" placeholder="SN12345678" required>
+        </div>
+        <div class="form-group">
+          <label>สถานที่ติดตั้ง (Location)</label>
+          <input type="text" id="new-location" class="form-control" placeholder="Ward 20, ER, Technical Support" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>วันเริ่มรับประกัน</label>
+            <input type="date" id="new-warranty-start" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>ระยะเวลาประกัน</label>
+            <select id="new-warranty-months" class="form-control">
+              <option value="3">3 เดือน (3 ด.)</option>
+              <option value="6">6 เดือน (6 ด.)</option>
+              <option value="12">1 ปี (12 ด.)</option>
+              <option value="24">2 ปี (24 ด.)</option>
+              <option value="36" selected>3 ปี (36 ด.)</option>
+              <option value="48">4 ปี (48 ด.)</option>
+              <option value="60">5 ปี (60 ด.)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>วันหมดอายุประกัน (คำนวณอัตโนมัติ)</label>
+            <input type="date" id="new-warranty-end" class="form-control" required>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label>ราคาจัดซื้อ (บาท)</label>
+            <input type="number" id="new-price" class="form-control" placeholder="0.00" min="0" step="100">
+          </div>
+          <div class="form-group">
+            <label>เลขที่ใบสั่งซื้อ / PO / สัญญา</label>
+            <input type="text" id="new-po-number" class="form-control" placeholder="เช่น PO-680012">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
+            <input type="checkbox" id="new-sanitization-req" checked style="width: 18px; height: 18px;">
+            <span>ต้องทำความสะอาดข้อมูล (PDPA Storage Device)</span>
+          </label>
+        </div>
+        <button type="submit" class="btn" id="btn-submit-add-asset" style="width: 100%; margin-top: 16px;">บันทึกครุภัณฑ์ใหม่</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD USER -->
+  <div id="add-user-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 450px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>👤 เพิ่มผู้ใช้งานใหม่ (Add User)</h3>
+        <button class="btn btn-secondary" id="close-user-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="add-user-form">
+        <div class="form-group">
+          <label>ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="new-username" class="form-control" placeholder="username" required>
+        </div>
+        <div class="form-group">
+          <label>รหัสผ่าน (Password)</label>
+          <input type="password" id="new-password" class="form-control" placeholder="รหัสผ่าน" required>
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล (Name)</label>
+          <input type="text" id="new-fullname" class="form-control" placeholder="พนักงาน ทั่วไป" required>
+        </div>
+        <div class="form-group">
+          <label>แผนก / หอผู้ป่วย (Department)</label>
+          <input type="text" id="new-user-dept" class="form-control" placeholder="Ward 20" required>
+        </div>
+        <div class="form-group">
+          <label>สิทธิ์การใช้งาน (Role)</label>
+          <select id="new-user-role" class="form-control" required>
+            <option value="staff">Staff (Staff Portal)</option>
+            <option value="admin">IT Staff (Admin Portal)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">สร้างบัญชีผู้ใช้</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CONFIG -->
+  <div id="add-config-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 500px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>⚙️ เพิ่ม/แก้ไข การตั้งค่า</h3>
+        <button class="btn btn-secondary" id="close-config-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="add-config-form">
+        <input type="hidden" id="config-id">
+        <div class="form-group">
+          <label>ประเภท (Type)</label>
+          <select id="config-type" class="form-control" required>
+            <option value="brand">แบรนด์ (Brand / Vendor)</option>
+            <option value="category">หมวดหมู่ (Category)</option>
+            <option value="location">สถานที่ (Location)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ค่า (Value - ชื่อแบรนด์, หมวดหมู่ ฯลฯ)</label>
+          <input type="text" id="config-value" class="form-control" placeholder="เช่น Acer, Network, หอผู้ป่วยศัลยกรรม" required>
+        </div>
+        <div class="form-group">
+          <label>รายละเอียด / ขั้นตอนการเคลม (รองรับ HTML)</label>
+          <textarea id="config-details" class="form-control" rows="5" placeholder="สามารถใส่ขั้นตอนการเคลมของแบรนด์นี้..."></textarea>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการตั้งค่า</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EMAIL PREVIEW -->
+  <div id="email-preview-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>📧 ตัวอย่างข้อความส่งเคลม (Email Preview)</h3>
+        <button class="btn btn-secondary" id="close-email-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; color: var(--text-muted);">ถึง (To):</label>
+        <div id="email-preview-to" style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; margin-bottom: 8px;">vendor@example.com</div>
+        
+        <label style="font-size: 13px; color: var(--text-muted);">หัวข้อ (Subject):</label>
+        <div id="email-preview-subject" style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; margin-bottom: 8px; font-weight: bold;">แจ้งเคลมอุปกรณ์</div>
+
+        <label style="font-size: 13px; color: var(--text-muted);">ข้อความ (Body):</label>
+        <div id="email-preview-body" style="padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 14px; min-height: 150px; white-space: pre-wrap; font-family: monospace;"></div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button id="confirm-send-email-btn" class="btn" style="flex: 1; background: var(--success); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">🚀 ยืนยันส่งอีเมลและบันทึกเคลม</button>
+        <button id="cancel-email-btn" class="btn btn-secondary" style="flex: 1;">ยกเลิก (Cancel)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RESOLVE RMA CLAIM -->
+  <div id="resolve-rma-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 500px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>✅ บันทึกรับเครื่องคืนจากศูนย์บริการ</h3>
+        <button class="btn btn-secondary" id="close-resolve-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="resolve-rma-form">
+        <input type="hidden" id="resolve-tag-input">
+        <div class="form-group">
+          <label>ผลการซ่อม/เคลม (Resolution Type)</label>
+          <select id="resolve-type" class="form-control" required>
+            <option value="Repaired">ซ่อมเรียบร้อย อะไหลเดิม/เปลี่ยนอะไหล่ (Repaired)</option>
+            <option value="Replaced">เปลี่ยนเครื่องใหม่ยกชุด (Replaced)</option>
+            <option value="Scrapped">ซ่อมไม่ได้/หมดสภาพ (Scrapped)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>หมายเลข Serial Number ใหม่ (หากเปลี่ยนเครื่องใหม่)</label>
+          <input type="text" id="resolve-new-serial" class="form-control" placeholder="ระบุ S/N ใหม่ หรือเว้นว่างหากใช้เครื่องเดิม">
+        </div>
+        <div class="form-group">
+          <label>ค่าใช้จ่ายในการซ่อมแซม (บาท - 0 หากอยู่ในประกัน)</label>
+          <input type="number" id="resolve-cost" class="form-control" value="0" min="0" step="100">
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px; background: var(--success); box-shadow: 0 4px 15px var(--success-glow);">บันทึกรับเครื่องคืนและนำเข้าคลังปกติ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: OFFICIAL TEMPLATE PRINT & PDF CENTER -->
+  <div id="print-template-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel template-modal-container" style="max-width: 1000px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #1e293b; border-color: rgba(255,255,255,0.15);">
+      
+      <!-- Modal Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.9);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="font-size: 24px;">🖨️</div>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; color: #fff;">ศูนย์แบบฟอร์มเอกสารทางการ (Official Document & Print Center)</h3>
+            <p style="font-size: 12px; color: var(--text-muted);">แบบฟอร์มโรงพยาบาลพญาไท 3 และศูนย์บริการมาตรฐาน พิมพ์คมชัด 100%</p>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="close-template-modal-btn" style="padding: 6px 12px; font-size: 14px;">✕ ปิด</button>
+      </div>
+
+      <!-- Controls & Template Selector Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 24px; background: rgba(30, 41, 59, 0.8); border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <label style="font-size: 13px; font-weight: 600; color: #93c5fd;">เลือกแบบฟอร์ม (Select Template):</label>
+          <select id="template-selector" class="form-control" style="padding: 6px 14px; font-size: 13px; min-width: 320px; background: #0f172a; border-color: #3b82f6; color: #fff; font-weight: 600;">
+            <option value="repair_order" selected>📑 1. ใบรับงานซ่อม / ใบรับเคลมสินค้า (Hospital Work Order)</option>
+            <option value="claim_888">📑 2. ใบรับเคลม / นำส่งสินค้า (888 Technology Claim Form)</option>
+            <option value="warranty_888">📑 3. ใบรับประกันสินค้า (888 Technology Warranty Certificate)</option>
+            <option value="talent_delivery">📑 4. ใบส่งมอบ / ใบรับประกัน (Talent Technology Form)</option>
+            <option value="claimit_audit">📑 5. รายงานประเมินความคุ้มค่า & PDPA Audit (ClaimIT Report)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" id="btn-toggle-quick-edit" style="font-size: 12px; padding: 8px 14px;">
+            ✏️ ปรับแต่งข้อมูลฟอร์ม
+          </button>
+          <button class="btn" id="btn-execute-print" style="font-size: 13px; padding: 8px 18px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+            🖨️ สั่งพิมพ์เอกสาร / บันทึก PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Edit Drawer (Collapsible) -->
+      <div id="template-quick-edit-drawer" style="display: none; padding: 14px 24px; background: #0f172a; border-bottom: 1px solid var(--border-color); font-size: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เลขที่ Job / อ้างอิง</label>
+            <input type="text" id="edit-job-no" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="PYT68100232">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อผู้ติดต่อ</label>
+            <input type="text" id="edit-contact-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เจ้าหน้าที่ไอที ประจำโรงพยาบาล">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">เบอร์โทรผู้ติดต่อ</label>
+            <input type="text" id="edit-contact-phone" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="02-467-1111 ต่อ 1234">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">อาการเสีย / ปัญหา</label>
+            <input type="text" id="edit-problem-desc" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ปริ้นเป็นเส้น / สแกนเนอร์ไม่ตอบสนอง">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">ชื่อช่าง / ผู้ดำเนินการ</label>
+            <input type="text" id="edit-tech-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ช่างเทคนิคไอที ประจำ รพ.">
+          </div>
+          <div>
+            <label style="color: var(--text-muted); display: block; margin-bottom: 2px;">วิธีการแก้ไข</label>
+            <input type="text" id="edit-solution" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="ทำความสะอาด และเปลี่ยนลูกรอก ให้กับตัวเครื่อง ใช้งานได้ปกติ">
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Scroll Area -->
+      <div style="flex: 1; overflow-y: auto; padding: 24px; background: #334155; display: flex; justify-content: center;">
+        <!-- The simulated A4 Paper Container -->
+        <div id="printable-template-paper" class="a4-printable-paper">
+          <!-- Dynamic Content Injected by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE MULTI-ASSET CLAIM -->
+  <div id="new-multi-claim-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 1500; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>📦 สร้างใบส่งเคลมใหม่ (New Claim Bundle: 1-5 รายการ)</h3>
+        <button class="btn btn-secondary" id="close-new-claim-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="new-multi-claim-form">
+        <div class="form-group">
+          <label for="multi-claim-vendor">ศูนย์บริการ / บริษัทคู่ค้า (Vendor Name) *</label>
+          <select id="multi-claim-vendor" class="form-control" required>
+            <option value="" disabled selected>-- เลือกศูนย์บริการ --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-rma">หมายเลขใบรับงานเคลม (Vendor RMA No. / Case ID)</label>
+          <input type="text" id="multi-claim-rma" class="form-control" placeholder="เช่น RMA-2026-001 (ถ้ามี)">
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-type">ประเภทการส่งเคลม (Claim Type)</label>
+          <select id="multi-claim-type" class="form-control">
+            <option value="WARRANTY">ส่งซ่อมตามประกัน (Warranty Repair)</option>
+            <option value="OUT_OF_WARRANTY">ส่งซ่อมแบบมีค่าใช้จ่าย (Out of Warranty)</option>
+            <option value="REPLACEMENT">ขอเปลี่ยนเครื่องใหม่ (Replacement Request)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ระบุรหัสครุภัณฑ์ที่ต้องการส่งเคลม (1 ถึง 5 รหัสคั่นด้วยเครื่องหมายจุลภาคหรือเว้นวรรค) *</label>
+          <input type="text" id="multi-claim-tags" class="form-control" placeholder="เช่น 032186040006, 031709030031" required>
+          <div style="font-size: 11px; color: #38bdf8; margin-top: 4px;">⚡ ระบบจะประเมินคะแนนความคุ้มค่า (Server-Authoritative Score) อัตโนมัติ</div>
+        </div>
+        <div class="form-group">
+          <label for="multi-claim-notes">หมายเหตุเพิ่มเติม (Notes)</label>
+          <textarea id="multi-claim-notes" class="form-control" rows="2" placeholder="ระบุอาการชำรุด หรือข้อมูลเพื่อแจ้งศูนย์บริการ"></textarea>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 14px; background: linear-gradient(135deg, #0284c7, #2563eb);">
+          🚀 บันทึกและสร้างใบส่งเคลม
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CLAIM DETAILS & STATUS ADVANCEMENT -->
+  <div id="claim-details-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 1600; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 id="cd-modal-title">📋 รายละเอียดใบเคลม</h3>
+        <button class="btn btn-secondary" id="close-claim-details-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div><strong>หมายเลข:</strong> <span id="cd-claim-no">-</span></div>
+        <div><strong>ศูนย์บริการ:</strong> <span id="cd-vendor">-</span></div>
+        <div><strong>สถานะปัจจุบัน:</strong> <span id="cd-status" class="badge">-</span></div>
+        <div><strong>คะแนนความคุ้มค่า:</strong> <span id="cd-viability">-</span></div>
+        <div><strong>วันที่ทำรายการ:</strong> <span id="cd-date">-</span></div>
+        <div><strong>ผู้สร้าง:</strong> <span id="cd-created-by">-</span></div>
+      </div>
+
+      <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">ครุภัณฑ์ในใบเคลมนี้ (Attached Assets):</h4>
+      <div class="table-container" style="margin-bottom: 16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสครุภัณฑ์</th>
+              <th>ชื่ออุปกรณ์</th>
+              <th>สถานะชิ้นงาน</th>
+              <th>ความคุ้มค่า</th>
+            </tr>
+          </thead>
+          <tbody id="cd-assets-table-body">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 8px;">📎 ไฟล์หลักฐานประจำใบเคลม (Evidence Files):</h4>
+      <div id="cd-evidence-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 12px;">
+        <div style="color: var(--text-muted); font-size: 11px;">ไม่มีไฟล์แนบ</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+        <input type="file" id="cd-evidence-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
+        <button type="button" class="btn btn-secondary" id="cd-btn-upload-evidence" style="padding: 6px 12px; font-size: 11px; white-space: nowrap;">
+          📤 อัปโหลดหลักฐาน
+        </button>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 14px;">
+        <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--warning);">⚡ เปลี่ยนสถานะใบเคลม (Status Transition):</h4>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="cd-status-actions">
+          <!-- Status buttons rendered dynamically depending on current state -->
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+        <button type="button" class="btn" id="cd-btn-download-pdf" style="background: linear-gradient(135deg, #0284c7, #2563eb);">
+          📄 ดาวน์โหลด PDF ใบเคลมทางการ
+        </button>
+        <button type="button" class="btn btn-secondary" id="close-claim-details-modal-btn2">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT USER (Admin) -->
+  <div id="edit-user-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1500; justify-content: center; align-items: center; padding: 20px;">
+    <div class="glass-panel" style="max-width: 450px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>✏️ แก้ไขข้อมูลผู้ใช้งาน</h3>
+        <button class="btn btn-secondary" id="close-edit-user-modal-btn" style="padding: 4px 10px;">✕</button>
+      </div>
+      <form id="edit-user-form">
+        <input type="hidden" id="edit-user-id">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="edit-user-username" class="form-control" readonly style="background: rgba(0,0,0,0.2);">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล</label>
+          <input type="text" id="edit-user-fullname" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>แผนก (Department)</label>
+          <input type="text" id="edit-user-department" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>สิทธิ์การใช้งาน (Role)</label>
+          <select id="edit-user-role" class="form-control" required>
+            <option value="staff">Staff (พนักงานทั่วไป/เจ้าหน้าที่ประจำแผนก)</option>
+            <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 16px;">บันทึกการแก้ไข</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Self Profile Edit Modal -->
+  <div id="profile-modal" class="modal-backdrop" style="display: none;">
+    <div class="glass-panel modal-content" style="max-width: 440px; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 16px; color: #fff;">✏️ แก้ไขข้อมูลผู้ใช้งานส่วนตัว</h3>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none';" style="padding: 4px 10px; font-size: 12px;">✕</button>
+      </div>
+      <form id="profile-form">
+        <div class="form-group">
+          <label for="profile-username">ชื่อผู้ใช้งานในระบบ (Username)</label>
+          <input type="text" id="profile-username" class="form-control" disabled style="opacity: 0.7; background: rgba(0,0,0,0.3);">
+        </div>
+        <div class="form-group">
+          <label for="profile-name">ชื่อ-นามสกุล / ตำแหน่งที่แสดง</label>
+          <input type="text" id="profile-name" class="form-control" required placeholder="ระบุชื่อ-นามสกุลของคุณ">
+        </div>
+        <div class="form-group">
+          <label for="profile-department">แผนก / วอร์ด / สังกัด</label>
+          <input type="text" id="profile-department" class="form-control" required placeholder="เช่น ICU, ฉุกเฉิน (ER), เวชระเบียน">
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none';">ยกเลิก</button>
+          <button type="submit" class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">💾 บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>© 2026 ClaimIT Hospital IT Support. PDPA-Aware Handling & Immutable Audit Logging.</div>
+      <div>ระบบติดตามรับประกันและส่งเคลมครุภัณฑ์ไอทีโรงพยาบาล</div>
+    </div>
+  </footer>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Modular Architecture Scripts (Cache-Busted) -->
+  <script src="js/state.js?v=1.4.0"></script>
+  <script src="js/templates.js?v=1.4.0"></script>
+  <script src="js/scanner.js?v=1.4.0"></script>
+  <script src="js/sidebar.js?v=1.4.0"></script>
+  <script src="js/assets.js?v=1.4.0"></script>
+  <script src="js/claims.js?v=1.4.0"></script>
+  <script src="js/audit.js?v=1.4.0"></script>
+  <script src="js/admin.js?v=1.4.0"></script>
+  <script src="js/auth.js?v=1.4.0"></script>
+  <script src="js/app.js?v=1.4.0"></script>
+</body>
+</html>
