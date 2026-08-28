@@ -29,6 +29,11 @@ if (SECRET_PORTAL_PATH) {
   });
 }
 
+// Direct portal & convenience routes
+app.get(['/index', '/index.html', '/config', '/admin', '/it', '/ward', '/staff'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // 3. Static Files
 app.use(express.static(path.join(__dirname, 'public')));
 

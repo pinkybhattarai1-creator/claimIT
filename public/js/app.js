@@ -49,6 +49,15 @@ function switchView(viewName) {
   authSection.classList.remove('active');
   wardSection.classList.remove('active');
   itSection.classList.remove('active');
+  if (configSection) configSection.classList.remove('active');
+
+  const btnWard = document.getElementById('btn-to-ward');
+  const btnIt = document.getElementById('btn-to-it');
+  const btnConfig = document.getElementById('btn-to-config');
+
+  btnWard?.classList.remove('active');
+  btnIt?.classList.remove('active');
+  btnConfig?.classList.remove('active');
   
   if (viewName === 'auth') {
     authSection.classList.add('active');
@@ -58,22 +67,29 @@ function switchView(viewName) {
     wardSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
-    document.getElementById('btn-to-ward').classList.add('active');
-    document.getElementById('btn-to-it').classList.remove('active');
+    btnWard?.classList.add('active');
     refreshData();
     setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
     itSection.classList.add('active');
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
-    document.getElementById('btn-to-it').classList.add('active');
-    document.getElementById('btn-to-ward').classList.remove('active');
+    btnIt?.classList.add('active');
     const currentActiveTab = document.querySelector('.it-tab-btn.active')?.getAttribute('data-tab') || 'tab-it-scanner';
     switchItTab(currentActiveTab);
     refreshData();
     setTimeout(() => document.getElementById('it-search-input')?.focus(), 100);
+  } else if (viewName === 'config') {
+    if (configSection) configSection.classList.add('active');
+    navTabs.style.display = 'flex';
+    userBadge.style.display = 'flex';
+    btnConfig?.classList.add('active');
+    const currentActiveCfgTab = document.querySelector('.config-tab-btn.active')?.getAttribute('data-tab') || 'tab-cfg-settings';
+    switchConfigTab(currentActiveCfgTab);
+    refreshData();
   }
 }
+window.switchView = switchView;
 
 // Switch IT sub-navigation tab (Eliminates infinite scrolling)
 function switchItTab(tabId) {
@@ -84,6 +100,18 @@ function switchItTab(tabId) {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
 }
+window.switchItTab = switchItTab;
+
+// Switch System Configuration sub-navigation tab (Separate Part)
+function switchConfigTab(tabId) {
+  document.querySelectorAll('.config-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.config-tab-pane').forEach(pane => {
+    pane.style.display = pane.id === tabId ? 'block' : 'none';
+  });
+}
+window.switchConfigTab = switchConfigTab;
 
 // Global Refresh Data & Real-Time Sync
 async function refreshData() {
@@ -185,6 +213,17 @@ function setupEventListeners() {
       }
     });
   }
+
+  const toConfigBtn = document.getElementById('btn-to-config');
+  if (toConfigBtn) {
+    toConfigBtn.addEventListener('click', () => {
+      if (state.user && state.user.role === 'admin') {
+        switchView('config');
+      } else {
+        showToast('เฉพาะเจ้าหน้าที่ผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถเข้าถึงการตั้งค่าระบบได้', 'warning');
+      }
+    });
+  }
   
   if (logoutBtn) logoutBtn.addEventListener('click', logout);
   
@@ -193,6 +232,14 @@ function setupEventListeners() {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-tab');
       if (tabId) switchItTab(tabId);
+    });
+  });
+
+  // System Configuration Sub-Navigation Tabs Click Listener
+  document.querySelectorAll('.config-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      if (tabId) switchConfigTab(tabId);
     });
   });
 
@@ -782,6 +829,29 @@ async function uploadWardCapturedPhoto(assetTag) {
   }
 }
 window.uploadWardCapturedPhoto = uploadWardCapturedPhoto;
+
+async function triggerManualBackup() {
+  const statusText = document.getElementById('backup-status-text');
+  if (statusText) statusText.textContent = '⏳ กำลังสร้างไฟล์สำรอง...';
+  try {
+    const res = await fetch('/api/backup', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ สำรองฐานข้อมูลสำเร็จ: ${data.fileName}`, 'success');
+      if (statusText) statusText.textContent = `✅ สำรองสำเร็จล่าสุด: ${data.fileName}`;
+    } else {
+      showToast(data.error || 'การสำรองข้อมูลล้มเหลว', 'error');
+      if (statusText) statusText.textContent = '❌ การสำรองข้อมูลล้มเหลว';
+    }
+  } catch (err) {
+    console.error('Backup error:', err);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+  }
+}
+window.triggerManualBackup = triggerManualBackup;
 
 // Initialize Network info on load
 document.addEventListener('DOMContentLoaded', () => {

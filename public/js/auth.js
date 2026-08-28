@@ -104,14 +104,13 @@ async function handleLogin(e) {
 }
 
 function showUserNavigation() {
+  if (!state.user) return;
   userNameEl.textContent = state.user.name;
   userRoleEl.textContent = `${state.user.role === 'admin' ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
   const itBtn = document.getElementById('btn-to-it');
-  if (state.user.role === 'admin') {
-    itBtn.style.display = 'flex';
-  } else {
-    itBtn.style.display = 'none';
-  }
+  const configBtn = document.getElementById('btn-to-config');
+  if (itBtn) itBtn.style.display = 'inline-flex';
+  if (configBtn) configBtn.style.display = 'inline-flex';
 }
 
 function logout() {

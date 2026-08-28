@@ -36,8 +36,9 @@
       </a>
       
       <div class="nav-tabs" id="nav-tabs" style="display: none;">
-        <button class="nav-btn active" id="btn-to-ward">🛡️ พนักงานทั่วไป (Staff Portal)</button>
-        <button class="nav-btn" id="btn-to-it">💻 เจ้าหน้าที่ IT (IT Portal)</button>
+        <button class="nav-btn active" id="btn-to-ward">🛠️ ช่างไอทีภาคสนาม (Staff Portal)</button>
+        <button class="nav-btn" id="btn-to-it">💻 ศูนย์เคลม & ครุภัณฑ์ (IT Portal)</button>
+        <button class="nav-btn" id="btn-to-config">⚙️ ตั้งค่า & จัดการระบบ (System Admin)</button>
       </div>
       
       <div class="user-badge" id="user-badge" style="display: none;">
@@ -472,13 +473,14 @@
     <!-- 3. IT STAFF PORTAL (Admin View) -->
     <section id="it-section" class="view-section">
       <!-- Sticky IT Sub-Navigation Bar ("Stuck so it wouldn't get moved around") -->
-      <div class="it-subnav-bar" style="position: sticky; top: 68px; z-index: 50; margin-bottom: 20px; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 6px 20px rgba(0,0,0,0.55);">
+      <div class="it-subnav-bar" style="position: sticky; top: 68px; z-index: 50; margin-bottom: 20px; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 6px 20px rgba(0,0,0,0.55); align-items: center;">
         <button type="button" class="it-tab-btn active" data-tab="tab-it-scanner">🔍 แผงสแกน & จัดการเคลม</button>
         <button type="button" class="it-tab-btn" data-tab="tab-it-claims">📑 รายการใบส่งเคลม</button>
         <button type="button" class="it-tab-btn" data-tab="tab-it-inventory">📋 ทะเบียนครุภัณฑ์ไอที</button>
         <button type="button" class="it-tab-btn" data-tab="tab-it-audit">📜 ประวัติ & Audit Trail</button>
-        <button type="button" class="it-tab-btn" data-tab="tab-it-users">👥 จัดการผู้ใช้</button>
-        <button type="button" class="it-tab-btn" data-tab="tab-it-configs">⚙️ ตั้งค่าระบบ</button>
+        <button type="button" class="btn btn-secondary" onclick="switchView('config')" style="margin-left: auto; font-size: 12px; padding: 7px 14px; border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+          ⚙️ ไปที่หน้าตั้งค่าระบบ (System Admin) →
+        </button>
       </div>
 
       <!-- TAB 1: SCANNER & ACTIONS -->
@@ -810,68 +812,7 @@
       </div>
       </div> <!-- End #tab-it-inventory -->
 
-      <!-- TAB 4: USER MANAGEMENT -->
-      <div id="tab-it-users" class="it-tab-pane" style="display: none;">
-        <!-- Admin User Management Panel -->
-        <div class="glass-panel" style="margin-bottom: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div>
-            <h3>👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</p>
-          </div>
-          <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มผู้ใช้งานใหม่ (Add User)</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>ชื่อ-นามสกุล</th>
-                <th>แผนก (Department)</th>
-                <th>สิทธิ์การใช้งาน (Role)</th>
-                <th>การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="user-table-body">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      </div> <!-- End #tab-it-users -->
-
-      <!-- TAB 5: SYSTEM CONFIGURATIONS -->
-      <div id="tab-it-configs" class="it-tab-pane" style="display: none;">
-        <!-- Admin Configuration Panel -->
-        <div class="glass-panel" style="margin-bottom: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div>
-            <h3>⚙️ ตั้งค่าระบบ (System Configurations)</h3>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">จัดการแบรนด์ หมวดหมู่ สถานที่ และขั้นตอนการเคลม (Dynamic CRUD)</p>
-          </div>
-          <button class="btn btn-secondary" id="btn-open-add-config-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มการตั้งค่า (Add Config)</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>ประเภท (Type)</th>
-                <th>ค่า (Value)</th>
-                <th>รายละเอียด / ขั้นตอน (Details)</th>
-                <th>การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="config-table-body">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      </div> <!-- End #tab-it-configs -->
-
-      <!-- TAB 6: AUDIT TRAIL -->
+      <!-- TAB 4: AUDIT TRAIL -->
       <div id="tab-it-audit" class="it-tab-pane" style="display: none;">
         <!-- Audit Logs Panel with Rich Time-Span & Volume Controls -->
         <div class="glass-panel">
@@ -939,7 +880,102 @@
           </table>
         </div>
       </div>
-      </div> <!-- End #tab-it-audit -->
+    </section>
+
+    <!-- 4. SYSTEM CONFIGURATION & ADMIN PORTAL (Separate Part) -->
+    <section id="config-section" class="view-section">
+      <!-- Sticky Config Sub-Navigation Bar -->
+      <div class="config-subnav-bar">
+        <button type="button" class="config-tab-btn active" data-tab="tab-cfg-settings">⚙️ ตั้งค่าระบบ (System Configs)</button>
+        <button type="button" class="config-tab-btn" data-tab="tab-cfg-users">👥 จัดการบัญชีผู้ใช้ (User Management)</button>
+        <button type="button" class="config-tab-btn" data-tab="tab-cfg-backup">💾 สำรองข้อมูล & ความปลอดภัย</button>
+      </div>
+
+      <!-- CONFIG TAB 1: SYSTEM CONFIGURATIONS -->
+      <div id="tab-cfg-settings" class="config-tab-pane">
+        <!-- Admin Configuration Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3>⚙️ ตั้งค่าระบบ (System Configurations)</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">จัดการแบรนด์ หมวดหมู่ สถานที่ และขั้นตอนการเคลม (Dynamic CRUD)</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-open-add-config-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มการตั้งค่า (Add Config)</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ประเภท (Type)</th>
+                  <th>ค่า (Value)</th>
+                  <th>รายละเอียด / ขั้นตอน (Details)</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="config-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIG TAB 2: USER MANAGEMENT -->
+      <div id="tab-cfg-users" class="config-tab-pane" style="display: none;">
+        <!-- Admin User Management Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3>👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-open-add-user-modal" style="font-size: 13px; padding: 8px 16px;">➕ เพิ่มผู้ใช้งานใหม่ (Add User)</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>ชื่อ-นามสกุล</th>
+                  <th>แผนก (Department)</th>
+                  <th>สิทธิ์การใช้งาน (Role)</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIG TAB 3: BACKUP & MAINTENANCE -->
+      <div id="tab-cfg-backup" class="config-tab-pane" style="display: none;">
+        <div class="glass-panel" style="padding: 24px; margin-bottom: 30px;">
+          <h3 style="margin-bottom: 8px;">💾 สำรองฐานข้อมูลและบำรุงรักษาระบบ (Database Backup & Maintenance)</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
+            สร้างจุดสำรองฐานข้อมูล SQLite อัตโนมัติ พร้อมระบบหมุนเวียนไฟล์สำรอง (Backup Rotation)
+          </p>
+          <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn" id="btn-trigger-backup" onclick="triggerManualBackup()" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 13px; padding: 10px 20px;">
+              💾 สำรองฐานข้อมูลทันที (Backup Database Now)
+            </button>
+            <span id="backup-status-text" style="font-size: 12.5px; color: var(--text-muted);">พร้อมทำการสำรองข้อมูล</span>
+          </div>
+          <div style="margin-top: 24px; padding: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+            <h4 style="font-size: 13px; margin-bottom: 8px; color: #a5b4fc;">🛡️ ข้อมูลความปลอดภัยระบบ</h4>
+            <ul style="font-size: 12px; color: var(--text-muted); line-height: 1.8; margin: 0; padding-left: 20px;">
+              <li>JWT Token Authentication: มีอายุการใช้งาน 8 ชั่วโมงต่อเซสชัน</li>
+              <li>Rate Limiting: จำกัดคำขอ 100 คำขอต่อนาที เพื่อป้องกัน DoS</li>
+              <li>PDPA Data Sanitization: บังคับยืนยันการล้างข้อมูลก่อนส่งเคลมทุกชิ้นที่เป็น Storage Media</li>
+              <li>Password Security: เข้ารหัสรหัสผ่านด้วย bcrypt พร้อมระบบป้องกัน Self-deactivation</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -1610,16 +1646,16 @@
   <!-- Notification Toast Container -->
   <div id="toast-container"></div>
 
-  <!-- Modular Architecture Scripts -->
-  <script src="js/state.js"></script>
-  <script src="js/templates.js"></script>
-  <script src="js/scanner.js"></script>
-  <script src="js/sidebar.js"></script>
-  <script src="js/assets.js"></script>
-  <script src="js/claims.js"></script>
-  <script src="js/audit.js"></script>
-  <script src="js/admin.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Modular Architecture Scripts (Cache-Busted) -->
+  <script src="js/state.js?v=1.2.0"></script>
+  <script src="js/templates.js?v=1.2.0"></script>
+  <script src="js/scanner.js?v=1.2.0"></script>
+  <script src="js/sidebar.js?v=1.2.0"></script>
+  <script src="js/assets.js?v=1.2.0"></script>
+  <script src="js/claims.js?v=1.2.0"></script>
+  <script src="js/audit.js?v=1.2.0"></script>
+  <script src="js/admin.js?v=1.2.0"></script>
+  <script src="js/auth.js?v=1.2.0"></script>
+  <script src="js/app.js?v=1.2.0"></script>
 </body>
 </html>
