@@ -94,6 +94,7 @@ async function lookupAsset(tag) {
   const parsed = parseAssetTagLocal(tag);
   displayLocalParserResults(parsed);
   hideFuzzySuggestion();
+  playScanBeep();
   
   try {
     const res = await fetch(`/api/assets/${encodeURIComponent(tag)}`, { headers: getAuthHeaders() });
@@ -115,12 +116,13 @@ async function lookupAsset(tag) {
         displayAssetDetails(asset);
       }
     } else {
-      showToast(`ไม่พบรหัส "${tag}" ในฐานข้อมูล (ประมาณการปีผลิต: ${parsed.year})`, 'warning', 4000);
+      showToast(`ไม่พบรหัส "${tag}" ในฐานข้อมูล`, 'warning', 3500);
       if (state.user && state.user.role === 'admin') {
         const addAssetModal = document.getElementById('add-asset-modal');
         if (addAssetModal) {
           addAssetModal.style.display = 'flex';
-          document.getElementById('new-asset-tag').value = tag;
+          const newTagInput = document.getElementById('new-asset-tag');
+          if (newTagInput) newTagInput.value = tag;
         }
       }
     }

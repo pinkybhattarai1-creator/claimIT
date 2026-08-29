@@ -200,53 +200,28 @@ function populateConfigTable(configs) {
     if (currentType !== c.type) {
       currentType = c.type;
       const groupTr = document.createElement('tr');
-      groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="5" style="font-weight: bold; text-transform: uppercase; color: var(--primary);">${currentType}</td>`;
+      groupTr.style.background = 'rgba(255, 255, 255, 0.08)';
+      const typeLabel = currentType === 'brand' ? '🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)' : (currentType === 'category' ? '💻 หมวดหมู่อุปกรณ์ (Device Categories)' : '🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)');
+      groupTr.innerHTML = `<td colspan="5" style="font-weight: 700; font-size: 12px; color: var(--primary); padding: 8px 12px;">${typeLabel}</td>`;
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');
-    const tdId = document.createElement('td');
-    tdId.innerHTML = String(c.id);
+    
+    const badgeClass = c.type === 'brand' ? 'badge-vendor' : (c.type === 'category' ? 'badge-working' : 'badge-donation');
+    const tdId = `<td>${c.id}</td>`;
+    const tdType = `<td><span class="badge ${badgeClass}" style="font-size: 10.5px; font-weight: 700;">${c.type.toUpperCase()}</span></td>`;
+    const tdValue = `<td><strong style="color: var(--text-primary); font-size: 13px;">${escapeHtml(c.value)}</strong></td>`;
+    const tdDetails = `<td><div style="max-height: 120px; overflow-y: auto; background: var(--surface-subtle); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 12px; line-height: 1.5;">${c.details || '-'}</div></td>`;
+    const tdActions = `
+      <td>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.editConfig(${c.id}, '${escapeHtml(c.type)}', '${escapeHtml(c.value)}', '${escapeHtml(c.details || '')}')">✏️ แก้ไข</button>
+          <button class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.deleteConfig(${c.id})">🗑️ ลบ</button>
+        </div>
+      </td>
+    `;
 
-    const tdType = document.createElement('td');
-    tdType.innerHTML = `<strong>${c.type}</strong>`;
-
-    const tdValue = document.createElement('td');
-    tdValue.textContent = c.value;
-
-    const tdDetails = document.createElement('td');
-    tdDetails.innerHTML = `<div style="word-wrap: break-word; white-space: pre-wrap; max-width: 400px;">${c.details || '-'}</div>`;
-
-    const tdActions = document.createElement('td');
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn btn-secondary';
-    editBtn.style.padding = '4px 8px';
-    editBtn.style.fontSize = '11px';
-    editBtn.textContent = 'แก้ไข';
-    editBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      window.editConfig(c.id, c.type, c.value, c.details || '');
-    });
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-danger';
-    deleteBtn.style.padding = '4px 8px';
-    deleteBtn.style.fontSize = '11px';
-    deleteBtn.textContent = 'ลบ';
-    deleteBtn.addEventListener('click', async (event) => {
-      event.stopPropagation();
-      await window.deleteConfig(c.id);
-    });
-
-    tdActions.appendChild(editBtn);
-    tdActions.appendChild(deleteBtn);
-
-    tr.appendChild(tdId);
-    tr.appendChild(tdType);
-    tr.appendChild(tdValue);
-    tr.appendChild(tdDetails);
-    tr.appendChild(tdActions);
+    tr.innerHTML = tdId + tdType + tdValue + tdDetails + tdActions;
     tbody.appendChild(tr);
   });
 }

@@ -31,50 +31,44 @@ function playScanBeep() {
   } catch {}
 }
 
-// Local Tag Parser Heuristic (ISO / Off-grid Offline Parser)
+// Deterministic Tag Parser for Hospital IT Assets & Hardware
 function parseAssetTagLocal(rawText) {
-  const yearMatch = rawText.match(/\b(20\d{2})\b/);
-  const year = yearMatch ? yearMatch[1] : 'Unknown';
+  if (!rawText) return { state: 'INVALID', raw: '', format: null };
+  const clean = String(rawText).replace(/[\r\n\t]/g, '').trim().toUpperCase();
   
-  const versionMatch = rawText.match(/[vV](ersion)?\s*([0-9])/);
-  const version = versionMatch ? versionMatch[2] : '1';
-  
-  let parsedStatus = 'Unknown';
-  if (rawText.includes('-W') || rawText.toLowerCase().includes('work')) {
-    parsedStatus = 'Warranty Active';
-  } else if (rawText.includes('-EX') || rawText.toLowerCase().includes('exp')) {
-    parsedStatus = 'Expired';
+  if (clean.startsWith('CIT-')) {
+    const m = clean.match(/^CIT-(\d{4})-([A-Z0-9]{2,5})-(\d{1,4})$/);
+    if (m) {
+      const year = parseInt(m[1], 10);
+      return { state: 'VALID', raw: clean, format: 'STANDARD_CIT', year, categoryCode: m[2], sequence: m[3] };
+    }
+    return { state: 'MALFORMED', raw: clean, format: 'STANDARD_CIT', year: null };
   }
   
-  return {
-    raw: rawText,
-    year,
-    version,
-    parsedStatus,
-    timestamp: new Date().toISOString()
-  };
+  if (clean.startsWith('LNR-')) {
+    const m = clean.match(/^LNR-([A-Z0-9]{2,5})-(\d{1,4})$/);
+    if (m) {
+      return { state: 'VALID', raw: clean, format: 'LOANER', categoryCode: m[1], sequence: m[2] };
+    }
+    return { state: 'MALFORMED', raw: clean, format: 'LOANER' };
+  }
+  
+  if (/^\d+$/.test(clean)) {
+    if (clean.length >= 10 && clean.length <= 14) {
+      return { state: 'VALID', raw: clean, format: 'LEGACY_NUMERIC', isLegacy: true };
+    }
+    return { state: 'MALFORMED', raw: clean, format: 'LEGACY_NUMERIC', isLegacy: true };
+  }
+  
+  if (clean.length >= 4 && clean.length <= 30 && !/[^A-Z0-9\-_\.\/]/i.test(clean)) {
+    return { state: 'VALID', raw: clean, format: 'SERIAL_NUMBER' };
+  }
+  
+  return { state: 'UNSUPPORTED_FORMAT', raw: clean, format: null };
 }
 
 function displayLocalParserResults(parsed) {
-  const elements = [
-    document.getElementById('parser-analytics-ward'),
-    document.getElementById('parser-analytics-it')
-  ];
-  
-  elements.forEach(el => {
-    if (!el) return;
-    el.style.display = 'block';
-    el.innerHTML = `
-      <div style="font-size: 11px; font-family: monospace; color: var(--info); line-height: 1.5;">
-        <span style="color:#fff; font-weight:bold;">[OFFLINE TAG PARSER DETECTED]</span><br>
-        Raw Text: "${parsed.raw}"<br>
-        Extracted Year: <span style="color:#fff">${parsed.year}</span><br>
-        Schema Version: <span style="color:#fff">V${parsed.version}</span><br>
-        Implied Status: <span style="color:#fff">${parsed.parsedStatus}</span><br>
-        Security Status: <span style="color:#10b981">PDPA Cleared (No PII)</span>
-      </div>
-    `;
-  });
+  // Silent in production UI to ensure clean hospital workflow presentation
 }
 
 // Smart Scanner & Anti-Typo Engine

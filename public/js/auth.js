@@ -74,10 +74,24 @@ function showUserNavigation() {
 function logout() {
   localStorage.removeItem('claimit_user');
   state.user = null;
-  const appSidebar = document.getElementById('app-sidebar');
-  if (appSidebar) appSidebar.style.display = 'none';
-  if (userBadge) userBadge.style.display = 'none';
+  state.selectedAsset = null;
+  state.pendingFuzzyAsset = null;
+  state.claimAssets = [];
+  state.recentScans = [];
 
+  // Hide Topbar and Sidebar Navigation
+  const appSidebar = document.getElementById('app-sidebar');
+  if (appSidebar) {
+    appSidebar.style.display = 'none';
+    appSidebar.classList.remove('open');
+  }
+  if (userBadge) userBadge.style.display = 'none';
+  const breadcrumbBar = document.getElementById('breadcrumb-bar');
+  if (breadcrumbBar) breadcrumbBar.style.display = 'none';
+  const navTabs = document.getElementById('nav-tabs');
+  if (navTabs) navTabs.style.display = 'none';
+
+  // Hide Admin Sections
   const itBtn = document.getElementById('btn-to-it');
   const configBtn = document.getElementById('btn-to-config');
   const opGroup = document.getElementById('sidebar-group-operations');
@@ -91,6 +105,28 @@ function logout() {
   if (exportGroup) exportGroup.style.display = 'none';
   if (btnTopIt) btnTopIt.style.display = 'none';
   if (btnTopConfig) btnTopConfig.style.display = 'none';
+
+  // Close Quick Access Drawer if open
+  const quickSidebar = document.getElementById('quick-sidebar');
+  if (quickSidebar) quickSidebar.classList.remove('open');
+
+  // Close all possible open modals
+  const modalIds = [
+    'profile-modal', 'add-asset-modal', 'claim-modal', 'claim-detail-modal',
+    'pdpa-modal', 'user-modal', 'password-modal', 'config-modal', 'mobile-ip-modal'
+  ];
+  modalIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // Reset inputs
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) loginForm.reset();
+  const wardSearch = document.getElementById('ward-search-input');
+  if (wardSearch) wardSearch.value = '';
+  const itSearch = document.getElementById('it-search-input');
+  if (itSearch) itSearch.value = '';
 
   switchView('auth');
   showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
