@@ -7,7 +7,7 @@
 const http = require('http');
 const fs = require('fs');
 
-const BASE_URL = 'http://127.0.0.1:8847';
+const BASE_URL = process.env.BASE_URL || ('http://127.0.0.1:' + (process.env.PORT || 8847));
 
 function api(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {

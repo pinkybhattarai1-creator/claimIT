@@ -34,7 +34,7 @@ function playScanBeep() {
 // Deterministic Tag Parser for Hospital IT Assets & Hardware
 function parseAssetTagLocal(rawText) {
   if (!rawText) return { state: 'INVALID', raw: '', format: null };
-  const clean = String(rawText).replace(/[\r\n\t]/g, '').trim().toUpperCase();
+  const clean = String(rawText).replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[\r\n\t]/g, '').trim().toUpperCase();
   
   if (clean.startsWith('CIT-')) {
     const m = clean.match(/^CIT-(\d{4})-([A-Z0-9]{2,5})-(\d{1,4})$/);
@@ -92,7 +92,7 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
     if (e.key === 'Enter') {
       e.preventDefault();
       hideFuzzySuggestion();
-      const cleanVal = input.value.trim().toUpperCase();
+      const cleanVal = input.value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toUpperCase();
       if (cleanVal) lookupAsset(cleanVal);
       return;
     }
@@ -112,7 +112,7 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
     // Scanner Burst Detector: When rapid keystrokes stop (<180ms debounce)
     clearTimeout(burstTimer);
     burstTimer = setTimeout(() => {
-      const clean = input.value.trim().toUpperCase();
+      const clean = input.value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toUpperCase();
       // Check if length is within flexible hospital tag range (6 to 30 chars)
       if (clean.length >= 6 && clean.length <= 30) {
         if (/^CIT-\d{4}-[A-Z0-9]{2,5}-\d{1,4}$/i.test(clean) || /^[A-Z0-9\-_]{6,30}$/i.test(clean)) {
@@ -124,14 +124,14 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
   });
 
   input.addEventListener('input', () => {
-    // Auto-uppercase & remove invalid whitespace
+    // Auto-uppercase & remove invalid whitespace / zero-width characters
     const start = input.selectionStart;
     const end = input.selectionEnd;
     const raw = input.value;
-    const cleaned = raw.replace(/\s+/g, '').toUpperCase();
+    const cleaned = raw.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, '').toUpperCase();
     if (raw !== cleaned) {
       input.value = cleaned;
-      input.setSelectionRange(start, end);
+      input.setSelectionRange(Math.min(start, cleaned.length), Math.min(end, cleaned.length));
     }
   });
 }
