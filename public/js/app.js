@@ -304,24 +304,7 @@ function setupEventListeners() {
     });
   });
 
-  const quickStaff = document.getElementById('btn-quick-staff');
-  if (quickStaff) {
-    quickStaff.addEventListener('click', () => {
-      document.getElementById('login-username').value = 'staff';
-      document.getElementById('login-password').value = 'staff123';
-      loginForm?.requestSubmit();
-    });
-  }
 
-  const quickAdmin = document.getElementById('btn-quick-admin');
-  if (quickAdmin) {
-    quickAdmin.addEventListener('click', () => {
-      document.getElementById('login-username').value = 'admin';
-      document.getElementById('login-password').value = 'admin123';
-      loginForm?.requestSubmit();
-    });
-  }
-  
   // Manual Search Buttons
   const wardSearchBtn = document.getElementById('ward-search-btn');
   if (wardSearchBtn) {
@@ -747,9 +730,6 @@ async function fetchNetworkInfo() {
     const savedCustomIp = localStorage.getItem('claimit_custom_ip');
     const activeHost = savedCustomIp || data.detectedIp || window.location.hostname;
     currentMobileUrl = `http://${activeHost}:${data.port || window.location.port || 8847}`;
-
-    const loginInput = document.getElementById('mobile-connect-url-input');
-    if (loginInput) loginInput.value = currentMobileUrl;
 
     const sidebarInput = document.getElementById('sidebar-mobile-url-input');
     if (sidebarInput) sidebarInput.value = currentMobileUrl;

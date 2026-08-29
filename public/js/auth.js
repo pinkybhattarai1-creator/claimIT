@@ -44,7 +44,7 @@ function showUserNavigation() {
   const isAdmin = state.user && state.user.role === 'admin';
 
   if (userNameEl) userNameEl.textContent = state.user.name;
-  if (userRoleEl) userRoleEl.textContent = `${isAdmin ? 'IT Admin' : 'Staff'} (${state.user.department || 'General'})`;
+  if (userRoleEl) userRoleEl.textContent = `${isAdmin ? 'IT Support Admin' : 'IT Support Specialist'} (${state.user.department || 'Technical Support & Infrastructure'})`;
   const avatarEl = document.getElementById('user-avatar');
   if (avatarEl) {
     avatarEl.textContent = (state.user.name || state.user.username || 'U').charAt(0).toUpperCase();

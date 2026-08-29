@@ -19,7 +19,7 @@ function populateUserTable(users) {
       currentRole = u.role;
       const groupTr = document.createElement('tr');
       groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ ผู้ดูแลระบบ (IT Administrators)' : '👨‍💻 ช่างเทคนิค (Field & Ward Staff)'}</td>`;
+      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)' : '👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)'}</td>`;
       tbody.appendChild(groupTr);
     }
     const tr = document.createElement('tr');

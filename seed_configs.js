@@ -46,14 +46,14 @@ const defaultConfigs = [
   },
   {
     type: 'brand',
-    value: 'TSC',
+    value: 'HP',
     details: `<div class="brand-guide">
-  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมเครื่องพิมพ์บาร์โค้ด TSC:</div>
+  <div style="font-weight: bold; color: #38bdf8; margin-bottom: 6px;">📋 ขั้นตอนการส่งเคลมประกันศูนย์ HP (Care Pack / Onsite):</div>
   <ol style="margin: 0 0 10px 18px; padding: 0; line-height: 1.6; font-size: 13px;">
-    <li>ติดต่อตัวแทนจำหน่าย/ศูนย์บริการ TSC ผ่านโทรศัพท์หรือ Line Official Service</li>
-    <li>ถ่ายรูปป้าย Serial Number และถ่ายคลิปวิดีโอสั้นแสดงอาการผิดปกติ (เช่น หัวพิมพ์ขาด, มอเตอร์ไม่หมุน, ฟีดกระดาษติด)</li>
-    <li><strong style="color: #f59e0b;">เอกสารนำออก:</strong> ทำหนังสือขออนุญาตนำทรัพย์สินออกนอกโรงพยาบาล (Gate Pass) พร้อมให้ผู้มีอำนาจลงนาม</li>
-    <li>เมื่อเจ้าหน้าที่นำเครื่องมาส่งคืน ให้ขอสำเนาบัตรประชาชนผู้ส่งและเอกสารใบส่งมอบคืนเครื่องไว้เป็นหลักฐาน</li>
+    <li>ถ่ายรูปภาพตัวเครื่องให้เห็นป้าย <strong>Serial Number (S/N) และ Product Number (P/N)</strong> ชัดเจน</li>
+    <li>ติดต่อ HP Support ผ่าน Call Center 02-787-3344 หรือเปิดเคสผ่าน HP Support Assistant</li>
+    <li>แจ้งอาการเสีย รหัสข้อผิดพลาด และสถานที่ติดตั้งอุปกรณ์</li>
+    <li>รอรับหมายเลข e-Case ID เพื่อติดตามงานบริการ On-site หรือการส่งเครื่องซ่อม</li>
   </ol>
 </div>`
   },
