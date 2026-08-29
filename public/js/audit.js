@@ -151,10 +151,12 @@ function populateAuditTable(logs) {
     if (log.moved_direction === 'OUT') dirClass = 'badge-broken';
     else if (log.moved_direction === 'STATE_CHANGE') dirClass = 'badge-vendor';
 
+    const safeCode = String(log.log_code || '').replace(/'/g, "\\'");
     const logCodeHtml = log.log_code 
-      ? `<span class="log-code-chip" onclick="copyTrackingCode('${log.log_code}')" title="คลิกเพื่อคัดลอกรหัสติดตาม">📋 ${log.log_code}</span>` 
+      ? `<span class="log-code-chip" onclick="copyTrackingCode('${safeCode}')" title="คลิกเพื่อคัดลอกรหัสติดตาม">📋 ${log.log_code}</span>` 
       : '<span style="color:var(--text-muted); font-size:11px;">-</span>';
     
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${logCodeHtml}</td>
       <td style="white-space: nowrap; font-size: 12px;">${time}</td>

@@ -61,6 +61,14 @@ function initApp() {
 
 // Routing & View Switcher with URL Path Synchronization
 function switchView(viewName, pushHistory = true) {
+  // Enforce RBAC Guard: Non-admin users can never navigate to IT Workbench or Admin Config
+  if ((viewName === 'it' || viewName === 'config') && (!state.user || state.user.role !== 'admin')) {
+    if (state.user) {
+      showToast('สิทธิ์การเข้าถึงถูกจำกัด: เฉพาะผู้ดูแลระบบไอที (IT Admin) เท่านั้น', 'warning', 3500);
+    }
+    viewName = state.user ? 'ward' : 'auth';
+  }
+
   state.activeView = viewName;
   document.title = PAGE_TITLES[viewName] || 'ClaimIT';
 
@@ -82,10 +90,11 @@ function switchView(viewName, pushHistory = true) {
   const btnWard = document.getElementById('btn-to-ward');
   const btnIt = document.getElementById('btn-to-it');
   const btnConfig = document.getElementById('btn-to-config');
+  const btnTopWard = document.getElementById('btn-top-ward');
+  const btnTopIt = document.getElementById('btn-top-it');
+  const btnTopConfig = document.getElementById('btn-top-config');
 
-  btnWard?.classList.remove('active');
-  btnIt?.classList.remove('active');
-  btnConfig?.classList.remove('active');
+  [btnWard, btnIt, btnConfig, btnTopWard, btnTopIt, btnTopConfig].forEach(b => b?.classList.remove('active'));
   
   if (viewName === 'auth') {
     authSection.classList.add('active');
@@ -97,6 +106,7 @@ function switchView(viewName, pushHistory = true) {
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
     btnWard?.classList.add('active');
+    btnTopWard?.classList.add('active');
     updateBreadcrumb('Staff Portal', 'สแกน & แจ้งซ่อมภาคสนาม');
     refreshData();
     setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
@@ -105,6 +115,7 @@ function switchView(viewName, pushHistory = true) {
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
     btnIt?.classList.add('active');
+    btnTopIt?.classList.add('active');
     const currentActiveTab = document.querySelector('.it-tab-btn.active')?.getAttribute('data-tab') || 'tab-it-scanner';
     switchItTab(currentActiveTab);
     refreshData();
@@ -114,6 +125,7 @@ function switchView(viewName, pushHistory = true) {
     navTabs.style.display = 'flex';
     userBadge.style.display = 'flex';
     btnConfig?.classList.add('active');
+    btnTopConfig?.classList.add('active');
     const currentActiveCfgTab = document.querySelector('.config-tab-btn.active')?.getAttribute('data-tab') || 'tab-cfg-settings';
     switchConfigTab(currentActiveCfgTab);
     refreshData();
@@ -292,24 +304,7 @@ function setupEventListeners() {
     });
   });
 
-  const quickStaff = document.getElementById('btn-quick-staff');
-  if (quickStaff) {
-    quickStaff.addEventListener('click', () => {
-      document.getElementById('login-username').value = 'staff';
-      document.getElementById('login-password').value = 'staff123';
-      loginForm?.requestSubmit();
-    });
-  }
 
-  const quickAdmin = document.getElementById('btn-quick-admin');
-  if (quickAdmin) {
-    quickAdmin.addEventListener('click', () => {
-      document.getElementById('login-username').value = 'admin';
-      document.getElementById('login-password').value = 'admin123';
-      loginForm?.requestSubmit();
-    });
-  }
-  
   // Manual Search Buttons
   const wardSearchBtn = document.getElementById('ward-search-btn');
   if (wardSearchBtn) {
@@ -736,9 +731,6 @@ async function fetchNetworkInfo() {
     const activeHost = savedCustomIp || data.detectedIp || window.location.hostname;
     currentMobileUrl = `http://${activeHost}:${data.port || window.location.port || 8847}`;
 
-    const loginInput = document.getElementById('mobile-connect-url-input');
-    if (loginInput) loginInput.value = currentMobileUrl;
-
     const sidebarInput = document.getElementById('sidebar-mobile-url-input');
     if (sidebarInput) sidebarInput.value = currentMobileUrl;
 
@@ -832,21 +824,32 @@ window.clearWardPhoto = clearWardPhoto;
 
 async function uploadWardCapturedPhoto(assetTag) {
   if (!state.wardCapturedPhotoFile || !assetTag) return;
+  const token = state.user?.token;
+  if (!token) {
+    showToast('กรุณาเข้าสู่ระบบก่อนอัปโหลดภาพหลักฐาน', 'warning');
+    return;
+  }
   try {
     const formData = new FormData();
     formData.append('file', state.wardCapturedPhotoFile);
     formData.append('asset_tag', assetTag);
 
-    const token = localStorage.getItem('claimit_token') || sessionStorage.getItem('claimit_token');
-    await fetch('/api/evidence/upload', {
+    const res = await fetch('/api/evidence/upload', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || 'อัปโหลดภาพหลักฐานล้มเหลว', 'error');
+      return;
+    }
     console.log(`[Photo Evidence] Uploaded photo evidence for ${assetTag}`);
+    showToast('อัปโหลดภาพหลักฐานสำเร็จ', 'success');
     clearWardPhoto();
   } catch (err) {
     console.warn('Photo evidence upload warning:', err);
+    showToast('อัปโหลดภาพหลักฐานล้มเหลว กรุณาลองใหม่', 'error');
   }
 }
 window.uploadWardCapturedPhoto = uploadWardCapturedPhoto;

@@ -87,9 +87,9 @@ function initAndShowTemplateModal() {
   const editProb = document.getElementById('edit-problem-desc');
   if (editProb) {
     if (currentTemplateAsset.category === 'Printer' || (currentTemplateAsset.device_name || '').toLowerCase().includes('printer')) {
-      editProb.value = 'ปริ้นเป็นเส้น / หัวพิมพ์ติดขัด (TM-Bit missing)';
+      editProb.value = 'พิมพ์เป็นเส้น / หัวพิมพ์ติดขัด (TM-Bit missing)';
     } else if (currentTemplateAsset.category === 'Scanner') {
-      editProb.value = 'สแกนเนอร์ไม่อ่านบาร์โค้ด / สัญญาณขาดหาย';
+      editProb.value = 'หัวอ่านสแกนเนอร์ไม่อ่านบาร์โค้ด / การเชื่อมต่อขาดหาย';
     } else {
       editProb.value = 'เครื่องเปิดไม่ติด / อุปกรณ์ฮาร์ดแวร์ทำงานผิดปกติ';
     }

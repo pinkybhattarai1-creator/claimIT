@@ -1,4 +1,4 @@
-﻿# 18 — การส่งอีเมลแจ้งเตือน (Email Notifications)
+# 18 — การส่งอีเมลแจ้งเตือน (Email Notifications)
 
 กลุ่มผู้ใช้: IT Admin / Developer
 
@@ -6,42 +6,29 @@
 
 ## ภาพรวม
 
-ClaimIT มีระบบส่งอีเมล 2 ระบบ:
-1. Resend (routes/email.js) — สำหรับส่งอีเมลจาก UI โดยตรง
-2. SendGrid (services/emailService.js) — สำหรับอีเมล background จาก API
+ClaimIT มีระบบส่งอีเมลแจ้งเตือนผ่าน Resend API:
+1. การส่งอีเมลโดยตรงจากหน้าจอ (Direct Dispatch via `/api/email/send`)
+2. การส่งอีเมลแจ้งเตือนอัตโนมัติจาก Backend เมื่อสร้างใบเคลม หรือเพิ่มครุภัณฑ์ใหม่
 
 ---
 
-## ระบบที่ 1: Resend (Direct Email via API)
+## การตั้งค่า Resend ใน .env
 
-ตั้งค่าใน .env:
-  RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
-  RESEND_FROM=no-reply@claimit.local
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+RESEND_FROM=no-reply@claimit.local
+NOTIFY_EMAIL=admin@claimit.local
+```
 
 Endpoint:
-POST /api/email/send
-Body: { to, subject, html }
-สิทธิ์: Staff+
+- `POST /api/email/send`
+- Header: `Authorization: Bearer <jwt_token>`
+- Body: `{ "to": "recipient@hospital.local", "subject": "หัวข้อ", "html": "<p>ข้อความ</p>" }`
+- สิทธิ์: Staff / Admin
 
-หาก RESEND_API_KEY ไม่ได้ตั้งค่า → response 503:
-"Email service not configured. Set RESEND_API_KEY in .env."
-
----
-
-## ระบบที่ 2: SendGrid (Background Notifications)
-
-ตั้งค่าใน .env:
-  SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxx
-  SENDGRID_FROM=no-reply@claimit.local
-
-ใช้โดย Backend เอง เมื่อ:
-1. เพิ่มครุภัณฑ์ใหม่ → Template: ASSET_ADDED
-2. สร้างใบเคลม (ถ้า recipient_email ถูกส่งมา) → Template: VIABILITY_REPORT
-
-หาก SendGrid ไม่ตั้งค่า:
-- ระบบยังทำงานได้ปกติ
-- Log error ใน console
-- ผู้ใช้ได้รับ response success ตามปกติ (fire-and-forget)
+หาก `RESEND_API_KEY` ไม่ได้ตั้งค่า:
+- ระบบยังทำงานได้ปกติโดยบันทึก Log ลงในระบบ (Non-blocking / Resilient)
+- บันทึกประวัติการส่งลงในตาราง `email_logs` ในฐานข้อมูล SQLite
 
 ---
 

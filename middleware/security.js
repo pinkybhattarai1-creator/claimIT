@@ -92,9 +92,10 @@ function createRateLimiter({ windowMs = 60000, max = 100, message = 'Too many re
 }
 
 // Rate Limiter Presets
+const isDevOrTest = NODE_ENV === 'test' || NODE_ENV === 'development' || !NODE_ENV;
 const loginLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,                  // Max 15 attempts
+  windowMs: isDevOrTest ? 1000 : 15 * 60 * 1000, // 1 second in dev/test, 15m in prod
+  max: isDevOrTest ? 1000 : 15,
   message: 'เข้าสู่ระบบล้มเหลวหลายครั้งเกินไป กรุณารอ 15 นาทีก่อนลองใหม่อีกครั้ง'
 });
 

@@ -5,8 +5,45 @@
 
 const express = require('express');
 const router = express.Router();
+const { db } = require('../db');
 const { verifyToken, staffOnly } = require('../middleware/auth');
 const { upload, recordEvidence, getEvidenceForUser, deleteEvidence } = require('../services/evidenceService');
+
+// GET /api/evidence/claim/:claim_id (Fetch attached evidence for a specific claim)
+router.get('/claim/:claim_id', verifyToken, staffOnly, (req, res, next) => {
+  const claimId = parseInt(req.params.claim_id, 10);
+  if (!claimId) return res.status(400).json({ error: 'Invalid claim ID' });
+
+  db.all(
+    `SELECT id, claim_id, asset_tag, uploader_username, original_filename, storage_key, mime_type, mime_type as file_type, file_size, created_at 
+     FROM evidence 
+     WHERE claim_id = ? AND is_deleted = 0 
+     ORDER BY id DESC`,
+    [claimId],
+    (err, rows) => {
+      if (err) return next(err);
+      res.json(rows || []);
+    }
+  );
+});
+
+// GET /api/evidence/asset/:asset_tag (Fetch attached evidence for a specific asset tag)
+router.get('/asset/:asset_tag', verifyToken, staffOnly, (req, res, next) => {
+  const assetTag = String(req.params.asset_tag).trim().toUpperCase();
+  if (!assetTag) return res.status(400).json({ error: 'Invalid asset tag' });
+
+  db.all(
+    `SELECT id, claim_id, asset_tag, uploader_username, original_filename, storage_key, mime_type, mime_type as file_type, file_size, created_at 
+     FROM evidence 
+     WHERE UPPER(asset_tag) = ? AND is_deleted = 0 
+     ORDER BY id DESC`,
+    [assetTag],
+    (err, rows) => {
+      if (err) return next(err);
+      res.json(rows || []);
+    }
+  );
+});
 
 // POST /api/evidence/upload (Upload evidence file with size & MIME validation)
 router.post('/upload', verifyToken, staffOnly, (req, res, next) => {

@@ -32,7 +32,7 @@ graph TD
     ClaimRoute --> PDFEngine[PDFKit Engine: Claim Voucher]
     EvidenceRoute --> PrivStorage[(Private Storage: storage/evidence/)]
     API --> DB[(SQLite Database: WAL Mode, Foreign Keys)]
-    API --> SendGrid[SendGrid API: Email Notifications]
+    API --> Resend[Resend API: Email Notifications]
 ```
 
 ---
@@ -173,8 +173,8 @@ docker compose logs -f
 
 | Role | Username | Password | สิทธิ์การใช้งาน |
 |---|---|---|---|
-| **Admin (IT Head)** | `admin` | `admin123` | จัดการผู้ใช้, จัดการแผนก, อัปเดตการตั้งค่าระบบ, อนุมัติและดูแลระบบทั้งหมด |
-| **General Staff (Ward & IT)** | `staff` | `staff123` | สแกนแจ้งชำรุดหอผู้ป่วย (Ward Portal), สแกนรับของ, ล้างข้อมูล PDPA, สร้างใบส่งเคลม (RMA), แนบหลักฐาน |
+| **Admin (4 IT Admins)** | `admin`, `admin2`, `admin3`, `admin4` | `admin123` | จัดการผู้ใช้, จัดการแผนก, อัปเดตการตั้งค่าระบบ, อนุมัติและดูแลระบบทั้งหมด |
+| **Staff (4 IT Staff)** | `staff`, `staff2`, `staff3`, `staff4` | `staff123` | สแกนแจ้งชำรุดภาคสนาม (Staff Portal), สแกนรับของ, ล้างข้อมูล PDPA, สร้างใบส่งเคลม (RMA), แนบหลักฐาน |
 
 ---
 
@@ -183,11 +183,20 @@ docker compose logs -f
 ระบบมีชุดทดสอบครอบคลุมทุกกฎความปลอดภัยและ Business Rules:
 
 ```bash
-# 1. รันชุดทดสอบหลัก 10 ขั้นตอน (Auth, RBAC, Viability, Max 5 Assets, Evidence, Wipe Code, Health)
+# 1. รันชุดทดสอบหลัก 12 ขั้นตอน (Auth, RBAC, Viability, Max 5 Assets, Evidence, Wipe Code, Health)
 node test_suite.js
 
 # 2. รันชุดทดสอบกระบวนการทำงานครบวงจร (Integration Workflow)
 node test_workflow.js
+
+# 3. รันการตรวจสอบตัวอย่างข้อมูลจริงและการคำนวณทางบัญชี
+node test_samples_validation.js
+
+# 4. รัน Hostile QA & Stress Verification Suite
+node scripts/hostile_qa_test.js
+
+# 5. รันการจำลองและตรวจสอบ Frontend & Workflows
+node scripts/verify_frontend_workflows.js
 ```
 
 ---
@@ -197,7 +206,9 @@ node test_workflow.js
 | Variable | จำเป็น | ค่าเริ่มต้น | คำอธิบาย |
 |---|---|---|---|
 | `PORT` | ไม่ | `8847` | พอร์ตที่ Web Server ให้บริการ |
+| `HOST` | ไม่ | `0.0.0.0` | Network Interface (รองรับ Intranet 10.33.xx.xx) |
 | `JWT_SECRET` | **ใช่** | - | Secret Key สำหรับ Sign JWT Token (ต้องไม่เว้นว่างใน Production) |
 | `NODE_ENV` | ไม่ | `development` | สภาพแวดล้อมการทำงาน (`development` / `production` / `test`) |
-| `SENDGRID_API_KEY` | ไม่ | - | API Key ของ SendGrid สำหรับส่งอีเมลแจ้งเตือนจริง |
-| `SENDGRID_FROM` | ไม่ | `no-reply@claimit.local` | อีเมลผู้ส่ง |
+| `RESEND_API_KEY` | ไม่ | - | API Key ของ Resend สำหรับส่งอีเมลแจ้งเตือน |
+| `RESEND_FROM` | ไม่ | `no-reply@claimit.local` | อีเมลผู้ส่ง |
+| `NOTIFY_EMAIL` | ไม่ | `admin@claimit.local` | อีเมลผู้รับการแจ้งเตือน |

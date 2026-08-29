@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
-const { verifyToken, staffOnly } = require('../middleware/auth');
+const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
 
 // XML escape helper for Excel SpreadsheetML
 function xmlEscape(val) {
@@ -47,8 +47,8 @@ function createWorksheetXml(sheetName, headers, rows) {
   return xml;
 }
 
-// GET /api/export/excel - Native Multi-Sheet Excel Workbook
-router.get('/excel', verifyToken, staffOnly, (req, res) => {
+// GET /api/export/excel - Native Multi-Sheet Excel Workbook (Admin-only)
+router.get('/excel', verifyToken, adminOnly, (req, res) => {
   const nowStr = new Date().toISOString().slice(0, 10);
   const filename = `claimit_full_database_${nowStr}.xls`;
 

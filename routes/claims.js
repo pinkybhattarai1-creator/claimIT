@@ -116,8 +116,8 @@ router.get('/:id', verifyToken, staffOnly, (req, res, next) => {
   });
 });
 
-// PUT /api/claims/:id/status (Enforce valid state transition)
-router.put('/:id/status', verifyToken, staffOnly, async (req, res, next) => {
+// PUT /api/claims/:id/status (Enforce valid state transition - Admin-only)
+router.put('/:id/status', verifyToken, adminOnly, async (req, res, next) => {
   try {
     const { status, notes, resolution_type, replacement_serial_no, repair_cost } = req.body;
     if (!status) return res.status(400).json({ error: 'กรุณาระบุสถานะใหม่ (new status required)' });

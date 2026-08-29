@@ -53,7 +53,7 @@ async function handleResolveRma(e) {
     resolution_type: document.getElementById('resolve-type').value,
     replacement_serial_no: document.getElementById('resolve-new-serial').value.trim(),
     repair_cost: parseFloat(document.getElementById('resolve-cost').value) || 0,
-    action_by_username: state.user.username
+    action_by_username: state.user ? state.user.username : 'staff'
   };
 
   try {
@@ -97,7 +97,7 @@ async function confirmSanitization() {
   
   const payload = {
     asset_tag: state.selectedAsset.asset_tag,
-    action_by_username: state.user.username,
+    action_by_username: state.user ? state.user.username : 'staff',
     sanitization_note: 'Verified data wipe via IT Security Safeguard Panel (Code: ' + wipeCode.toUpperCase() + ')',
     wipe_code: wipeCode
   };
@@ -159,7 +159,7 @@ async function handleClaimInitiate(e) {
     expected_return_date: expectedDate || '',
     data_wiped_confirmed: state.selectedAsset.sanitization_required ? 1 : 0,
     sanitization_note: 'Verified data wipe prior to vendor RMA dispatch',
-    action_by_username: state.user.username
+    action_by_username: state.user ? state.user.username : 'staff'
   };
 
   const to = `support@${vendorName.toLowerCase().replace(/\s+/g, '')}.com`;
@@ -287,7 +287,8 @@ async function loadClaimsList() {
   try {
     const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) return;
-    const claims = await res.json();
+    const data = await res.json();
+    const claims = Array.isArray(data) ? data : (Array.isArray(data?.claims) ? data.claims : []);
     renderClaimsTable(claims);
   } catch (err) {
     console.error('Failed to load claims list:', err);
@@ -299,8 +300,9 @@ function renderClaimsTable(claims) {
   const tbody = document.getElementById('claims-table-body');
   if (!tbody) return;
 
+  const list = Array.isArray(claims) ? claims : (Array.isArray(claims?.claims) ? claims.claims : []);
   tbody.innerHTML = '';
-  if (!claims || claims.length === 0) {
+  if (!list || list.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8" style="text-align:center; padding:40px 20px;">
@@ -312,7 +314,7 @@ function renderClaimsTable(claims) {
     return;
   }
 
-  claims.forEach(c => {
+  list.forEach(c => {
     const tr = document.createElement('tr');
     const badge = CLAIM_STATUS_BADGES[c.status] || `<span class="badge">${c.status}</span>`;
     const scoreColor = (c.viability_score !== null && c.viability_score <= 5) ? 'var(--success)' : 'var(--danger)';
@@ -322,7 +324,7 @@ function renderClaimsTable(claims) {
     tr.innerHTML = `
       <td><strong>${c.claim_number}</strong></td>
       <td>${c.vendor_name}</td>
-      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${c.asset_count || 1} ชิ้น</span></td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${c.asset_count || 1} รายการ</span></td>
       <td>${dateText}</td>
       <td>${scoreText}</td>
       <td>${badge}</td>
@@ -432,7 +434,7 @@ async function handleNewMultiClaimSubmit(e) {
 
   const assetTags = rawTags
     .split(/[\s,]+/)
-    .map(t => t.trim())
+    .map(t => t.trim().toUpperCase())
     .filter(t => t.length > 0);
 
   if (assetTags.length === 0) {
@@ -440,8 +442,14 @@ async function handleNewMultiClaimSubmit(e) {
     return;
   }
 
+  const uniqueTags = new Set(assetTags);
+  if (uniqueTags.size !== assetTags.length) {
+    showToast('⚠️ พบรหัสครุภัณฑ์ซ้ำกันในรายการ กรุณาระบุรหัสที่ไม่ซ้ำกัน', 'warning');
+    return;
+  }
+
   if (assetTags.length > 5) {
-    showToast('ระบบจำกัดการส่งเคลมได้ไม่เกิน 5 ชิ้นต่อ 1 ใบเคลม', 'warning');
+    showToast('ระบบจำกัดการส่งเคลมได้ไม่เกิน 5 รายการต่อ 1 ใบเคลม', 'warning');
     return;
   }
 
@@ -500,10 +508,11 @@ async function openClaimDetailsModal(claimId) {
     assetsTbody.innerHTML = '';
     (claim.assets || []).forEach(a => {
       const tr = document.createElement('tr');
+      const itemStatusLabel = a.item_status === 'Pending Pickup' ? 'รอศูนย์บริการเข้ารับ' : (a.item_status === 'Returned' ? 'รับเครื่องคืนแล้ว' : (a.item_status || 'รอส่งเคลม'));
       tr.innerHTML = `
         <td><strong>${a.asset_tag}</strong></td>
         <td>${a.device_name || '-'} (${a.brand || '-'} ${a.model || ''})</td>
-        <td><span class="badge">${a.item_status || 'Pending Pickup'}</span></td>
+        <td><span class="badge">${itemStatusLabel}</span></td>
         <td>${a.viability_score !== null ? a.viability_score : '-'}</td>
       `;
       assetsTbody.appendChild(tr);
@@ -524,7 +533,7 @@ async function openClaimDetailsModal(claimId) {
         else if (ns === 'RETURNED' || ns === 'CLOSED') btn.className = 'btn btn-success';
         else btn.className = 'btn btn-secondary';
 
-        btn.textContent = `➡️ เปลี่ยนเป็น ${ns}`;
+        btn.textContent = `➡️ ปรับเป็น ${ns}`;
         btn.onclick = () => handleAdvanceClaimStatus(claimId, ns);
         actionsContainer.appendChild(btn);
       });

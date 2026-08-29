@@ -1,4 +1,4 @@
-﻿# 19 — ความปลอดภัย (Security & RBAC)
+# 19 — ความปลอดภัย (Security & RBAC)
 
 กลุ่มผู้ใช้: Admin / Developer
 
@@ -147,8 +147,9 @@ Headers ที่ส่งกลับ:
 | /api/assets | GET | Staff+ |
 | /api/assets | POST | Admin |
 | /api/assets/:tag | PUT/DELETE | Admin |
+| /api/assets/salvage | POST | Admin (verifyToken, adminOnly) |
 | /api/claims | GET/POST | Staff+ |
-| /api/claims/:id/status | PUT | Staff+ |
+| /api/claims/:id/status | PUT | Admin (verifyToken, adminOnly) |
 | /api/users | GET/POST | Admin |
 | /api/users/:id | PUT/DELETE | Admin |
 | /api/configurations | GET | Staff+ |
@@ -156,10 +157,11 @@ Headers ที่ส่งกลับ:
 | /api/departments | GET | Authenticated |
 | /api/departments | POST/PUT/DELETE | Admin |
 | /api/audit-logs | GET | Staff+ |
-| /api/export/excel | GET | Staff+ |
+| /api/export/excel | GET | Admin (verifyToken, adminOnly) |
+| /api/export/assets.csv | GET | Staff+ |
 | /api/evidence/upload | POST | Staff+ |
 | /api/evidence/:id/view | GET | Staff+ (+ ownership check) |
-| /api/backup | POST | Open (add auth if needed) |
+| /api/backup | POST | Admin (verifyToken, adminOnly) |
 
 ---
 
