@@ -196,6 +196,26 @@ if (require.main === module) {
       }
     } catch {}
   });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      const hostLabel = (HOST === '0.0.0.0' || HOST === '127.0.0.1') ? 'localhost' : HOST;
+      const openUrl = `http://${hostLabel}:${PORT}`;
+      console.error(`\n[ClaimIT Warning] ⚠️ พอร์ต ${PORT} กำลังถูกใช้งานอยู่ (Port ${PORT} is already in use).`);
+      console.log(`[ClaimIT Info] อาจมีหน้าต่าง ClaimIT เปิดทำงานอยู่แล้ว สามารถเปิดใช้งานได้ที่: ${openUrl}\n`);
+      if (!process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
+        const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+                         process.platform === 'darwin' ? `open ${openUrl}` :
+                         `xdg-open ${openUrl}`;
+        try {
+          const { exec } = require('child_process');
+          exec(startCmd);
+        } catch {}
+      }
+    } else {
+      console.error(`\n[ClaimIT Server Error]`, err);
+    }
+  });
 }
 
 module.exports = { app, server };
