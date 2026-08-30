@@ -37,7 +37,7 @@ Admin สามารถสร้าง แก้ไข ระงับ แล�
 |---|---|
 | Username | `staff5` หรือ `it_hardware` |
 | Password | รหัสผ่าน (เข้ารหัสความปลอดภัยด้วย bcrypt) |
-| ชื่อ-นามสกุล | นายประสิทธิ์ มั่นคง (ช่างเทคนิคภาคสนาม) |
+| ชื่อ-นามสกุล | IT Support Specialist |
 | แผนก | Technical Support & Infrastructure |
 | Role | Staff / Admin |
 
