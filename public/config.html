@@ -166,10 +166,22 @@
                 </button>
               </form>
 
-              <div style="margin-top: 20px; text-align: center;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;" title="เชื่อมต่อผ่านสมาร์ตโฟน / HTTPS">
-                  📱 เชื่อมต่อผ่านสมาร์ตโฟน (Mobile / HTTPS Setup)
-                </button>
+              <!-- Quick Login (Demo Accounts: Admin & IT) -->
+              <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); text-align: center;">
+                <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">⚡ บัญชีสำหรับทดลองใช้งาน (Demo Accounts):</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-admin" onclick="quickLogin('admin', 'admin123')" style="padding: 8px 12px; font-size: 12px; font-weight: 600; justify-content: center; display: flex; align-items: center; gap: 6px;" title="เข้าสู่ระบบในฐานะ Admin (IT Administrator)">
+                    🛡️ Admin
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-staff" onclick="quickLogin('staff', 'staff123')" style="padding: 8px 12px; font-size: 12px; font-weight: 600; justify-content: center; display: flex; align-items: center; gap: 6px;" title="เข้าสู่ระบบในฐานะ IT Staff (IT Support Staff)">
+                    👷 IT
+                  </button>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;" title="เชื่อมต่อผ่านสมาร์ตโฟน / HTTPS">
+                    📱 เชื่อมต่อผ่านสมาร์ตโฟน (Mobile / HTTPS Setup)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -311,14 +311,14 @@ function initializeDatabase() {
     const adminPass = hashPassword('admin123');
     const staffPass = hashPassword('staff123');
     const standardUsers = [
-      ['admin', adminPass, 'admin', 'นายณรงค์ฤทธิ์ ธนกิจโภคิน (Technical Support Head)', 'Technical Support & Infrastructure'],
-      ['admin2', adminPass, 'admin', 'นายวิศรุต เกียรติอนันต์ (IT Operations & Infrastructure Manager)', 'Technical Support & Infrastructure'],
-      ['admin3', adminPass, 'admin', 'นายธีรศักดิ์ วงศ์สวรรค์ (Senior Systems & Network Engineer)', 'Technical Support & Infrastructure'],
-      ['admin4', adminPass, 'admin', 'น.ส.กัญญาพัชร สิทธิวัฒน์ (Hardware & RMA Claim Administrator)', 'Technical Support & Infrastructure'],
-      ['staff', staffPass, 'staff', 'นายประสิทธิ์ มั่นคง (IT Field Technician - On-Site)', 'Technical Support & Infrastructure'],
-      ['staff2', staffPass, 'staff', 'นายธนดล เจริญสุข (Ward & Emergency Support Technician)', 'Technical Support & Infrastructure'],
-      ['staff3', staffPass, 'staff', 'นายอนุสรณ์ พงษ์ศิริ (Mobile & Hardware Technician)', 'Technical Support & Infrastructure'],
-      ['staff4', staffPass, 'staff', 'น.ส.พัชรินทร์ สมบูรณ์ (IT Helpdesk & Loaner Coordinator)', 'Technical Support & Infrastructure']
+      ['admin', adminPass, 'admin', 'IT Administrator', 'Technical Support & Infrastructure'],
+      ['admin2', adminPass, 'admin', 'IT Operations Admin', 'Technical Support & Infrastructure'],
+      ['admin3', adminPass, 'admin', 'IT Systems Admin', 'Technical Support & Infrastructure'],
+      ['admin4', adminPass, 'admin', 'IT RMA Admin', 'Technical Support & Infrastructure'],
+      ['staff', staffPass, 'staff', 'IT Support Staff', 'Technical Support & Infrastructure'],
+      ['staff2', staffPass, 'staff', 'IT Ward Technician', 'Technical Support & Infrastructure'],
+      ['staff3', staffPass, 'staff', 'IT Hardware Technician', 'Technical Support & Infrastructure'],
+      ['staff4', staffPass, 'staff', 'IT Helpdesk Staff', 'Technical Support & Infrastructure']
     ];
 
     standardUsers.forEach(u => {
