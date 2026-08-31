@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul 2>&1
 setlocal
 title ClaimIT - Hospital IT Warranty ^& RMA Claim System
 color 0A
@@ -68,7 +69,7 @@ exit /b 1
 
 :err_node_post_install
 echo.
-echo [ERROR] ติดตั้ง Node.js เรียบร้อย (Exit code: %MSI_EXIT_CODE%) แต่ระบบต้องการการเปิด Command Prompt ใหม่
+echo [ERROR] ติดตั้ง Node.js เรียบร้อย [Exit code: %MSI_EXIT_CODE%] แต่ระบบต้องการการเปิด Command Prompt ใหม่
 echo กรุณาปิดหน้าต่างนี้แล้วเปิดไฟล์ Start_ClaimIT.bat ใหม่อีกครั้ง
 echo.
 pause
@@ -93,7 +94,7 @@ if not exist ".env" (
         echo [!] คำเตือน: ไม่พบไฟล์ .env หรือ .env.example ระบบจะใช้ค่าเริ่มต้น
     )
 ) else (
-    echo [OK] โหลดการตั้งค่าระบบ (.env) พร้อมใช้งาน
+    echo [OK] โหลดการตั้งค่าระบบ [.env] พร้อมใช้งาน
 )
 
 :: Extract PORT from .env if defined (defaults to 8847)
@@ -170,12 +171,12 @@ set "SERVER_EXIT_CODE=%errorlevel%"
 if %SERVER_EXIT_CODE% neq 0 (
     echo.
     echo  =============================================================
-    echo   [!] เซิร์ฟเวอร์หยุดทำงานด้วยรหัสข้อผิดพลาด (Exit code: %SERVER_EXIT_CODE%)
+    echo   [!] เซิร์ฟเวอร์หยุดทำงานด้วยรหัสข้อผิดพลาด [Exit code: %SERVER_EXIT_CODE%]
     echo  =============================================================
 ) else (
     echo.
     echo  =============================================================
-    echo   [!] ระบบ ClaimIT ปิดการทำงานเรียบร้อย (Server stopped)
+    echo   [!] ระบบ ClaimIT ปิดการทำงานเรียบร้อย [Server stopped]
     echo  =============================================================
 )
 

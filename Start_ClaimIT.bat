@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul 2>&1
 setlocal
 title ClaimIT - Hospital IT Warranty ^& RMA Claim System Launcher
 color 0A
@@ -55,4 +56,3 @@ echo  [ERROR] Launcher recursion prevented: launcher cannot call itself.
 echo.
 pause
 exit /b 1
-
