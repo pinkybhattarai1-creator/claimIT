@@ -83,11 +83,38 @@ const TEMPLATES = {
           <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>รหัสตรวจสอบการเปลี่ยนแปลง:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0; font-family: monospace;">${data.log_code || '-'}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>ผู้บันทึกรายการ:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.created_by || 'system'}</td></tr>
         </table>
-        <p style="color: #64748b; font-size: 13px;">ระบบ ClaimIT โรงพยาบาลพญาไท 3 — บันทึกประวัติและตรวจสอบย้อนหลังได้ทุกรายการ</p>
+        <p style="color: #64748b; font-size: 13px;">ระบบ ClaimIT — บันทึกประวัติและตรวจสอบย้อนหลังได้ทุกรายการ</p>
+      </div>
+    `
+  }),
+
+  PASSWORD_RESET_OTP: (data) => ({
+    subject: `[ClaimIT] รหัสยืนยันการตั้งรหัสผ่านใหม่ (Password Reset Code)`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #0284c7; margin-top: 0;">🔐 รหัสยืนยันรีเซ็ตรหัสผ่าน</h2>
+        <p>เรียน คุณ <strong>${data.name || data.username}</strong>,</p>
+        <p>ระบบได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีผู้ใช้งาน ClaimIT ของท่าน รหัสยืนยันความปลอดภัยชั่วคราว (One-Time Code) คือ:</p>
+        <div style="background: #f8fafc; border: 2px dashed #0284c7; padding: 16px; border-radius: 8px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0f172a; margin: 20px 0;">
+          ${data.otp}
+        </div>
+        <p style="font-size: 13px; color: #64748b; line-height: 1.6;">
+          ⏳ <strong>ระยะเวลาใช้งาน:</strong> รหัสนี้มีอายุการใช้งาน 15 นาที และใช้ได้เพียง 1 ครั้งเท่านั้น<br>
+          ⚠️ หากท่านไม่ได้ส่งคำขอนี้ โปรดติดต่อผู้ดูแลระบบสารสนเทศทันที
+        </p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+        <p style="font-size: 11.5px; color: #94a3b8; text-align: center;">ระบบ ClaimIT โรงพยาบาล — แผนกเทคโนโลยีสารสนเทศ</p>
       </div>
     `
   })
 };
+
+/**
+ * Check if external email dispatch service is actively configured
+ */
+function isEmailConfigured() {
+  return Boolean(RESEND_API_KEY && RESEND_API_KEY.trim().length > 0);
+}
 
 /**
  * Dispatch Email with tracking in email_logs table
@@ -142,5 +169,6 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
 
 module.exports = {
   TEMPLATES,
-  sendNotificationEmail
+  sendNotificationEmail,
+  isEmailConfigured
 };

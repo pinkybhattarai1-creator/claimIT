@@ -92,7 +92,7 @@ async function runHostileQASuite() {
   assert(adminAuth.status === 200, 'Admin login succeeded');
   const adminToken = adminAuth.body.token;
 
-  const staffAuth = await request('POST', '/api/auth/login', { username: 'staff2', password: 'staff123' });
+  const staffAuth = await request('POST', '/api/auth/login', { username: 'staff', password: 'staff123' });
   assert(staffAuth.status === 200, 'Staff login succeeded');
   const staffToken = staffAuth.body.token;
 

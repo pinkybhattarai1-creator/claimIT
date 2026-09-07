@@ -1358,6 +1358,13 @@ tbody td strong {
   }
 }
 
+@media (max-width: 640px) {
+  .modal-dialog [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
 @media (max-width: 480px) {
   .content-viewport {
     padding: 12px 10px;

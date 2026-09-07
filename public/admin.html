@@ -115,8 +115,11 @@
           </div>
         </div>
 
-        <!-- Topbar Right Actions -->
         <div class="topbar-right" id="user-badge" style="display: none;">
+          <div id="network-status-badge" class="network-badge" style="display: none;"></div>
+          <div id="warranty-expiring-badge" style="display: none; cursor: pointer; padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); align-items: center; gap: 4px;" title="คลิกเพื่อดูรายการที่ใกล้หมดประกัน (ภายใน 6 เดือน)">
+            <span id="warranty-expiring-text">⚠️ 0 ใกล้หมดประกัน</span>
+          </div>
           <!-- Top Navigation Tabs -->
           <div class="nav-tabs" id="nav-tabs" style="display: none;">
             <button class="nav-btn active" id="btn-top-ward" onclick="switchView('ward')">🛠️ แจ้งซ่อม (Staff)</button>
@@ -166,22 +169,14 @@
                 </button>
               </form>
 
-              <!-- Quick Login (Demo Accounts: Admin & IT) -->
-              <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); text-align: center;">
-                <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">⚡ บัญชีสำหรับทดลองใช้งาน (Demo Accounts):</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-admin" onclick="quickLogin('admin', 'admin123')" style="padding: 8px 12px; font-size: 12px; font-weight: 600; justify-content: center; display: flex; align-items: center; gap: 6px;" title="เข้าสู่ระบบในฐานะ Admin (IT Administrator)">
-                    🛡️ Admin
-                  </button>
-                  <button type="button" class="btn btn-secondary btn-sm" id="btn-quick-staff" onclick="quickLogin('staff', 'staff123')" style="padding: 8px 12px; font-size: 12px; font-weight: 600; justify-content: center; display: flex; align-items: center; gap: 6px;" title="เข้าสู่ระบบในฐานะ IT Staff (IT Support Staff)">
-                    👷 IT
-                  </button>
-                </div>
-                <div>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 10px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;" title="เชื่อมต่อผ่านสมาร์ตโฟน / HTTPS">
-                    📱 เชื่อมต่อผ่านสมาร์ตโฟน (Mobile / HTTPS Setup)
-                  </button>
-                </div>
+              <!-- Account Options / Forgot Password -->
+              <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openForgotPasswordModal()" style="font-size: 11.5px; padding: 4px 8px; background: transparent; border: none; color: #38bdf8; cursor: pointer; text-decoration: underline;" title="รีเซ็ตรหัสผ่านฉุกเฉินผ่าน OTP">
+                  🔑 ลืมรหัสผ่าน? (Forgot Password)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openMobileIpModal()" style="font-size: 11px; padding: 4px 8px; background: transparent; border: none; color: var(--text-muted); cursor: pointer;" title="เชื่อมต่อผ่านสมาร์ตโฟน / HTTPS">
+                  📱 เชื่อมต่อสมาร์ตโฟน
+                </button>
               </div>
             </div>
           </div>
@@ -614,6 +609,13 @@
                       <div style="color: var(--text-muted); font-size: 11px;">ยังไม่มีไฟล์หลักฐานแนบ</div>
                     </div>
                     <div style="display: flex; gap: 6px;">
+                      <select id="asset-evidence-doc-type" class="form-control" style="font-size: 11px; padding: 4px; max-width: 140px;">
+                        <option value="DAMAGE_PHOTO">📷 รูปความเสียหาย</option>
+                        <option value="VENDOR_QUOTE">📄 ใบเสนอราคา</option>
+                        <option value="PROOF_OF_DELIVERY">📦 ใบส่งของ/รับของ</option>
+                        <option value="INVOICE">🧾 ใบแจ้งหนี้/เสร็จ</option>
+                        <option value="GENERAL" selected>📎 เอกสารทั่วไป</option>
+                      </select>
                       <input type="file" id="asset-evidence-file-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
                       <button type="button" class="btn btn-secondary btn-sm" id="btn-upload-asset-evidence">📤 อัปโหลด</button>
                     </div>
@@ -673,6 +675,16 @@
                   </tbody>
                 </table>
               </div>
+
+              <!-- Claims Pagination -->
+              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px;">
+                <div id="claims-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
+                <div class="pagination-controls">
+                  <button class="btn btn-secondary btn-sm" id="claims-btn-prev-page" onclick="claimsChangePage(-1)" style="display: none;" aria-label="Previous claims page">‹ ย้อนกลับ</button>
+                  <span id="claims-page-num-display" style="font-weight: 600; padding: 0 8px;">หน้า 1</span>
+                  <button class="btn btn-secondary btn-sm" id="claims-btn-next-page" onclick="claimsChangePage(1)" style="display: none;" aria-label="Next claims page">ถัดไป ›</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -690,6 +702,7 @@
                     <option value="Working">ใช้งานปกติ (Working)</option>
                     <option value="Broken">ชำรุด/แจ้งซ่อม (Broken)</option>
                     <option value="Pending Pickup">รอศูนย์บริการเข้ารับ</option>
+                    <option value="expiring_60d">⚠️ ใกล้หมดประกัน (60 วัน)</option>
                     <option value="expiring_6m">⚠️ ใกล้หมดประกันใน 6 เดือน</option>
                     <option value="expired">หมดประกันแล้ว (Expired)</option>
                     <option value="Pending Sell">รอขายทอดตลาด</option>
@@ -792,6 +805,16 @@
                     <!-- Populated dynamically -->
                   </tbody>
                 </table>
+              </div>
+
+              <!-- Audit Pagination -->
+              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px;">
+                <div id="audit-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
+                <div class="pagination-controls">
+                  <button class="btn btn-secondary btn-sm" id="audit-btn-prev-page" onclick="auditChangePage(-1)" style="display: none;" aria-label="Previous audit page">‹ ย้อนกลับ</button>
+                  <span id="audit-page-num-display" style="font-weight: 600; padding: 0 8px;">หน้า 1</span>
+                  <button class="btn btn-secondary btn-sm" id="audit-btn-next-page" onclick="auditChangePage(1)" style="display: none;" aria-label="Next audit page">ถัดไป ›</button>
+                </div>
               </div>
             </div>
           </div>
@@ -959,99 +982,220 @@
   <!-- MODALS -->
   <!-- ==================================================================== -->
 
-  <!-- MODAL: ADD ASSET -->
+  <!-- MODAL: ADD ASSET (ERGONOMIC 2-COLUMN DESIGN FOR 1366x768) -->
   <div id="add-asset-modal" class="modal-backdrop">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3>➕ ลงทะเบียนครุภัณฑ์ใหม่</h3>
+    <div class="modal-dialog" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h3 style="margin: 0; font-size: 16px;">📦 นำเข้าครุภัณฑ์ (Asset Intake)</h3>
+          <div class="btn-group" style="display: flex; background: rgba(0,0,0,0.25); padding: 2px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+            <button type="button" id="tab-add-asset-single" onclick="switchAddAssetTab('single')" class="btn btn-sm active" style="padding: 3px 10px; font-size: 11.5px; border-radius: 4px; background: var(--primary); color: #fff; border: none; cursor: pointer;">
+              📝 รายการเดี่ยว
+            </button>
+            <button type="button" id="tab-add-asset-batch" onclick="switchAddAssetTab('batch')" class="btn btn-sm" style="padding: 3px 10px; font-size: 11.5px; border-radius: 4px; background: transparent; color: var(--text-muted); border: none; cursor: pointer;">
+              ⚡ สแกนแบบกลุ่ม (Batch)
+            </button>
+          </div>
+        </div>
         <button class="modal-close-btn" aria-label="ปิด" id="close-asset-modal-btn">✕</button>
       </div>
-      <form id="add-asset-form">
-        <div class="modal-body">
-          <div id="add-asset-dup-warning" style="display: none; padding: 8px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); font-size: 12px; color: var(--danger-text); margin-bottom: 12px;">
+
+      <!-- Single Asset Intake View -->
+      <div id="add-asset-single-view" style="display: block; overflow-y: auto; padding: 12px 16px;">
+        <form id="add-asset-form">
+          <div id="add-asset-dup-warning" style="display: none; padding: 6px 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; font-size: 12px; color: var(--danger-text); margin-bottom: 8px;">
             ⚠️ ตรวจพบข้อมูลซ้ำ: <span id="add-asset-dup-msg"></span>
           </div>
-          <div class="form-group">
-            <label>รหัสครุภัณฑ์ (Asset Tag) *</label>
-            <input type="text" id="new-asset-tag" class="form-control" placeholder="ตัวอย่าง: CIT-2026-MON-01" required>
+          <div id="add-asset-bme-warning" style="display: none; padding: 8px 12px; background: #fff1f2; border: 1.5px solid #e11d48; border-radius: 6px; font-size: 12px; color: #9f1239; margin-bottom: 8px; line-height: 1.4;">
+            <strong>⛔ ตรวจพบอุปกรณ์ทางการแพทย์ควบคุม (Regulated Medical Device)</strong><br>
+            <span id="add-asset-bme-msg">อุปกรณ์นี้อยู่ภายใต้การกำกับดูแลของศูนย์เครื่องมือแพทย์ (BME) ไม่อนุญาตให้ลงทะเบียนในระบบ IT กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (Biomedical Engineering)</span>
           </div>
-          <div class="form-group">
-            <label>ชื่อครุภัณฑ์ (Device Name) *</label>
-            <input type="text" id="new-device-name" class="form-control" placeholder="ตัวอย่าง: Dell Monitor 24-inch" required>
+
+          <!-- 2-Column Form Layout strictly optimized for 1366x768 screens -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">รหัสครุภัณฑ์ (Asset Tag) *</label>
+              <input type="text" id="new-asset-tag" class="form-control" placeholder="เช่น CIT-2026-MON-01" required style="padding: 5px 8px; font-size: 12.5px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">ชื่อครุภัณฑ์ (Device Name) *</label>
+              <input type="text" id="new-device-name" class="form-control" placeholder="เช่น Dell Monitor 24-inch" required style="padding: 5px 8px; font-size: 12.5px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">หมวดหมู่อุปกรณ์ (Category) *</label>
+              <select id="new-category" class="form-control" required style="padding: 5px 8px; font-size: 12px;">
+                <optgroup label="Clinical IT (7-Year Lifespan)">
+                  <option value="Clinical IT Display">Clinical IT Display (PACS / DICOM / Ward Board)</option>
+                  <option value="Clinical Workstation">Clinical Workstation (COW / WOW / Triage)</option>
+                  <option value="Healthcare Scanner">Healthcare Scanner (Wristband / Medication)</option>
+                  <option value="Mobile Nursing Cart">Mobile Nursing Cart (Battery / Powered Cart)</option>
+                </optgroup>
+                <optgroup label="General IT (3-5 Year Lifespan)">
+                  <option value="Computer">Computer (PC / AIO)</option>
+                  <option value="Monitor">Monitor</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Scanner">Barcode Scanner</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Webcam">Webcam / Audio</option>
+                  <option value="Network">Network Device</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก *</label>
+              <input type="text" id="new-location" class="form-control" placeholder="เช่น Ward 20, ER" required style="padding: 5px 8px; font-size: 12.5px;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">ยี่ห้อ (Brand) *</label>
+                <input type="text" id="new-brand" class="form-control" placeholder="Dell, HP" required style="padding: 5px 8px; font-size: 12.5px;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">รุ่น (Model) *</label>
+                <input type="text" id="new-model" class="form-control" placeholder="OptiPlex" required style="padding: 5px 8px; font-size: 12.5px;">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">หมายเลขเครื่อง (S/N) *</label>
+              <input type="text" id="new-serial" class="form-control" placeholder="SN12345678" required style="padding: 5px 8px; font-size: 12.5px;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">วันเริ่มประกัน *</label>
+                <input type="date" id="new-warranty-start" class="form-control" required style="padding: 4px 6px; font-size: 12px;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">ระยะเวลา</label>
+                <select id="new-warranty-months" class="form-control" style="padding: 4px 6px; font-size: 12px;">
+                  <option value="12">1 ปี (12 ด.)</option>
+                  <option value="24">2 ปี (24 ด.)</option>
+                  <option value="36" selected>3 ปี (36 ด.)</option>
+                  <option value="60">5 ปี (60 ด.)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">วันหมดประกัน *</label>
+              <input type="date" id="new-warranty-end" class="form-control" required style="padding: 4px 6px; font-size: 12px;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">ราคาจัดซื้อ (บาท)</label>
+                <input type="number" id="new-price" class="form-control" placeholder="0.00" min="0" step="100" style="padding: 5px 8px; font-size: 12.5px;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11.5px; margin-bottom: 2px;">เลขที่ PO / สัญญา</label>
+                <input type="text" id="new-po-number" class="form-control" placeholder="PO-680012" style="padding: 5px 8px; font-size: 12.5px;">
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 8px; display: flex; align-items: center; padding-top: 18px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; margin-bottom: 0;">
+                <input type="checkbox" id="new-sanitization-req" checked>
+                <span>🔒 ต้องล้างข้อมูลก่อนส่งเคลม (PDPA)</span>
+              </label>
+            </div>
           </div>
-          <div class="form-group">
-            <label>หมวดหมู่อุปกรณ์ (Category) *</label>
-            <select id="new-category" class="form-control" required>
-              <option value="Computer">Computer (PC / AIO)</option>
-              <option value="Monitor">Monitor</option>
-              <option value="Tablet">Tablet</option>
-              <option value="Scanner">Barcode Scanner</option>
-              <option value="Printer">Printer</option>
-              <option value="Webcam">Webcam / Audio</option>
-              <option value="Network">Network Device</option>
-            </select>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-subtle); margin-top: 4px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('add-asset-modal').style.display='none'">ยกเลิก</button>
+            <button type="submit" class="btn btn-sm" id="btn-submit-add-asset" style="padding: 6px 16px;">💾 บันทึกข้อมูลครุภัณฑ์</button>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label>ยี่ห้อ (Brand) *</label>
-              <input type="text" id="new-brand" class="form-control" placeholder="Dell, HP, Apple" required>
+        </form>
+      </div>
+
+      <!-- Batch Asset Intake View -->
+      <div id="add-asset-batch-view" style="display: none; overflow-y: auto; padding: 12px 16px;">
+        <form id="batch-asset-form" onsubmit="handleBatchAssetSubmit(event)">
+          <div style="margin-bottom: 8px; font-size: 12px; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.2);">
+            ⚡ นำเข้าครุภัณฑ์ล็อตใหญ่ (สูงสุด 50 รายการต่อครั้ง) โดยใช้สแกนเนอร์ยิงบาร์โค้ดต่อเนื่อง
+          </div>
+
+          <!-- Common metadata row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">หมวดหมู่ร่วม *</label>
+              <select id="batch-category" class="form-control" required style="padding: 4px 6px; font-size: 11.5px;">
+                <option value="Computer">Computer (PC / AIO)</option>
+                <option value="Monitor">Monitor</option>
+                <option value="Clinical IT Display">Clinical IT Display</option>
+                <option value="Clinical Workstation">Clinical Workstation</option>
+                <option value="Healthcare Scanner">Healthcare Scanner</option>
+                <option value="Mobile Nursing Cart">Mobile Nursing Cart</option>
+                <option value="Tablet">Tablet</option>
+                <option value="Scanner">Barcode Scanner</option>
+                <option value="Printer">Printer</option>
+                <option value="Network">Network Device</option>
+              </select>
             </div>
-            <div class="form-group">
-              <label>รุ่น (Model) *</label>
-              <input type="text" id="new-model" class="form-control" placeholder="OptiPlex, iPad" required>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">ยี่ห้อ (Brand) *</label>
+              <input type="text" id="batch-brand" class="form-control" placeholder="เช่น Dell" required style="padding: 4px 6px; font-size: 11.5px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">รุ่น (Model) *</label>
+              <input type="text" id="batch-model" class="form-control" placeholder="เช่น OptiPlex 7000" required style="padding: 4px 6px; font-size: 11.5px;">
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label>หมายเลขเครื่อง (S/N) *</label>
-              <input type="text" id="new-serial" class="form-control" placeholder="SN12345678" required>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">สถานที่ติดตั้งร่วม *</label>
+              <input type="text" id="batch-location" class="form-control" placeholder="เช่น IT Warehouse / Ward 10" required style="padding: 4px 6px; font-size: 11.5px;">
             </div>
-            <div class="form-group">
-              <label>สถานที่ติดตั้ง / แผนก *</label>
-              <input type="text" id="new-location" class="form-control" placeholder="Ward 20, ER" required>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">วันเริ่มประกัน *</label>
+              <input type="date" id="batch-warranty-start" class="form-control" required style="padding: 4px 6px; font-size: 11px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">วันหมดประกัน *</label>
+              <input type="date" id="batch-warranty-end" class="form-control" required style="padding: 4px 6px; font-size: 11px;">
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-            <div class="form-group">
-              <label>วันเริ่มประกัน</label>
-              <input type="date" id="new-warranty-start" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label>ระยะเวลารับประกัน</label>
-              <select id="new-warranty-months" class="form-control">
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">ระยะเวลาประกัน</label>
+              <select id="batch-warranty-months" class="form-control" style="padding: 4px 6px; font-size: 11.5px;">
                 <option value="12">1 ปี (12 ด.)</option>
                 <option value="24">2 ปี (24 ด.)</option>
                 <option value="36" selected>3 ปี (36 ด.)</option>
                 <option value="60">5 ปี (60 ด.)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>วันหมดประกัน</label>
-              <input type="date" id="new-warranty-end" class="form-control" required>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">ราคาจัดซื้อต่อหน่วย (บาท)</label>
+              <input type="number" id="batch-price" class="form-control" placeholder="0.00" min="0" step="100" style="padding: 4px 6px; font-size: 11.5px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 11px; margin-bottom: 2px;">เลขที่ PO / สัญญา</label>
+              <input type="text" id="batch-po-number" class="form-control" placeholder="PO-680012" style="padding: 4px 6px; font-size: 11.5px;">
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label>ราคาจัดซื้อ (บาท)</label>
-              <input type="number" id="new-price" class="form-control" placeholder="0.00" min="0" step="100">
-            </div>
-            <div class="form-group">
-              <label>เลขที่ PO / สัญญา</label>
-              <input type="text" id="new-po-number" class="form-control" placeholder="PO-680012">
-            </div>
-          </div>
-          <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" id="new-sanitization-req" checked>
-              <span>เป็นอุปกรณ์จัดเก็บข้อมูลหลักที่ต้องล้างข้อมูลก่อนส่งเคลม (PDPA Storage Device)</span>
+
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 3px;">
+              <span><strong>📡 สแกนบาร์โค้ด หรือ วางรายการ (บรรทัดละ 1 เครื่อง: AssetTag, SerialNo) *</strong></span>
+              <span style="color: var(--text-muted); font-size: 11px;">เช่น CIT-PC-01, SN1001</span>
             </label>
+            <textarea id="batch-scanner-textarea" class="form-control" rows="4" placeholder="ยิงบาร์โค้ด หรือ วางข้อมูล:&#10;CIT-PC-01, SN001&#10;CIT-PC-02, SN002&#10;CIT-PC-03, SN003" required style="font-family: monospace; font-size: 12px; padding: 6px; resize: vertical;"></textarea>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-asset-modal').style.display='none'">ยกเลิก</button>
-          <button type="submit" class="btn" id="btn-submit-add-asset">บันทึกข้อมูลครุภัณฑ์</button>
-        </div>
-      </form>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11.5px; margin-bottom: 0;">
+              <input type="checkbox" id="batch-sanitization-req" checked>
+              <span>🔒 ล้างข้อมูล PDPA สำหรับทุกล็อต</span>
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('add-asset-modal').style.display='none'">ยกเลิก</button>
+              <button type="submit" class="btn btn-sm" id="btn-submit-batch-asset" style="padding: 6px 16px;">⚡ บันทึกนำเข้าแบบกลุ่ม</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1249,6 +1393,13 @@
         <h4 style="font-size: 13.5px; margin-bottom: 8px;">📎 ไฟล์หลักฐานประจำใบเคลม:</h4>
         <div id="cd-evidence-list" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; font-size: 12px;"></div>
         <div style="display: flex; gap: 6px; margin-bottom: 16px;">
+          <select id="cd-evidence-doc-type" class="form-control" style="font-size: 11px; padding: 4px; max-width: 140px;">
+            <option value="DAMAGE_PHOTO">📷 รูปความเสียหาย</option>
+            <option value="VENDOR_QUOTE">📄 ใบเสนอราคา</option>
+            <option value="PROOF_OF_DELIVERY">📦 ใบส่งของ/รับของ</option>
+            <option value="INVOICE">🧾 ใบแจ้งหนี้/เสร็จ</option>
+            <option value="GENERAL" selected>📎 เอกสารทั่วไป</option>
+          </select>
           <input type="file" id="cd-evidence-input" class="form-control" style="font-size: 11px; padding: 4px;" accept="image/*,application/pdf">
           <button type="button" class="btn btn-secondary btn-sm" id="cd-btn-upload-evidence">📤 อัปโหลด</button>
         </div>
@@ -1298,15 +1449,15 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; font-size: 12px;">
           <div>
             <label style="font-weight: 600;">เลขที่ Job</label>
-            <input type="text" id="edit-job-no" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="PYT68100232">
+            <input type="text" id="edit-job-no" class="form-control" style="padding: 4px 8px; font-size: 12px;" placeholder="RMA-YYYYMM-XXXX">
           </div>
           <div>
             <label style="font-weight: 600;">ชื่อผู้ติดต่อ</label>
-            <input type="text" id="edit-contact-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="เจ้าหน้าที่ไอที ประจำโรงพยาบาล">
+            <input type="text" id="edit-contact-name" class="form-control" style="padding: 4px 8px; font-size: 12px;" placeholder="เจ้าหน้าที่ฝ่ายเทคโนโลยีสารสนเทศ">
           </div>
           <div>
             <label style="font-weight: 600;">เบอร์โทร</label>
-            <input type="text" id="edit-contact-phone" class="form-control" style="padding: 4px 8px; font-size: 12px;" value="02-467-1111 ต่อ 1234">
+            <input type="text" id="edit-contact-phone" class="form-control" style="padding: 4px 8px; font-size: 12px;" placeholder="02-xxx-xxxx ต่อ 1234">
           </div>
           <div>
             <label style="font-weight: 600;">อาการเสีย</label>
@@ -1444,11 +1595,122 @@
             <input type="text" id="profile-department" class="form-control" required placeholder="เช่น ICU, ฉุกเฉิน (ER), IT">
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none'">ยกเลิก</button>
-          <button type="submit" class="btn">💾 บันทึกข้อมูล</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="openChangePasswordModal(false)">🔑 เปลี่ยนรหัสผ่าน</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-modal').style.display='none'">ยกเลิก</button>
+            <button type="submit" class="btn">💾 บันทึกข้อมูล</button>
+          </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE PASSWORD -->
+  <div id="change-password-modal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 id="change-password-title">🔐 เปลี่ยนรหัสผ่าน</h3>
+        <button class="modal-close-btn" aria-label="ปิด" id="close-change-password-btn" onclick="closeChangePasswordModal()">✕</button>
+      </div>
+      <form id="change-password-form">
+        <div class="modal-body">
+          <div id="change-password-notice" style="display:none; margin-bottom:12px; font-size:13px; color:#d97706; background:#fffbeb; padding:10px; border-radius:6px; border:1px solid #fef3c7;">
+            ⚠️ บัญชีของคุณจำเป็นต้องตั้งรหัสผ่านใหม่ก่อนเริ่มใช้งาน
+          </div>
+          <div class="form-group">
+            <label>รหัสผ่านปัจจุบัน (Current Password) *</label>
+            <input type="password" id="cp-current-password" class="form-control" required placeholder="ระบุรหัสผ่านปัจจุบัน" autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label>รหัสผ่านใหม่ (New Password) *</label>
+            <input type="password" id="cp-new-password" class="form-control" required minlength="6" placeholder="ความยาวอย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>ยืนยันรหัสผ่านใหม่ (Confirm New Password) *</label>
+            <input type="password" id="cp-confirm-password" class="form-control" required minlength="6" placeholder="ระบุรหัสผ่านใหม่อีกครั้ง" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cp-cancel-btn" onclick="closeChangePasswordModal()">ยกเลิก</button>
+          <button type="submit" class="btn" id="cp-submit-btn">บันทึกรหัสผ่านใหม่</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: FORGOT PASSWORD -->
+  <div id="forgot-password-modal" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>🔑 กู้คืนรหัสผ่านฉุกเฉิน (Emergency Password Reset)</h3>
+        <button class="modal-close-btn" aria-label="ปิด" onclick="closeForgotPasswordModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Step 1: Request OTP -->
+        <form id="fp-step1-form" onsubmit="submitRequestReset(event)">
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5;">
+            ระบุชื่อผู้ใช้ของท่าน ระบบจะจัดส่งรหัส OTP 6 หลักไปยังอีเมลที่ลงทะเบียนไว้ (OTP มีอายุ 15 นาที)
+          </p>
+          <div class="form-group">
+            <label for="fp-username">ชื่อผู้ใช้ (Username) *</label>
+            <input type="text" id="fp-username" class="form-control" required placeholder="ระบุชื่อผู้ใช้" autocomplete="username">
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
+            <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">ยกเลิก</button>
+            <button type="submit" class="btn" id="fp-request-btn">📩 ขอรหัส OTP</button>
+          </div>
+        </form>
+
+        <!-- Step 2: Enter OTP & New Password -->
+        <form id="fp-step2-form" style="display: none;" onsubmit="submitResetPasswordToken(event)">
+          <div style="margin-bottom:12px; font-size:12.5px; color:#0284c7; background:#f0f9ff; padding:8px 12px; border-radius:6px; border:1px solid #bae6fd;">
+            ✉️ ระบบได้ส่งรหัส OTP ไปยังอีเมลของท่านแล้ว กรุณากรอกรหัส OTP และตั้งรหัสผ่านใหม่
+          </div>
+          <div class="form-group">
+            <label for="fp-otp">รหัส OTP 6 หลัก (One-Time Password) *</label>
+            <input type="text" id="fp-otp" class="form-control" required maxlength="6" pattern="[0-9]{6}" placeholder="ตัวเลข 6 หลัก เช่น 123456" style="letter-spacing: 4px; font-size: 16px; font-weight: 700; text-align: center;">
+          </div>
+          <div class="form-group">
+            <label for="fp-new-password">รหัสผ่านใหม่ (New Password) *</label>
+            <input type="password" id="fp-new-password" class="form-control" required minlength="6" placeholder="ความยาวอย่างน้อย 6 ตัวอักษร" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="fp-confirm-password">ยืนยันรหัสผ่านใหม่ (Confirm New Password) *</label>
+            <input type="password" id="fp-confirm-password" class="form-control" required minlength="6" placeholder="ระบุรหัสผ่านใหม่อีกครั้ง" autocomplete="new-password">
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 14px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="backToFpStep1()">⬅️ ขอ OTP ใหม่</button>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">ยกเลิก</button>
+              <button type="submit" class="btn" id="fp-confirm-btn">💾 บันทึกรหัสผ่านใหม่</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SESSION EXPIRY WARNING -->
+  <div id="session-warning-modal" class="modal-backdrop" style="z-index: 9999;">
+    <div class="modal-dialog" style="max-width: 440px; text-align: center;">
+      <div class="modal-header" style="justify-content: center;">
+        <h3 style="color: #ea580c; display: flex; align-items: center; gap: 8px;">
+          <span>⏰</span> เซสชันกำลังจะหมดอายุ
+        </h3>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px;">
+        <p style="font-size: 14px; line-height: 1.6; color: var(--text-primary);">
+          เซสชันการใช้งานของคุณจะหมดอายุในอีก <strong id="session-countdown" style="color: #dc2626; font-size: 18px;">15 นาที 00 วินาที</strong>
+        </p>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+          กรุณากดปุ่ม <strong>"ต่ออายุเซสชัน"</strong> เพื่อทำงานต่อและป้องกันไม่ให้ข้อมูลที่คุณกำลังพิมพ์สูญหาย
+        </p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 12px;">
+        <button type="button" class="btn btn-secondary" onclick="logout()">ออกจากระบบ</button>
+        <button type="button" class="btn btn-primary" id="btn-extend-session" onclick="extendSession()" style="background: #2563eb; color: #fff;">🔄 ต่ออายุเซสชัน (ทำงานต่อ)</button>
+      </div>
     </div>
   </div>
 

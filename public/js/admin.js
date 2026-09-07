@@ -264,6 +264,24 @@ function updateDynamicDropdowns(configs) {
       });
     }
   }
+
+  // Extract hospital configuration if present
+  const hospConfigs = configs.filter(c => c.type === 'hospital');
+  if (hospConfigs.length > 0) {
+    window.claimitHospitalConfig = window.claimitHospitalConfig || {};
+    hospConfigs.forEach(hc => {
+      try {
+        if (hc.details && typeof hc.details === 'string' && hc.details.trim().startsWith('{')) {
+          const parsed = JSON.parse(hc.details);
+          window.claimitHospitalConfig = { ...window.claimitHospitalConfig, ...parsed };
+        } else if (hc.value) {
+          window.claimitHospitalConfig[hc.value] = hc.details || hc.value;
+        }
+      } catch (e) {
+        if (hc.value) window.claimitHospitalConfig[hc.value] = hc.details || hc.value;
+      }
+    });
+  }
 }
 
 window.editConfig = function(id, type, value, details) {

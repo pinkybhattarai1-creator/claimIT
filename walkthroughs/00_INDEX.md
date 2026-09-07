@@ -1,7 +1,6 @@
 # 📚 ClaimIT — Walkthrough Index
 
-> **ClaimIT** คือระบบบริหารจัดการการรับประกันและกระบวนการส่งเคลมครุภัณฑ์ไอที (RMA) สำหรับโรงพยาบาล
-> *Hospital IT Warranty & RMA Claim Management System — Phyathai 3 Hospital*
+> *Hospital IT Warranty & RMA Claim Management System*
 
 ---
 
@@ -24,7 +23,7 @@
 | 13_audit_trail.md | Audit Trail — ประวัติการเคลื่อนย้ายและการเปลี่ยนแปลง | IT/Admin |
 | 14_user_management.md | จัดการผู้ใช้งาน (RBAC: Admin & Staff) | Admin |
 | 15_system_configurations.md | ตั้งค่าระบบ — แบรนด์ หมวดหมู่ สถานที่ | Admin |
-| 16_excel_csv_export.md | ส่งออกข้อมูล Excel / CSV | Staff / IT |
+| 16_excel_csv_export.md | ส่งออกข้อมูล Excel / CSV | Admin (Excel) / Staff (CSV) |
 | 17_quick_sidebar.md | Quick Hub Sidebar — ข้อมูลด่วนและ Hotlines | ทุกคน |
 | 18_email_notifications.md | การส่งอีเมลแจ้งเตือน (Resend Integration) | IT/Admin |
 | 19_security_and_rbac.md | ความปลอดภัย — JWT, RBAC, Rate Limiting | Admin / Dev |

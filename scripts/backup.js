@@ -24,24 +24,63 @@ function performBackup(sourcePath, backupDir, maxRetained = 30) {
         const backupFileName = `claimit_backup_${timestamp}.db`;
         const targetPath = path.resolve(targetDir, backupFileName);
 
-        const db = new sqlite3.Database(source, (err) => {
+        const db = new sqlite3.Database(source, async (err) => {
             if (err) return reject(err);
 
-            const escapedPath = targetPath.replace(/'/g, "''");
-            db.run(`VACUUM INTO '${escapedPath}'`, (vacuumErr) => {
-                db.close((closeErr) => {
-                    if (vacuumErr) {
-                        try {
-                            fs.copyFileSync(source, targetPath);
+            // Optional quarantine purge during backup
+            try {
+                const { purgeOldQuarantinedEvidence } = require('../services/evidenceService');
+                purgeOldQuarantinedEvidence(90);
+            } catch (pErr) {}
+
+            // Archive audit logs older than 365 days into move_log_archive
+            await archiveOldAuditLogs(db, 365);
+
+            // Run database optimization PRAGMAs
+            db.run("PRAGMA optimize;");
+
+            // Force WAL checkpoint to flush all uncommitted WAL data into main DB file
+            db.run("PRAGMA wal_checkpoint(TRUNCATE)", (walErr) => {
+                if (walErr) {
+                    console.warn('[Backup WAL Checkpoint Warning]:', walErr.message);
+                }
+
+                const escapedPath = targetPath.replace(/'/g, "''");
+                db.run(`VACUUM INTO '${escapedPath}'`, (vacuumErr) => {
+                    db.close((closeErr) => {
+                        const finalize = () => {
                             rotateBackups(targetDir, maxRetained);
+
+                            // Optional Secondary/Off-site Backup destination (NAS / Network share)
+                            const secondaryDir = process.env.BACKUP_SECONDARY_DIR || process.env.BACKUP_OFFSITE_DIR;
+                            if (secondaryDir) {
+                                try {
+                                    if (!fs.existsSync(secondaryDir)) {
+                                        fs.mkdirSync(secondaryDir, { recursive: true });
+                                    }
+                                    const secondaryPath = path.resolve(secondaryDir, backupFileName);
+                                    fs.copyFileSync(targetPath, secondaryPath);
+                                    rotateBackups(secondaryDir, maxRetained);
+                                    console.log(`[Backup Offsite] Mirrored backup to: ${secondaryPath}`);
+                                } catch (secErr) {
+                                    console.error('[Backup Offsite Warning]: Failed to mirror to secondary destination:', secErr.message);
+                                }
+                            }
+
                             resolve({ backupPath: targetPath, fileName: backupFileName });
-                        } catch (copyErr) {
-                            reject(vacuumErr || copyErr);
+                        };
+
+                        if (vacuumErr) {
+                            try {
+                                fs.copyFileSync(source, targetPath);
+                                finalize();
+                            } catch (copyErr) {
+                                reject(vacuumErr || copyErr);
+                            }
+                        } else {
+                            finalize();
                         }
-                    } else {
-                        rotateBackups(targetDir, maxRetained);
-                        resolve({ backupPath: targetPath, fileName: backupFileName });
-                    }
+                    });
                 });
             });
         });
@@ -73,6 +112,32 @@ function rotateBackups(targetDir, maxRetained) {
     }
 }
 
+function archiveOldAuditLogs(db, retentionDays = 365) {
+    return new Promise((resolve) => {
+        db.run(
+            `INSERT INTO move_log_archive (log_code, asset_tag, department_name, floor, status, moved_direction, action_by_username, details, timestamp)
+             SELECT COALESCE(log_code, 'CHG-LEGACY-' || id), asset_tag, department_name, floor, status, moved_direction, action_by_username, details, timestamp
+             FROM move_log
+             WHERE timestamp < datetime('now', '-${retentionDays} days')`,
+            function(err) {
+                if (err) {
+                    console.warn('[Audit Archive Warning]:', err.message);
+                    return resolve({ archivedCount: 0 });
+                }
+                const count = this.changes || 0;
+                if (count > 0) {
+                    db.run(`DELETE FROM move_log WHERE timestamp < datetime('now', '-${retentionDays} days')`, () => {
+                        console.log(`[Audit Archive] Successfully archived ${count} audit entries older than ${retentionDays} days.`);
+                        resolve({ archivedCount: count });
+                    });
+                } else {
+                    resolve({ archivedCount: 0 });
+                }
+            }
+        );
+    });
+}
+
 if (require.main === module) {
     console.log('[ClaimIT Backup] Initiating database backup...');
     performBackup()
@@ -86,4 +151,4 @@ if (require.main === module) {
         });
 }
 
-module.exports = { performBackup };
+module.exports = { performBackup, archiveOldAuditLogs };

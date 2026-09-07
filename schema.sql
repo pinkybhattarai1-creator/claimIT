@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   department TEXT NOT NULL,
   is_active INTEGER DEFAULT 1,
   is_deleted INTEGER DEFAULT 0,
+  token_version INTEGER DEFAULT 0,
+  must_change_password INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -87,7 +89,8 @@ CREATE TABLE IF NOT EXISTS claim_assets (
   sanitization_note TEXT,
   item_status TEXT DEFAULT 'Pending Pickup',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (claim_id) REFERENCES claims (id)
+  FOREIGN KEY (claim_id) REFERENCES claims (id) ON DELETE CASCADE,
+  FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- 6. RMA Claims Table (Legacy 1-to-1 asset compatibility view/table)
@@ -107,7 +110,8 @@ CREATE TABLE IF NOT EXISTS rma_claims (
   replacement_serial_no TEXT,
   repair_cost REAL DEFAULT 0,
   status TEXT DEFAULT 'Initiated',
-  is_deleted INTEGER DEFAULT 0
+  is_deleted INTEGER DEFAULT 0,
+  FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- 7. Evidence Attachments Table (Private Cloud/Disk Storage)
@@ -120,9 +124,12 @@ CREATE TABLE IF NOT EXISTS evidence (
   storage_key TEXT UNIQUE NOT NULL,
   mime_type TEXT NOT NULL,
   file_size INTEGER NOT NULL,
+  doc_type TEXT DEFAULT 'GENERAL',
   checksum TEXT,
   is_deleted INTEGER DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (claim_id) REFERENCES claims (id) ON DELETE SET NULL,
+  FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE SET NULL
 );
 
 -- 8. Move & Security Audit Log Table (Immutable audit trail)
@@ -136,6 +143,21 @@ CREATE TABLE IF NOT EXISTS move_log (
   action_by_username TEXT NOT NULL,
   details TEXT,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8.1 Move Log Archive Table (For annual audit compaction)
+CREATE TABLE IF NOT EXISTS move_log_archive (
+  id INTEGER PRIMARY KEY,
+  log_code TEXT,
+  asset_tag TEXT NOT NULL,
+  department_name TEXT,
+  floor TEXT,
+  status TEXT,
+  moved_direction TEXT,
+  action_by_username TEXT,
+  details TEXT,
+  timestamp DATETIME,
+  archived_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 9. Configurations Table (Dynamic Settings)
@@ -160,6 +182,18 @@ CREATE TABLE IF NOT EXISTS email_logs (
   sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 11. Password Reset Tokens Table (Emergency self-service recovery)
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  username TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Indexes for high performance
 CREATE INDEX IF NOT EXISTS idx_mains_asset_tag ON mains(asset_tag);
 CREATE INDEX IF NOT EXISTS idx_mains_serial_no ON mains(serial_no);
@@ -167,3 +201,5 @@ CREATE INDEX IF NOT EXISTS idx_claims_claim_number ON claims(claim_number);
 CREATE INDEX IF NOT EXISTS idx_claim_assets_claim_id ON claim_assets(claim_id);
 CREATE INDEX IF NOT EXISTS idx_evidence_storage_key ON evidence(storage_key);
 CREATE INDEX IF NOT EXISTS idx_move_log_asset_tag ON move_log(asset_tag);
+CREATE INDEX IF NOT EXISTS idx_move_log_timestamp ON move_log(timestamp);
+

@@ -26,6 +26,18 @@ const THRESHOLDS = {
 };
 
 /**
+ * Regulated Clinical IT Categories managed by Hospital IT
+ * (Separated from Class IIb medical devices managed strictly by BME)
+ * Default lifespan: 84 months (7 years)
+ */
+const CLINICAL_IT_CATEGORIES = [
+  'Clinical IT Display',
+  'Clinical Workstation',
+  'Healthcare Scanner',
+  'Mobile Nursing Cart'
+];
+
+/**
  * Parses numeric currency/cost strings safely.
  * Returns null if blank/null/undefined/#DIV/0!
  */
@@ -55,6 +67,7 @@ function evaluateComprehensiveAsset(record) {
   const brand = raw.brand || null;
   const model = raw.model || null;
   const description = raw.asset_description || raw.description || raw.device_name || null;
+  const category = raw.category || raw.asset_category || null;
 
   // 2. Dates
   const reportDate = normalizeDate(raw.reportDate || raw.oracleReportDate) || new Date();
@@ -75,9 +88,11 @@ function evaluateComprehensiveAsset(record) {
   const returnDate = normalizeDate(raw.return_date || raw.returned || raw.returnDate);
 
   // 3. Costs & Accounting
+  const isClinicalIT = CLINICAL_IT_CATEGORIES.includes(category);
+  const defaultUsefulLife = isClinicalIT ? 7 : 3;
   const originalCost = parseCost(raw.original_cost || raw.originalCost || raw.purchase_price || raw.purchasePrice || raw.unit_price);
   const depreciationReserve = parseCost(raw.depreciation_reserve || raw.depreciationReserve);
-  const usefulLifeYears = parseInt(raw.useful_life || raw.usefulLife || (raw.expected_lifespan_months ? raw.expected_lifespan_months / 12 : (raw.expectedLifespanMonths ? raw.expectedLifespanMonths / 12 : null)) || 3, 10);
+  const usefulLifeYears = parseInt(raw.useful_life || raw.usefulLife || (raw.expected_lifespan_months ? raw.expected_lifespan_months / 12 : (raw.expectedLifespanMonths ? raw.expectedLifespanMonths / 12 : null)) || defaultUsefulLife, 10);
   const residualValue = parseCost(raw.residual_value || 1.0); // Standard TH accounting 1.00 THB residual
 
   let currentAgeYears = null;
@@ -260,6 +275,8 @@ function evaluateComprehensiveAsset(record) {
     brand,
     model,
     description,
+    category,
+    isClinicalIT,
     acquisitionDate: toIsoDate(acquisitionDate),
     currentAgeYears,
     warrantyStart: toIsoDate(warrantyStart),
@@ -323,16 +340,28 @@ function evaluateClaimWorthiness(asset) {
   const purchasePrice = result.evidence.originalCost || parseFloat(asset.purchasePrice || asset.purchase_price || 10000);
   const estimatedCurrentValue = result.nbv !== null ? result.nbv : Math.round(purchasePrice * 0.5);
 
-  const expectedLifespanMonths = parseInt(asset.expectedLifespanMonths || asset.expected_lifespan_months || (result.evidence.currentAgeYears ? result.evidence.currentAgeYears * 12 : 60), 10);
+  const assetCategory = asset.category || result.evidence.category || null;
+  const isClinicalIT = CLINICAL_IT_CATEGORIES.includes(assetCategory);
+  const defaultLifespanMonths = isClinicalIT ? 84 : 60;
+
+  const expectedLifespanMonths = parseInt(asset.expectedLifespanMonths || asset.expected_lifespan_months || defaultLifespanMonths, 10);
   const lifespanYears = expectedLifespanMonths / 12;
   const isWithinLifespan = (result.evidence.currentAgeYears !== null) ? (result.evidence.currentAgeYears <= lifespanYears) : true;
   const depreciationRatio = purchasePrice > 0 ? (estimatedCurrentValue / purchasePrice) : 0;
+
+  // Economic repair ratio calculation (repair cost vs replacement cost)
+  const repairCost = result.evidence.actualRepairCost || result.evidence.estimatedRepairCost || parseCost(asset.repair_cost || asset.repairCost);
+  const replacementCost = result.evidence.currentReplacementCost || parseCost(asset.replacement_price || asset.replacementCost) || purchasePrice;
+  const repairRatio = (repairCost !== null && replacementCost > 0) ? (repairCost / replacementCost) : null;
 
   let category = 'EXPIRED';
   let recommendedSalvage = 'None';
 
   if (result.is_claimable) {
     category = 'UNDER_WARRANTY';
+  } else if (isClinicalIT && isWithinLifespan && (repairRatio !== null ? repairRatio < 0.50 : depreciationRatio >= 0.15)) {
+    // Clinical IT equipment within 84-month lifespan and repair < 50% replacement cost -> OUT_OF_WARRANTY_REPAIRABLE
+    category = 'OUT_OF_WARRANTY_REPAIRABLE';
   } else if (isWithinLifespan && depreciationRatio >= 0.25) {
     category = 'OUT_OF_WARRANTY_REPAIRABLE';
   } else {
@@ -350,6 +379,8 @@ function evaluateClaimWorthiness(asset) {
     warrantyExpiry: result.evidence.warrantyEnd || '',
     reason: result.reason,
     recommendedSalvage: recommendedSalvage,
+    isClinicalIT: isClinicalIT,
+    expectedLifespanMonths: expectedLifespanMonths,
     comprehensive: result
   };
 }
@@ -358,5 +389,6 @@ module.exports = {
   parseCost,
   evaluateComprehensiveAsset,
   evaluateClaimWorthiness,
-  THRESHOLDS
+  THRESHOLDS,
+  CLINICAL_IT_CATEGORIES
 };

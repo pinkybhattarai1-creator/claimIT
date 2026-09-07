@@ -94,7 +94,7 @@ Body: { "new_password": "รหัสใหม่" }
 
 - รหัสผ่านทั้งหมดเข้ารหัสด้วย bcryptjs (Cost Factor 10)
 - ไม่มีการเก็บ plain text password
-- JWT Token หมดอายุหลัง 24 ชั่วโมง
+- JWT Token หมดอายุหลัง 8 ชั่วโมง (expiresIn: '8h')
 
 ---
 

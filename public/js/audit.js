@@ -24,6 +24,7 @@ function setupAuditToolbar() {
       state.auditFilter.timeSpan = '';
       state.auditFilter.startDate = start;
       state.auditFilter.endDate = end;
+      state.auditFilter.page = 1;
       if (spanGroup) {
         spanGroup.querySelectorAll('.time-span-btn').forEach(b => b.classList.remove('active'));
       }
@@ -38,6 +39,7 @@ function setupAuditToolbar() {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => {
         state.auditFilter.search = e.target.value.trim();
+        state.auditFilter.page = 1;
         fetchAuditLogs();
       }, 300);
     });
@@ -48,6 +50,7 @@ function filterAuditSpan(span) {
   state.auditFilter.timeSpan = span;
   state.auditFilter.startDate = '';
   state.auditFilter.endDate = '';
+  state.auditFilter.page = 1;
   const group = document.getElementById('audit-time-span-group');
   if (group) {
     group.querySelectorAll('.time-span-btn').forEach(b => {
@@ -107,17 +110,53 @@ async function fetchAuditLogs() {
     if (state.auditFilter.startDate) q.append('startDate', state.auditFilter.startDate);
     if (state.auditFilter.endDate) q.append('endDate', state.auditFilter.endDate);
     if (state.auditFilter.search) q.append('search', state.auditFilter.search);
-    q.append('limit', state.auditFilter.limit || 100);
+    q.append('limit', state.auditFilter.limit || 50);
+    q.append('page', state.auditFilter.page || 1);
 
     const res = await fetch(`/api/audit-logs?${q.toString()}`, { headers: getAuthHeaders() });
     if (!res.ok) return;
     const data = await res.json();
     const logs = data.logs || (Array.isArray(data) ? data : []);
+    if (data && typeof data.total === 'number') {
+      state.auditFilter.total = data.total;
+      updateAuditPaginationUI();
+    }
     populateAuditTable(logs);
   } catch (err) {
     console.error('Failed to fetch audit logs:', err);
   }
 }
+
+function updateAuditPaginationUI() {
+  const start = (state.auditFilter.page - 1) * state.auditFilter.limit + 1;
+  const end = Math.min(state.auditFilter.total, state.auditFilter.page * state.auditFilter.limit);
+  const infoEl = document.getElementById('audit-pagination-info');
+  if (infoEl) {
+    infoEl.textContent = `แสดง ${state.auditFilter.total === 0 ? 0 : start} - ${end} จาก ${state.auditFilter.total} รายการ`;
+  }
+
+  const pageDisplay = document.getElementById('audit-page-num-display');
+  if (pageDisplay) {
+    pageDisplay.textContent = `หน้า ${state.auditFilter.page}`;
+  }
+
+  const btnPrev = document.getElementById('audit-btn-prev-page');
+  const btnNext = document.getElementById('audit-btn-next-page');
+  if (btnPrev && btnNext) {
+    const maxPage = Math.ceil(state.auditFilter.total / state.auditFilter.limit);
+    btnPrev.style.display = state.auditFilter.page <= 1 ? 'none' : 'inline-block';
+    btnNext.style.display = (state.auditFilter.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
+  }
+}
+
+window.auditChangePage = function(delta) {
+  const maxPage = Math.ceil(state.auditFilter.total / state.auditFilter.limit) || 1;
+  const newPage = state.auditFilter.page + delta;
+  if (newPage >= 1 && newPage <= maxPage) {
+    state.auditFilter.page = newPage;
+    fetchAuditLogs();
+  }
+};
 
 function populateAuditTable(logs) {
   const tbody = document.getElementById('audit-table-body');
@@ -153,19 +192,19 @@ function populateAuditTable(logs) {
 
     const safeCode = String(log.log_code || '').replace(/'/g, "\\'");
     const logCodeHtml = log.log_code 
-      ? `<span class="log-code-chip" onclick="copyTrackingCode('${safeCode}')" title="คลิกเพื่อคัดลอกรหัสติดตาม">📋 ${log.log_code}</span>` 
+      ? `<span class="log-code-chip" role="button" tabindex="0" onclick="copyTrackingCode('${safeCode}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();copyTrackingCode('${safeCode}');}" title="คลิกเพื่อคัดลอกรหัสติดตาม" aria-label="คัดลอกรหัสติดตาม ${escapeHtml(log.log_code)}">📋 ${escapeHtml(log.log_code)}</span>` 
       : '<span style="color:var(--text-muted); font-size:11px;">-</span>';
     
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${logCodeHtml}</td>
-      <td style="white-space: nowrap; font-size: 12px;">${time}</td>
-      <td><strong>${log.asset_tag}</strong></td>
-      <td>${log.department_name || '-'}</td>
-      <td>${log.status || '-'}</td>
-      <td><span class="badge ${dirClass}">${log.moved_direction}</span></td>
-      <td>${log.action_by_username || '-'}</td>
-      <td style="font-size: 12px; color: var(--text-muted);">${log.details || '-'}</td>
+      <td style="white-space: nowrap; font-size: 12px;">${escapeHtml(time)}</td>
+      <td><strong>${escapeHtml(log.asset_tag || '')}</strong></td>
+      <td>${escapeHtml(log.department_name || '-')}</td>
+      <td>${escapeHtml(log.status || '-')}</td>
+      <td><span class="badge ${dirClass}">${escapeHtml(log.moved_direction || '-')}</span></td>
+      <td>${escapeHtml(log.action_by_username || '-')}</td>
+      <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(log.details || '-')}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -176,6 +215,8 @@ async function updateStatistics(fallbackAssets) {
   const workEl = document.getElementById('stat-working-assets');
   const brokenEl = document.getElementById('stat-broken-assets');
   const vendorEl = document.getElementById('stat-vendor-claims');
+  const expiringBadge = document.getElementById('warranty-expiring-badge');
+  const expiringText = document.getElementById('warranty-expiring-text');
 
   try {
     const res = await fetch('/api/assets/summary', { headers: getAuthHeaders() });
@@ -185,6 +226,16 @@ async function updateStatistics(fallbackAssets) {
       if (workEl) workEl.textContent = summary.working;
       if (brokenEl) brokenEl.textContent = summary.broken;
       if (vendorEl) vendorEl.textContent = summary.pending_pickup;
+
+      const expiringCount = summary.expiring_60d || summary.expiring_6m || 0;
+      if (expiringBadge && expiringText) {
+        if (expiringCount > 0) {
+          expiringText.textContent = `⚠️ ${expiringCount} ใกล้หมดประกัน`;
+          expiringBadge.style.display = 'inline-flex';
+        } else {
+          expiringBadge.style.display = 'none';
+        }
+      }
       return;
     }
   } catch (e) {

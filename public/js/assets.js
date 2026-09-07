@@ -72,15 +72,15 @@ function populateAssetTable(assets) {
     const priceText = asset.purchase_price ? `฿${asset.purchase_price.toLocaleString()}` : '-';
     
     tr.innerHTML = `
-      <td><strong>${asset.asset_tag}</strong></td>
-      <td>${asset.device_name}</td>
-      <td><strong>${asset.brand || '-'}</strong></td>
-      <td>${asset.location}</td>
+      <td><strong>${escapeHtml(asset.asset_tag || '')}</strong></td>
+      <td>${escapeHtml(asset.device_name || '')}</td>
+      <td><strong>${escapeHtml(asset.brand || '-')}</strong></td>
+      <td>${escapeHtml(asset.location || '')}</td>
       <td>${formatDualDate(asset.warranty_end)}</td>
       <td>${priceText}</td>
       <td>${getStatusBadgeHTML(asset)}</td>
       <td>
-        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" onclick="event.stopPropagation(); downloadPDF('${asset.asset_tag}')" title="ดาวน์โหลดใบงานเคลม PDF ทันที">
+        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" onclick="event.stopPropagation(); downloadPDF('${encodeURIComponent(asset.asset_tag || '')}')" title="ดาวน์โหลดใบงานเคลม PDF ทันที">
           📄 PDF
         </button>
       </td>
@@ -252,6 +252,27 @@ function displayAssetDetails(asset) {
   if (detailItem) detailItem.after(quickPanel);
   // --- END WARRANTY QUICK-ACCESS PANEL ---
 
+  // Soft-Delete Recovery Banner (Admin-aware)
+  const oldDelBanner = document.getElementById(`${prefix}-deleted-banner`);
+  if (oldDelBanner) oldDelBanner.remove();
+
+  if (asset.is_deleted === 1) {
+    const delBanner = document.createElement('div');
+    delBanner.id = `${prefix}-deleted-banner`;
+    delBanner.style.cssText = 'background: #fff1f2; border: 1.5px solid #f43f5e; color: #9f1239; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;';
+    delBanner.innerHTML = `
+      <div>
+        <strong>🗑️ รายการครุภัณฑ์นี้ถูกลบชั่วคราว (Soft Deleted)</strong>
+        <div style="font-size: 11.5px; margin-top: 2px;">สามารถกู้คืนรายการนี้กลับมาเป็นครุภัณฑ์ปกติได้</div>
+      </div>
+      <button type="button" class="btn btn-sm btn-primary" onclick="restoreAsset('${encodeURIComponent(asset.asset_tag)}')" style="white-space: nowrap; margin-left: 10px; font-size: 11.5px; padding: 5px 10px;">
+        🔄 กู้คืนข้อมูล (Restore)
+      </button>
+    `;
+    const detailsCard = document.getElementById(`${prefix}-details-card`);
+    if (detailsCard) detailsCard.prepend(delBanner);
+  }
+
   document.getElementById(`${prefix}-detail-status`).innerHTML = getStatusBadgeHTML(asset);
   document.getElementById(`${prefix}-details-card`).style.display = 'block';
   if (prefix === 'ward') {
@@ -339,17 +360,62 @@ function displayAssetDetails(asset) {
 function setupAddAssetSafeguards() {
   const tagInput = document.getElementById('new-asset-tag');
   const serialInput = document.getElementById('new-serial');
+  const deviceNameInput = document.getElementById('new-device-name');
+  const modelInput = document.getElementById('new-model');
+  const brandInput = document.getElementById('new-brand');
+  const categorySelect = document.getElementById('new-category');
   const warningBox = document.getElementById('add-asset-dup-warning');
   const warningMsg = document.getElementById('add-asset-dup-msg');
+  const bmeWarningBox = document.getElementById('add-asset-bme-warning');
+  const bmeWarningMsg = document.getElementById('add-asset-bme-msg');
   const submitBtn = document.getElementById('btn-submit-add-asset');
   let dupTimer = null;
+  let isDupBlocked = false;
+  let isBmeBlocked = false;
+
+  const BME_REGEX = /\b(ventilator|infusion\s*pump|syringe\s*pump|defibrillator|patient\s*monitor|vital\s*signs?\s*monitor|anesthesia\s*machine|dialysis|aed|ecg|ekg)\b|เครื่องช่วยหายใจ|เครื่องให้สารละลาย|เครื่องกระตุกหัวใจ|เครื่องติดตามสัญญาณชีพ|เครื่องดมยาสลบ|เครื่องฟอกไต/i;
+
+  function updateSubmitButtonState() {
+    if (submitBtn) {
+      submitBtn.disabled = isDupBlocked || isBmeBlocked;
+    }
+  }
+
+  function checkBmeMedicalDevice() {
+    const text = [
+      deviceNameInput?.value || '',
+      modelInput?.value || '',
+      brandInput?.value || '',
+      categorySelect?.value || ''
+    ].join(' ');
+
+    if (BME_REGEX.test(text)) {
+      isBmeBlocked = true;
+      if (bmeWarningBox) {
+        bmeWarningBox.style.display = 'block';
+        if (bmeWarningMsg) {
+          bmeWarningMsg.innerHTML = 'อุปกรณ์นี้จัดเป็นเครื่องมือแพทย์ควบคุม (Regulated Medical Device) ภายใต้การกำกับดูแลของศูนย์เครื่องมือแพทย์ (BME) <strong>ไม่อนุญาตให้ลงทะเบียนในระบบ IT</strong> กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (Biomedical Engineering Department)';
+        }
+      }
+    } else {
+      isBmeBlocked = false;
+      if (bmeWarningBox) bmeWarningBox.style.display = 'none';
+    }
+    updateSubmitButtonState();
+  }
+
+  if (deviceNameInput) deviceNameInput.addEventListener('input', checkBmeMedicalDevice);
+  if (modelInput) modelInput.addEventListener('input', checkBmeMedicalDevice);
+  if (brandInput) brandInput.addEventListener('input', checkBmeMedicalDevice);
+  if (categorySelect) categorySelect.addEventListener('change', checkBmeMedicalDevice);
 
   function checkDuplicate(val) {
     clearTimeout(dupTimer);
     const tag = (val || '').trim().toUpperCase();
     if (!tag || tag.length < 3) {
+      isDupBlocked = false;
       if (warningBox) warningBox.style.display = 'none';
-      if (submitBtn) submitBtn.disabled = false;
+      updateSubmitButtonState();
       return;
     }
     dupTimer = setTimeout(async () => {
@@ -358,13 +424,14 @@ function setupAddAssetSafeguards() {
         if (res.ok) {
           const data = await res.json();
           if (data.exists) {
+            isDupBlocked = true;
             if (warningBox) warningBox.style.display = 'block';
             if (warningMsg) warningMsg.innerHTML = `รหัส/ซีเรียล <strong>${data.asset.asset_tag}</strong> (${data.asset.device_name}) มีอยู่ในระบบแล้ว!`;
-            if (submitBtn) submitBtn.disabled = true;
           } else {
+            isDupBlocked = false;
             if (warningBox) warningBox.style.display = 'none';
-            if (submitBtn) submitBtn.disabled = false;
           }
+          updateSubmitButtonState();
         }
       } catch (err) {
         console.error('Duplicate check error:', err);
@@ -395,15 +462,54 @@ function setupAddAssetSafeguards() {
 
   if (startInput) startInput.addEventListener('change', calculateWarrantyEnd);
   if (monthsSelect) monthsSelect.addEventListener('change', calculateWarrantyEnd);
+
+  // Auto-calculate warranty end for batch mode
+  const batchStart = document.getElementById('batch-warranty-start');
+  const batchMonths = document.getElementById('batch-warranty-months');
+  const batchEnd = document.getElementById('batch-warranty-end');
+  function calculateBatchWarrantyEnd() {
+    if (!batchStart || !batchMonths || !batchEnd) return;
+    const sVal = batchStart.value;
+    if (!sVal) return;
+    const m = parseInt(batchMonths.value, 10) || 36;
+    const d = new Date(sVal);
+    d.setMonth(d.getMonth() + m);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    batchEnd.value = `${yyyy}-${mm}-${dd}`;
+  }
+  if (batchStart) batchStart.addEventListener('change', calculateBatchWarrantyEnd);
+  if (batchMonths) batchMonths.addEventListener('change', calculateBatchWarrantyEnd);
+
+  // Setup Draft Autosave for Single, Batch, and Claim forms
+  setupFormDraftAutosave('add-asset-form');
+  setupFormDraftAutosave('batch-asset-form');
+  setupFormDraftAutosave('new-multi-claim-form');
+
+  const batchForm = document.getElementById('batch-asset-form');
+  if (batchForm) batchForm.addEventListener('submit', handleBatchAssetSubmit);
 }
 
 // Add New Asset Submit Handler
 async function handleAddAsset(e) {
   e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type="submit"]') || e.submitter;
+  const originalBtnText = submitBtn ? submitBtn.textContent : '';
+
+  const catVal = document.getElementById('new-category').value;
+  const isClinicalIT = [
+    'Clinical IT Display',
+    'Clinical Workstation',
+    'Healthcare Scanner',
+    'Mobile Nursing Cart'
+  ].includes(catVal);
+  const lifespanMonths = isClinicalIT ? 84 : 60;
+
   const payload = {
     asset_tag: document.getElementById('new-asset-tag').value.trim(),
     device_name: document.getElementById('new-device-name').value.trim(),
-    category: document.getElementById('new-category').value,
+    category: catVal,
     brand: document.getElementById('new-brand').value.trim(),
     model: document.getElementById('new-model').value.trim(),
     serial_no: document.getElementById('new-serial').value.trim(),
@@ -412,12 +518,17 @@ async function handleAddAsset(e) {
     warranty_end: document.getElementById('new-warranty-end').value,
     purchase_price: parseFloat(document.getElementById('new-price')?.value) || 0,
     warranty_months: parseInt(document.getElementById('new-warranty-months')?.value, 10) || 36,
-    expected_lifespan_months: 60,
+    expected_lifespan_months: lifespanMonths,
     po_number: document.getElementById('new-po-number')?.value?.trim() || '',
     invoice_no: '',
     sanitization_required: document.getElementById('new-sanitization-req')?.checked ? 1 : 0,
     status: 'Working'
   };
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ กำลังบันทึก...';
+  }
 
   try {
     const res = await fetch('/api/assets', {
@@ -430,6 +541,7 @@ async function handleAddAsset(e) {
       const data = await res.json();
       const codeMsg = data.log_code ? ` (รหัสติดตาม: ${data.log_code})` : '';
       showToast(`ลงทะเบียนครุภัณฑ์สำเร็จ!${codeMsg}`, 'success', 5000);
+      clearFormDraft('add-asset-form');
       document.getElementById('add-asset-modal').style.display = 'none';
       document.getElementById('add-asset-form').reset();
       refreshData();
@@ -440,8 +552,238 @@ async function handleAddAsset(e) {
   } catch (error) {
     console.error('Add asset error:', error);
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
   }
 }
+
+// ─── Point 6: Soft-Delete Restore Action ──────────────────────────────────
+async function restoreAsset(assetTag) {
+  const cleanTag = decodeURIComponent(assetTag);
+  if (!confirm(`คุณต้องการกู้คืนข้อมูลครุภัณฑ์รหัส "${cleanTag}" กลับสู่ระบบใช่หรือไม่?`)) return;
+
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(cleanTag)}/restore`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ กู้คืนข้อมูลครุภัณฑ์สำเร็จ (${data.log_code || cleanTag})`, 'success', 4000);
+      lookupAsset(cleanTag);
+      refreshData();
+    } else {
+      showToast(data.error || 'ไม่สามารถกู้คืนข้อมูลครุภัณฑ์ได้', 'error');
+    }
+  } catch (err) {
+    console.error('Restore asset error:', err);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+  }
+}
+window.restoreAsset = restoreAsset;
+
+// ─── Point 10: Tab Switcher & Batch Asset Intake ───────────────────────────
+function switchAddAssetTab(tabName) {
+  const singleView = document.getElementById('add-asset-single-view');
+  const batchView = document.getElementById('add-asset-batch-view');
+  const tabSingle = document.getElementById('tab-add-asset-single') || document.getElementById('tab-asset-single');
+  const tabBatch = document.getElementById('tab-add-asset-batch') || document.getElementById('tab-asset-batch');
+
+  if (tabName === 'batch') {
+    if (singleView) singleView.style.display = 'none';
+    if (batchView) batchView.style.display = 'block';
+    if (tabSingle) { tabSingle.classList.remove('active'); tabSingle.style.background = 'transparent'; tabSingle.style.color = 'var(--text-muted)'; }
+    if (tabBatch) { tabBatch.classList.add('active'); tabBatch.style.background = 'var(--primary)'; tabBatch.style.color = '#fff'; }
+    restoreFormDraft('batch-asset-form');
+  } else {
+    if (singleView) singleView.style.display = 'block';
+    if (batchView) batchView.style.display = 'none';
+    if (tabSingle) { tabSingle.classList.add('active'); tabSingle.style.background = 'var(--primary)'; tabSingle.style.color = '#fff'; }
+    if (tabBatch) { tabBatch.classList.remove('active'); tabBatch.style.background = 'transparent'; tabBatch.style.color = 'var(--text-muted)'; }
+    restoreFormDraft('add-asset-form');
+  }
+}
+window.switchAddAssetTab = switchAddAssetTab;
+
+async function handleBatchAssetSubmit(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('btn-submit-batch-asset');
+  const originalText = submitBtn ? submitBtn.textContent : '';
+
+  const catVal = document.getElementById('batch-category')?.value;
+  const brandVal = document.getElementById('batch-brand')?.value?.trim();
+  const modelVal = document.getElementById('batch-model')?.value?.trim();
+  const locVal = document.getElementById('batch-location')?.value?.trim();
+  const wStart = document.getElementById('batch-warranty-start')?.value;
+  const wMonths = parseInt(document.getElementById('batch-warranty-months')?.value, 10) || 36;
+  const wEnd = document.getElementById('batch-warranty-end')?.value;
+  const priceVal = parseFloat(document.getElementById('batch-price')?.value) || 0;
+  const poVal = document.getElementById('batch-po-number')?.value?.trim() || '';
+  const sReq = document.getElementById('batch-sanitization-req')?.checked ? 1 : 0;
+
+  const rawLines = (document.getElementById('batch-scanner-textarea')?.value || '').trim().split('\n');
+  const items = [];
+
+  for (let line of rawLines) {
+    line = line.trim();
+    if (!line) continue;
+    // Format: Tag, Serial or Tag [Tab] Serial
+    const parts = line.split(/[,\t]+/).map(p => p.trim());
+    if (parts.length >= 2) {
+      items.push({
+        asset_tag: parts[0].toUpperCase(),
+        serial_no: parts[1],
+        device_name: `${brandVal} ${modelVal}`.trim()
+      });
+    } else if (parts.length === 1 && parts[0]) {
+      items.push({
+        asset_tag: parts[0].toUpperCase(),
+        serial_no: `SN-${parts[0].toUpperCase()}`,
+        device_name: `${brandVal} ${modelVal}`.trim()
+      });
+    }
+  }
+
+  if (items.length === 0) {
+    showToast('กรุณาสแกนหรือระบุรายการครุภัณฑ์อย่างน้อย 1 รายการ', 'warning');
+    return;
+  }
+
+  if (items.length > 50) {
+    showToast('การลงทะเบียนแบบกลุ่มรองรับสูงสุด 50 รายการต่อครั้ง', 'warning');
+    return;
+  }
+
+  const payload = {
+    common: {
+      category: catVal,
+      brand: brandVal,
+      model: modelVal,
+      location: locVal,
+      warranty_start: wStart,
+      warranty_end: wEnd,
+      warranty_months: wMonths,
+      purchase_price: priceVal,
+      po_number: poVal,
+      sanitization_required: sReq
+    },
+    items
+  };
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ กำลังบันทึกแบบกลุ่ม...';
+  }
+
+  try {
+    const res = await fetch('/api/assets/batch', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`⚡ ลงทะเบียนแบบกลุ่มสำเร็จ ${data.count} รายการ! (${data.log_code || ''})`, 'success', 6000);
+      clearFormDraft('batch-asset-form');
+      document.getElementById('add-asset-modal').style.display = 'none';
+      document.getElementById('batch-asset-form')?.reset();
+      refreshData();
+    } else {
+      showToast(data.error || 'ไม่สามารถลงทะเบียนแบบกลุ่มได้', 'error', 6000);
+    }
+  } catch (err) {
+    console.error('Batch intake error:', err);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  }
+}
+window.handleBatchAssetSubmit = handleBatchAssetSubmit;
+
+// ─── Point 12: Shared-Terminal Isolated Draft Autosave ─────────────────────
+function getDraftKey(formId) {
+  const userId = (state.user && state.user.id) ? state.user.id : 'anon';
+  return `claimit_draft_${userId}_${formId}`;
+}
+
+function saveFormDraft(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  const data = {};
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => {
+    if (input.type === 'password' || input.type === 'file') return;
+    if (input.id) {
+      data[input.id] = input.type === 'checkbox' ? input.checked : input.value;
+    }
+  });
+  try {
+    sessionStorage.setItem(getDraftKey(formId), JSON.stringify(data));
+  } catch {}
+}
+
+function restoreFormDraft(formId) {
+  try {
+    const raw = sessionStorage.getItem(getDraftKey(formId));
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const form = document.getElementById(formId);
+    if (!form) return false;
+
+    let restoredAny = false;
+    Object.keys(data).forEach(id => {
+      const el = document.getElementById(id);
+      if (el && data[id] !== undefined && data[id] !== '') {
+        if (el.type === 'checkbox') {
+          el.checked = Boolean(data[id]);
+        } else {
+          el.value = data[id];
+        }
+        restoredAny = true;
+      }
+    });
+
+    if (restoredAny) {
+      const badge = document.getElementById(`${formId}-draft-restored-badge`);
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        setTimeout(() => { badge.style.display = 'none'; }, 4000);
+      }
+    }
+    return restoredAny;
+  } catch {
+    return false;
+  }
+}
+
+function clearFormDraft(formId) {
+  try {
+    sessionStorage.removeItem(getDraftKey(formId));
+  } catch {}
+}
+
+function setupFormDraftAutosave(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  let debounce = null;
+  form.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => saveFormDraft(formId), 300);
+  });
+  form.addEventListener('change', () => saveFormDraft(formId));
+}
+window.saveFormDraft = saveFormDraft;
+window.restoreFormDraft = restoreFormDraft;
+window.clearFormDraft = clearFormDraft;
+window.setupFormDraftAutosave = setupFormDraftAutosave;
 
 // Global EOL Salvage Action Handler
 window.handleSalvageAction = async function(salvageStatus) {

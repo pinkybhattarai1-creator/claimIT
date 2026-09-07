@@ -181,20 +181,53 @@ async function runTests() {
     const noTokenRes = await makeRequest('GET', '/api/users');
     assert(noTokenRes.status === 401, 'Unauthenticated request to protected route blocked (401)');
 
-    // 2.5 Self Password Change
-    const selfChangeFail = await makeRequest('POST', '/api/auth/change-password', {
-      username: 'staff',
-      current_password: 'WrongCurrentPassword',
-      new_password: 'NewStaffPassword123!'
-    });
-    assert(selfChangeFail.status === 400, 'Self change password with wrong old password rejected (400)');
-
-    const selfChangeOk = await makeRequest('POST', '/api/auth/change-password', {
+    // 2.5 Password Change Security & Access Controls
+    // 2.5a Unauthenticated password change blocked
+    const unauthChange = await makeRequest('POST', '/api/auth/change-password', {
       username: 'staff',
       current_password: 'staff123',
       new_password: 'staff123'
     });
+    assert(unauthChange.status === 401, 'Unauthenticated password change blocked (401)');
+
+    // 2.5b Staff attempting to change another user's password blocked
+    const hijackChange = await makeRequest('POST', '/api/auth/change-password', {
+      username: 'admin',
+      current_password: 'admin123',
+      new_password: 'HackedAdminPass123'
+    }, staffToken);
+    assert(hijackChange.status === 403, 'Staff attempting to change another user password blocked (403)');
+
+    // 2.5c Self change password with wrong old password rejected
+    const selfChangeFail = await makeRequest('POST', '/api/auth/change-password', {
+      username: 'staff',
+      current_password: 'WrongCurrentPassword',
+      new_password: 'NewStaffPassword123!'
+    }, staffToken);
+    assert(selfChangeFail.status === 400, 'Self change password with wrong old password rejected (400)');
+
+    // 2.5d Self change password with valid old password succeeded
+    const oldStaffToken = staffToken;
+    const selfChangeOk = await makeRequest('POST', '/api/auth/change-password', {
+      username: 'staff',
+      current_password: 'staff123',
+      new_password: 'staff123'
+    }, staffToken);
     assert(selfChangeOk.status === 200, 'Self change password with valid old password succeeded (200)');
+    assert(selfChangeOk.data && selfChangeOk.data.token, 'Fresh JWT token issued upon password change');
+
+    // 2.5e Verify that the old token is immediately revoked (401)
+    const oldTokenRevoked = await makeRequest('GET', '/api/users', null, oldStaffToken);
+    assert(oldTokenRevoked.status === 401, 'Old staff token immediately revoked after password change (401 Session revoked)');
+
+    // Adopt fresh token
+    staffToken = selfChangeOk.data.token;
+
+    // 2.5f Session refresh endpoint
+    const refreshRes = await makeRequest('POST', '/api/auth/refresh', null, staffToken);
+    assert(refreshRes.status === 200, 'Session token refresh succeeded (200)');
+    assert(refreshRes.data && refreshRes.data.token, 'New refreshed token received');
+    staffToken = refreshRes.data.token;
 
     // TEST 3: RBAC & Permission Enforcement
     console.log('\n--- TEST 3: Role-Based Access Control (RBAC) ---');
@@ -403,6 +436,27 @@ async function runTests() {
     assert(summaryRes.status === 200, 'Inventory summary endpoint returned 200');
     assert(typeof summaryRes.data.total === 'number' && typeof summaryRes.data.working === 'number', 'Inventory summary contains accurate counts');
 
+    // 8.3 Optimistic Concurrency & Conflict Protection (409 Conflict)
+    const concurClaim = await makeRequest('POST', '/api/claims', {
+      vendor_name: 'Zebra Center',
+      asset_tags: ['CIT-2023-SCN-01']
+    }, staffToken);
+    assert(concurClaim.status === 201, 'Concurrency test claim created (201)');
+    const concurClaimId = concurClaim.data.claim.id;
+
+    // First transition to VIABLE
+    const viableRes = await makeRequest('PUT', `/api/claims/${concurClaimId}/status`, { status: 'VIABLE' }, adminToken);
+    assert(viableRes.status === 200, 'First transition to VIABLE succeeded (200)');
+
+    // Competing transitions simultaneously: VIABLE -> CONFIRMED vs VIABLE -> CANCELLED
+    const [compete1, compete2] = await Promise.all([
+      makeRequest('PUT', `/api/claims/${concurClaimId}/status`, { status: 'CONFIRMED' }, adminToken),
+      makeRequest('PUT', `/api/claims/${concurClaimId}/status`, { status: 'CANCELLED' }, adminToken)
+    ]);
+    const competeStatuses = [compete1.status, compete2.status];
+    assert(competeStatuses.includes(200), 'One concurrent state transition succeeded (200)');
+    assert(competeStatuses.includes(400) || competeStatuses.includes(409), `Second competing transition was rejected with 400 or 409 (Got: ${competeStatuses.join(', ')})`);
+
     // TEST 9: Evidence Upload, Storage & IDOR Protection
     console.log('\n--- TEST 9: Private Evidence Storage & IDOR Access Control ---');
     const testImagePath = path.join(__dirname, 'test_evidence.png');
@@ -436,7 +490,8 @@ async function runTests() {
     console.log('\n--- TEST 11: Immutable Audit Log Verification ---');
     const auditRes = await makeRequest('GET', '/api/audit-logs', null, staffToken);
     assert(auditRes.status === 200, 'Audit logs retrieved successfully (200)');
-    assert(Array.isArray(auditRes.data) && auditRes.data.length > 0, `Audit logs recorded (${auditRes.data.length} entries)`);
+    const logsList = Array.isArray(auditRes.data) ? auditRes.data : (Array.isArray(auditRes.data?.logs) ? auditRes.data.logs : []);
+    assert(logsList.length > 0, `Audit logs recorded (${logsList.length} entries)`);
 
     // TEST 12: Automated SQLite Database Backup & Authorization
     console.log('\n--- TEST 12: Automated SQLite Database Backup & Email Route ---');
@@ -458,8 +513,103 @@ async function runTests() {
     }, staffToken);
     assert(emailRes.status === 200, 'Mounted /api/email/send dispatches successfully (200)');
 
+    // TEST 13: Clinical IT Viability, BME Guardrail & Safe Foreign Key Cascade
+    console.log('\n--- TEST 13: Clinical IT, BME Guardrails & Foreign Key Cascade Integrity ---');
+
+    // 13.1 BME Regulated Device Blocked on Registration (Patient Monitor)
+    const bmeMonitor = await makeRequest('POST', '/api/assets', {
+      asset_tag: 'CIT-BME-MON-01',
+      device_name: 'Mindray Patient Monitor ePM 12M',
+      category: 'Computer',
+      brand: 'Mindray',
+      model: 'ePM 12M',
+      serial_no: 'SN-BME-MON-01',
+      location: 'ICU',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(bmeMonitor.status === 400, 'BME Patient Monitor rejected with 400');
+    assert(bmeMonitor.data && bmeMonitor.data.is_bme_device === true, 'BME flag returned indicating BME jurisdiction');
+
+    // 13.2 BME Regulated Device Blocked on Registration (Ventilator)
+    const bmeVentilator = await makeRequest('POST', '/api/assets', {
+      asset_tag: 'CIT-BME-VENT-01',
+      device_name: 'Hamilton Intensive Care Unit Unit',
+      category: 'Computer',
+      brand: 'Hamilton',
+      model: 'C3 Ventilator',
+      serial_no: 'SN-BME-VENT-01',
+      location: 'ICU',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(bmeVentilator.status === 400, 'BME Ventilator rejected with 400');
+
+    // 13.3 BME Regulated Device Blocked on Registration (Infusion Pump)
+    const bmePump = await makeRequest('POST', '/api/assets', {
+      asset_tag: 'CIT-BME-PUMP-01',
+      device_name: 'B. Braun Infusion Pump Space',
+      category: 'Computer',
+      brand: 'B. Braun',
+      model: 'Infusomat Space',
+      serial_no: 'SN-BME-PUMP-01',
+      location: 'Ward 20',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(bmePump.status === 400, 'BME Infusion Pump rejected with 400');
+
+    // 13.4 Legitimate Clinical IT Registration (Clinical IT Display, 84-month lifespan default)
+    const clinicalTag = `CIT-CLIN-DISP-${Date.now()}`;
+    const regClinical = await makeRequest('POST', '/api/assets', {
+      asset_tag: clinicalTag,
+      device_name: 'Eizo RadiForce 24-inch PACS Diagnostic Display',
+      category: 'Clinical IT Display',
+      brand: 'Eizo',
+      model: 'RX360',
+      serial_no: `SN-${clinicalTag}`,
+      location: 'ศูนย์เอกซเรย์และรังสีวิทยา (Radiology & Imaging)',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01',
+      purchase_price: 52000
+    }, adminToken);
+    assert(regClinical.status === 200, 'Legitimate Clinical IT Display registered successfully (200)');
+
+    // Verify 84-month default lifespan
+    const fetchedClinical = await makeRequest('GET', `/api/assets/${clinicalTag}`, null, staffToken);
+    assert(fetchedClinical.status === 200, 'Clinical asset fetched (200)');
+    assert(fetchedClinical.data.expected_lifespan_months === 84, 'Clinical IT asset defaulted to 84-month lifespan');
+
+    // 13.5 Create claim and test cascade update via PUT /api/assets/:tag
+    const cascadedTag = `${clinicalTag}-CORRECTED`;
+    const updateAssetRes = await makeRequest('PUT', `/api/assets/${clinicalTag}`, {
+      category: 'Clinical IT Display',
+      brand: 'Eizo',
+      model: 'RX360',
+      serial_no: `SN-${clinicalTag}`,
+      device_name: 'Eizo RadiForce 24-inch PACS Diagnostic Display',
+      location: 'ศูนย์เอกซเรย์และรังสีวิทยา (Radiology & Imaging)',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01',
+      status: 'Working',
+      new_asset_tag: cascadedTag
+    }, adminToken);
+    assert(updateAssetRes.status === 200, 'Asset tag update executed successfully (200)');
+
+    // Fetch updated tag
+    const verifyCascade = await makeRequest('GET', `/api/assets/${cascadedTag}`, null, staffToken);
+    assert(verifyCascade.status === 200, 'Updated asset tag accessible after cascade update');
+
+    // 13.6 PRAGMA foreign_key_check verification
+    const { db: activeDb } = require('./db');
+    const fkViolations = await new Promise((resolve, reject) => {
+      activeDb.all("PRAGMA foreign_key_check;", (e, r) => e ? reject(e) : resolve(r));
+    });
+    assert(fkViolations.length === 0, 'Zero foreign key violations in active database');
+    console.log('   ✅ Clinical IT 84-month lifespan, BME guardrails & foreign key cascade verified.');
+
     console.log('\n===============================================================');
-    console.log('🎉 ALL 12 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
+    console.log('🎉 ALL 13 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
     console.log('===============================================================\n');
 
   } finally {

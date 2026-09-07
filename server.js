@@ -14,6 +14,9 @@ const {
 
 const app = express();
 
+// Trust reverse proxy (Hospital Nginx / IIS / Load Balancers)
+app.set('trust proxy', 1);
+
 // 1. Security Headers & CORS
 app.use(securityHeaders);
 app.use(corsMiddleware);
@@ -80,17 +83,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Gate Verification Endpoint (Entry Passcode: 1)
-app.post('/api/verify-gate', (req, res) => {
-  const { passcode } = req.body || {};
-  const expected = process.env.APP_PASSCODE || '1';
-  if (passcode === expected || passcode === '1') {
-    res.setHeader('Set-Cookie', 'claimit_gate=1; Path=/; Max-Age=2592000');
-    return res.json({ success: true, message: 'Passcode verified successfully' });
-  }
-  return res.status(401).json({ success: false, error: 'รหัสผ่านไม่ถูกต้อง (รหัสผ่านคือ 1)' });
-});
-
 // Network & Mobile Connection Info Endpoint
 app.get('/api/network-info', (req, res) => {
   const os = require('os');
@@ -132,6 +124,7 @@ app.use('/api/claims', require('./routes/claims'));
 app.use('/api/evidence', require('./routes/evidence'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/email', require('./routes/email'));
+app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api', require('./routes/audit'));
 const { performBackup } = require('./scripts/backup');
 const { verifyToken, adminOnly } = require('./middleware/auth');
@@ -143,9 +136,26 @@ app.post('/api/backup', verifyToken, adminOnly, (req, res) => {
       res.json({ message: 'Backup created successfully', fileName: result.fileName });
     })
     .catch(err => {
-      res.status(500).json({ error: 'Backup failed', details: err.message });
+      console.error('[Backup Failure]:', err);
+      res.status(500).json({ error: 'การสำรองข้อมูลล้มเหลว กรุณาติดต่อผู้ดูแลระบบ' });
     });
 });
+
+// Points 5 & 8: Startup Quarantine Purge & Scheduled Daily Maintenance
+const { purgeOldQuarantinedEvidence } = require('./services/evidenceService');
+try {
+  purgeOldQuarantinedEvidence(90);
+} catch (pErr) {}
+
+setInterval(() => {
+  try {
+    purgeOldQuarantinedEvidence(90);
+    db.run("PRAGMA wal_checkpoint(PASSIVE);");
+    db.run("PRAGMA optimize;");
+  } catch (mErr) {
+    console.warn('[Daily Maintenance Warning]:', mErr.message);
+  }
+}, 24 * 60 * 60 * 1000).unref();
 
 // 7. Centralized Safe Error Handler
 app.use(errorHandler);

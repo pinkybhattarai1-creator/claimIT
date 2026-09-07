@@ -11,6 +11,7 @@ const { db } = require('../db');
 const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
 const { createClaim, transitionClaimStatus, calculateServerViability } = require('../services/claimService');
 const { sendNotificationEmail } = require('../services/emailService');
+const { handleDbError } = require('../utils/safeError');
 
 // POST /api/claims (Create multi-asset claim with 1-5 assets)
 router.post('/', verifyToken, staffOnly, async (req, res, next) => {
@@ -47,10 +48,10 @@ router.post('/', verifyToken, staffOnly, async (req, res, next) => {
       claim: result
     });
   } catch (err) {
-    if (err.status) {
-      return res.status(err.status).json({ error: err.message });
+    if (err.status && err.status < 500) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
     }
-    next(err);
+    return handleDbError(res, err);
   }
 });
 
@@ -79,9 +80,20 @@ router.get('/', verifyToken, staffOnly, (req, res, next) => {
     LIMIT ? OFFSET ?
   `;
 
-  db.all(query, [...params, limit, offset], (err, rows) => {
-    if (err) return next(err);
-    res.json({ page, limit, claims: rows });
+  const countSql = `SELECT COUNT(*) as total FROM claims c ${whereClause}`;
+
+  db.get(countSql, params, (cntErr, cntRow) => {
+    if (cntErr) return next(cntErr);
+
+    db.all(query, [...params, limit, offset], (err, rows) => {
+      if (err) return next(err);
+      res.json({
+        total: cntRow ? cntRow.total : 0,
+        page,
+        limit,
+        claims: rows
+      });
+    });
   });
 });
 
@@ -119,7 +131,7 @@ router.get('/:id', verifyToken, staffOnly, (req, res, next) => {
 // PUT /api/claims/:id/status (Enforce valid state transition - Admin-only)
 router.put('/:id/status', verifyToken, adminOnly, async (req, res, next) => {
   try {
-    const { status, notes, resolution_type, replacement_serial_no, repair_cost } = req.body;
+    const { status, notes, resolution_type, replacement_serial_no, repair_cost, supervisor_approval, supervisor_notes } = req.body;
     if (!status) return res.status(400).json({ error: 'กรุณาระบุสถานะใหม่ (new status required)' });
 
     const result = await transitionClaimStatus({
@@ -129,7 +141,9 @@ router.put('/:id/status', verifyToken, adminOnly, async (req, res, next) => {
       notes,
       resolution_type,
       replacement_serial_no,
-      repair_cost
+      repair_cost,
+      supervisor_approval,
+      supervisor_notes
     });
 
     res.json({
@@ -137,10 +151,10 @@ router.put('/:id/status', verifyToken, adminOnly, async (req, res, next) => {
       claim: result
     });
   } catch (err) {
-    if (err.status) {
-      return res.status(err.status).json({ error: err.message });
+    if (err.status && err.status < 500) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
     }
-    next(err);
+    return handleDbError(res, err);
   }
 });
 
@@ -187,8 +201,9 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
       const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
 
       // PDF Title Header
+      const hospTitle = process.env.HOSPITAL_NAME || 'Hospital IT Department (ฝ่ายเทคโนโลยีสารสนเทศ)';
       doc.font(titleFont).fontSize(16).fillColor('#0284c7').text('ClaimIT — Multi-Asset Warranty & RMA Report', { align: 'center' });
-      doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: Phyathai 3 Hospital (โรงพยาบาลพญาไท 3) | Generated: ${new Date().toLocaleString('th-TH')} | Ref: ${claim.claim_number}`, { align: 'center' });
+      doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: ${hospTitle} | Generated: ${new Date().toLocaleString('th-TH')} | Ref: ${claim.claim_number}`, { align: 'center' });
       doc.moveDown(1);
 
       // Section 1: Claim Header Information
@@ -220,8 +235,9 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
       doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. มาตรการความปลอดภัยและการตรวจสอบข้อมูล (PDPA Compliance)', { underline: true });
       doc.moveDown(0.3);
       doc.font(regularFont).fontSize(8.5).fillColor('#475569');
+      const hospShort = process.env.HOSPITAL_SHORT_NAME || 'โรงพยาบาล';
       doc.text('ครุภัณฑ์บันทึกข้อมูลหลักทั้งหมดผ่านการยืนยันการล้างข้อมูล (Sanitization Authorization) ก่อนส่งมอบบุคคลภายนอกตามมาตรฐาน ISO/IEC 27001');
-      doc.text('เอกสารฉบับนี้ใช้เป็นหลักฐานและใบส่งมอบงานซ่อมเคลมครุภัณฑ์คอมพิวเตอร์อย่างเป็นทางการของโรงพยาบาลพญาไท 3');
+      doc.text(`เอกสารฉบับนี้ใช้เป็นหลักฐานและใบส่งมอบงานซ่อมเคลมครุภัณฑ์คอมพิวเตอร์อย่างเป็นทางการของ${hospShort}`);
 
       doc.end();
     });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db, hashPassword } = require('../db');
 const { verifyToken, adminOnly } = require('../middleware/auth');
+const { handleDbError } = require('../utils/safeError');
 
 // GET /api/users (Admin-only)
 router.get('/', verifyToken, adminOnly, (req, res) => {
@@ -11,7 +12,7 @@ router.get('/', verifyToken, adminOnly, (req, res) => {
     : "SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE is_deleted = 0 ORDER BY id ASC";
 
   db.all(query, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     res.json(rows);
   });
 });
@@ -19,7 +20,7 @@ router.get('/', verifyToken, adminOnly, (req, res) => {
 // GET /api/users/:id (Admin-only)
 router.get('/:id', verifyToken, adminOnly, (req, res) => {
   db.get("SELECT id, username, role, name, department, is_active, is_deleted, created_at FROM users WHERE id = ?", [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     if (!row) return res.status(404).json({ error: 'User not found' });
     res.json(row);
   });
@@ -37,15 +38,11 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   }
 
   const hashedPassword = hashPassword(password);
-  db.run(`INSERT INTO users (username, password, role, name, department, is_active, is_deleted) VALUES (?, ?, ?, ?, ?, 1, 0)`,
-    [username, hashedPassword, role, name, department],
+  const mustChange = req.body.must_change_password !== undefined ? (req.body.must_change_password ? 1 : 0) : 1;
+  db.run(`INSERT INTO users (username, password, role, name, department, is_active, is_deleted, token_version, must_change_password) VALUES (?, ?, ?, ?, ?, 1, 0, 0, ?)`,
+    [username, hashedPassword, role, name, department, mustChange],
     function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE')) {
-          return res.status(400).json({ error: 'Username นี้ถูกใช้งานแล้ว' });
-        }
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return handleDbError(res, err);
       res.json({ id: this.lastID, message: 'เพิ่มผู้ใช้งานสำเร็จ' });
     }
   );
@@ -61,7 +58,7 @@ router.put('/:id', verifyToken, adminOnly, (req, res) => {
   db.run("UPDATE users SET role = ?, name = ?, department = ? WHERE id = ?", 
     [role, name, department, req.params.id], 
     function(err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return handleDbError(res, err);
       if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
       res.json({ message: 'อัปเดตข้อมูลผู้ใช้งานสำเร็จ' });
     }
@@ -76,13 +73,13 @@ router.delete('/:id', verifyToken, adminOnly, (req, res) => {
   }
 
   db.get("SELECT COUNT(*) as active_admins FROM users WHERE role = 'admin' AND is_active = 1 AND is_deleted = 0 AND id != ?", [targetId], (cntErr, cntRow) => {
-    if (cntErr) return res.status(500).json({ error: cntErr.message });
+    if (cntErr) return handleDbError(res, cntErr);
     if (!cntRow || cntRow.active_admins < 1) {
       return res.status(400).json({ error: 'ไม่สามารถลบผู้ดูแลระบบคนสุดท้ายได้ ระบบต้องมีผู้ดูแลระบบที่ใช้งานอยู่อย่างน้อย 1 คน' });
     }
 
-    db.run("UPDATE users SET is_deleted = 1, is_active = 0 WHERE id = ?", [targetId], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
+    db.run("UPDATE users SET is_deleted = 1, is_active = 0, token_version = token_version + 1 WHERE id = ?", [targetId], function(err) {
+      if (err) return handleDbError(res, err);
       if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
       res.json({ message: 'ระงับการใช้งานผู้ใช้งานสำเร็จ (Deactivated)' });
     });
@@ -91,8 +88,8 @@ router.delete('/:id', verifyToken, adminOnly, (req, res) => {
 
 // POST /api/users/:id/reactivate - Reactivate User (Admin-only)
 router.post('/:id/reactivate', verifyToken, adminOnly, (req, res) => {
-  db.run("UPDATE users SET is_deleted = 0, is_active = 1 WHERE id = ?", [req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+  db.run("UPDATE users SET is_deleted = 0, is_active = 1, token_version = token_version + 1 WHERE id = ?", [req.params.id], function(err) {
+    if (err) return handleDbError(res, err);
     if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
     res.json({ message: 'เปิดใช้งานบัญชีผู้ใช้สำเร็จ (Reactivated)' });
   });
@@ -106,8 +103,8 @@ router.post('/:id/reset-password', verifyToken, adminOnly, (req, res) => {
   }
 
   const hashedPassword = hashPassword(new_password);
-  db.run("UPDATE users SET password = ? WHERE id = ?", [hashedPassword, req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+  db.run("UPDATE users SET password = ?, token_version = token_version + 1, must_change_password = 1 WHERE id = ?", [hashedPassword, req.params.id], function(err) {
+    if (err) return handleDbError(res, err);
     if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
     res.json({ message: 'รีเซ็ตรหัสผ่านสำเร็จ' });
   });

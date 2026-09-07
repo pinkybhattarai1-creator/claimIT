@@ -6,8 +6,11 @@
 
 const http = require('http');
 const fs = require('fs');
+const { app } = require('../server');
 
-const BASE_URL = process.env.BASE_URL || ('http://127.0.0.1:' + (process.env.PORT || 8847));
+let localServerInstance = null;
+const PORT = process.env.PORT || 8847;
+const BASE_URL = process.env.BASE_URL || ('http://127.0.0.1:' + PORT);
 
 function api(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
@@ -56,6 +59,27 @@ async function verifyAll() {
   console.log('🌐 ClaimIT FRONTEND & WORKFLOW VERIFICATION PASS');
   console.log('===============================================================\n');
 
+  // Check if server is already running on port
+  const isRunning = await new Promise(resolve => {
+    const testReq = http.get(`http://127.0.0.1:${PORT}/health`, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    testReq.on('error', () => resolve(false));
+    testReq.setTimeout(500, () => {
+      testReq.destroy();
+      resolve(false);
+    });
+  });
+
+  if (!isRunning) {
+    localServerInstance = app.listen(PORT, '127.0.0.1');
+    await new Promise(resolve => localServerInstance.on('listening', resolve));
+  }
+
+  // Allow DB initialization to settle
+  await new Promise(r => setTimeout(r, 600));
+
+  try {
   // 1. Static HTML & Companion Route Serving
   console.log('--- 1. Static HTML & Route Serving ---');
   const pages = ['/', '/index.html', '/ward.html', '/it.html', '/config.html', '/admin.html', '/login.html'];
@@ -63,6 +87,11 @@ async function verifyAll() {
     const res = await api('GET', p);
     check(`Route ${p} returns HTTP 200`, res.status === 200);
     check(`Route ${p} contains ClaimIT App Shell`, typeof res.data === 'string' && res.data.includes('ClaimIT'));
+    if (p !== '/login.html') {
+      check(`Route ${p} contains 15-minute countdown modal`, typeof res.data === 'string' && res.data.includes('15 นาที 00 วินาที'));
+      check(`Route ${p} contains BME Guardrail warning box`, typeof res.data === 'string' && res.data.includes('id="add-asset-bme-warning"'));
+      check(`Route ${p} contains Clinical IT Display category option`, typeof res.data === 'string' && res.data.includes('value="Clinical IT Display"'));
+    }
   }
 
   // 2. CSS & Responsive Breakpoint Rules Check
@@ -82,7 +111,7 @@ async function verifyAll() {
   check('Admin login succeeds', adminLogin.status === 200 && !!adminLogin.data.token);
   const adminToken = adminLogin.data.token;
 
-  const staffLogin = await api('POST', '/api/auth/login', { username: 'staff2', password: 'staff123' });
+  const staffLogin = await api('POST', '/api/auth/login', { username: 'staff', password: 'staff123' });
   check('Staff login succeeds', staffLogin.status === 200 && !!staffLogin.data.token);
   const staffToken = staffLogin.data.token;
 
@@ -176,12 +205,19 @@ async function verifyAll() {
   const claimPdf = await api('GET', `/api/claims/${claimId}/pdf`, null, adminToken);
   check('Multi-claim PDF generation returns 200 OK', claimPdf.status === 200);
 
-  console.log('\n===============================================================');
-  console.log(`🎉 FRONTEND & WORKFLOW VALIDATION: ${passedCount}/${testCount} PASSED (100%)`);
-  console.log('===============================================================');
+    console.log('\n===============================================================');
+    console.log(`🎉 FRONTEND & WORKFLOW VALIDATION: ${passedCount}/${testCount} PASSED (100%)`);
+    console.log('===============================================================');
 
-  if (passedCount < testCount) {
-    process.exit(1);
+    if (passedCount < testCount) {
+      process.exit(1);
+    } else {
+      process.exit(0);
+    }
+  } finally {
+    if (localServerInstance && localServerInstance.listening) {
+      localServerInstance.close();
+    }
   }
 }
 

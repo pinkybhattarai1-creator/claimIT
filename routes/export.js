@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
+const { handleDbError } = require('../utils/safeError');
 
 // XML escape helper for Excel SpreadsheetML
 function xmlEscape(val) {
@@ -60,19 +61,19 @@ router.get('/excel', verifyToken, adminOnly, (req, res) => {
   const queryConfigs = "SELECT id, type, value, details, created_at FROM configurations WHERE is_deleted = 0 ORDER BY type ASC, value ASC";
 
   db.all(queryAssets, [], (errA, assets) => {
-    if (errA) return res.status(500).json({ error: errA.message });
+    if (errA) return handleDbError(res, errA);
 
     db.all(queryClaims, [], (errC, claims) => {
-      if (errC) return res.status(500).json({ error: errC.message });
+      if (errC) return handleDbError(res, errC);
 
       db.all(queryLogs, [], (errL, logs) => {
-        if (errL) return res.status(500).json({ error: errL.message });
+        if (errL) return handleDbError(res, errL);
 
         db.all(queryUsers, [], (errU, users) => {
-          if (errU) return res.status(500).json({ error: errU.message });
+          if (errU) return handleDbError(res, errU);
 
           db.all(queryConfigs, [], (errCfg, configs) => {
-            if (errCfg) return res.status(500).json({ error: errCfg.message });
+            if (errCfg) return handleDbError(res, errCfg);
 
             // Assemble SpreadsheetML Workbook
             let excelXml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -146,7 +147,7 @@ router.get('/excel', verifyToken, adminOnly, (req, res) => {
 // GET /api/export/assets.csv - CSV Download with UTF-8 BOM
 router.get('/assets.csv', verifyToken, staffOnly, (req, res) => {
   db.all("SELECT * FROM mains WHERE is_deleted = 0 ORDER BY id DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     
     let csv = '\uFEFF'; // UTF-8 BOM for Microsoft Excel
     csv += 'Asset Tag,Device Name,Category,Brand,Model,Serial No,Location,Warranty Start,Warranty End,Status,Salvage Status,Purchase Price\r\n';

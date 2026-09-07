@@ -34,43 +34,20 @@ if exist "%APPDATA%\npm" set "PATH=%APPDATA%\npm;%PATH%"
 where node >nul 2>&1
 if %errorlevel% equ 0 goto :node_ready
 
-echo [!] ไม่พบ Node.js ในระบบ กำลังเริ่มดาวน์โหลดและติดตั้งอัตโนมัติ...
-echo     กรุณารอสักครู่ (Downloading Node.js installer)...
 echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.17.0/node-v20.17.0-x64.msi' -OutFile '%TEMP%\node_installer.msi' -UseBasicParsing"
-
-if not exist "%TEMP%\node_installer.msi" goto :err_node_download
-
-echo [*] กำลังติดตั้ง Node.js ลงในเครื่อง (Installing silently, please wait)...
-start /wait msiexec /i "%TEMP%\node_installer.msi" /qn /norestart
-set "MSI_EXIT_CODE=%errorlevel%"
-if exist "%TEMP%\node_installer.msi" del "%TEMP%\node_installer.msi" >nul 2>&1
-
-:: Add newly installed path to current environment
-if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%ProgramFiles%\nodejs;%APPDATA%\npm;%PATH%"
-if exist "%ProgramW6432%\nodejs\node.exe" set "PATH=%ProgramW6432%\nodejs;%APPDATA%\npm;%PATH%"
-if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "PATH=%ProgramFiles(x86)%\nodejs;%APPDATA%\npm;%PATH%"
-
-where node >nul 2>&1
-if %errorlevel% neq 0 goto :err_node_post_install
-
-echo [OK] ติดตั้ง Node.js สำเร็จเรียบร้อย
-goto :node_ready
-
-:err_node_download
+echo =============================================================
+echo   [!] ไม่พบ Node.js ในระบบปฏิบัติการนี้ (Node.js Not Found)
+echo =============================================================
 echo.
-echo [ERROR] ไม่สามารถดาวน์โหลดตัวติดตั้ง Node.js อัตโนมัติได้
-echo กรุณาดาวน์โหลดและติดตั้ง Node.js (LTS) ด้วยตนเองจาก: https://nodejs.org/
+echo   ระบบ ClaimIT ต้องการ Node.js v18 หรือ v20 LTS ขึ้นไปในการทำงาน
+echo   เพื่อความปลอดภัยสูงสุดของเครือข่ายสารสนเทศโรงพยาบาล
+echo   ระบบจะไม่ทำการดาวน์โหลดหรือติดตั้งโปรแกรมลงในระบบอัตโนมัติ
 echo.
-pause
-exit /b 1
-
-:err_node_post_install
+echo   กรุณาดำเนินการติดตั้ง Node.js ด้วยตนเองผ่าน:
+echo   1. ช่องทางแจกจ่ายซอฟต์แวร์มาตรฐานของฝ่ายไอทีโรงพยาบาล (Hospital IT Provisioning)
+echo   2. หรือดาวน์โหลดรุ่น LTS จากเว็บไซต์ทางการ: https://nodejs.org/
 echo.
-echo [ERROR] ติดตั้ง Node.js เรียบร้อย [Exit code: %MSI_EXIT_CODE%] แต่ระบบต้องการการเปิด Command Prompt ใหม่
-echo กรุณาปิดหน้าต่างนี้แล้วเปิดไฟล์ Start_ClaimIT.bat ใหม่อีกครั้ง
+echo   หลังจากติดตั้งเสร็จสิ้นแล้ว กรุณาเปิดไฟล์ Start_ClaimIT.bat ใหม่อีกครั้ง
 echo.
 pause
 exit /b 1

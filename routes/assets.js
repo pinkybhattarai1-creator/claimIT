@@ -5,6 +5,7 @@ const { db, recordAuditLog } = require('../db');
 const { evaluateClaimWorthiness } = require('../claim_calculator');
 const { verifyToken, staffOnly, adminOnly } = require('../middleware/auth');
 const { sendNotificationEmail } = require('../services/emailService');
+const { handleDbError } = require('../utils/safeError');
 
 // Live Anti-Error Duplicate Tag / Serial Checker (Staff/Admin)
 router.get('/check-tag/:tag', verifyToken, staffOnly, (req, res) => {
@@ -13,7 +14,7 @@ router.get('/check-tag/:tag', verifyToken, staffOnly, (req, res) => {
     "SELECT id, asset_tag, serial_no, device_name, location, status FROM mains WHERE (UPPER(asset_tag) = UPPER(?) OR UPPER(serial_no) = UPPER(?)) AND is_deleted = 0",
     [query, query],
     (err, row) => {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return handleDbError(res, err);
       if (row) {
         return res.json({ exists: true, asset: row });
       }
@@ -33,7 +34,9 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   let whereClause = "WHERE is_deleted = 0";
   let params = [];
 
-  if (statusFilter === 'expiring_6m' || statusFilter === 'near_expiry') {
+  if (statusFilter === 'expiring_60d') {
+    whereClause += " AND warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+60 days', 'localtime')";
+  } else if (statusFilter === 'expiring_6m' || statusFilter === 'near_expiry') {
     whereClause += " AND warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+180 days', 'localtime')";
   } else if (statusFilter === 'expired') {
     whereClause += " AND warranty_end < date('now', 'localtime')";
@@ -50,9 +53,9 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   const countQuery = `SELECT COUNT(*) as total FROM mains ${whereClause}`;
 
   db.all(query, [...params, limit, offset], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     db.get(countQuery, params, (cntErr, cntRow) => {
-      if (cntErr) return res.status(500).json({ error: cntErr.message });
+      if (cntErr) return handleDbError(res, cntErr);
       res.json({ total: cntRow.total, page, limit, assets: rows });
     });
   });
@@ -66,6 +69,7 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
       SUM(CASE WHEN status = 'Working' THEN 1 ELSE 0 END) as working,
       SUM(CASE WHEN status = 'Broken' THEN 1 ELSE 0 END) as broken,
       SUM(CASE WHEN status = 'Pending Pickup' THEN 1 ELSE 0 END) as pending_pickup,
+      SUM(CASE WHEN warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+60 days', 'localtime') THEN 1 ELSE 0 END) as expiring_60d,
       SUM(CASE WHEN warranty_end >= date('now', 'localtime') AND warranty_end <= date('now', '+180 days', 'localtime') THEN 1 ELSE 0 END) as expiring_6m,
       SUM(CASE WHEN status = 'Scrapped' OR salvage_status = 'Scrapped' THEN 1 ELSE 0 END) as scrapped,
       SUM(CASE WHEN salvage_status IN ('Pending Sell', 'Sold') THEN 1 ELSE 0 END) as salvage_sell,
@@ -74,12 +78,13 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
     WHERE is_deleted = 0
   `;
   db.get(sql, [], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     res.json({
       total: (row && row.total) || 0,
       working: (row && row.working) || 0,
       broken: (row && row.broken) || 0,
       pending_pickup: (row && row.pending_pickup) || 0,
+      expiring_60d: (row && row.expiring_60d) || 0,
       expiring_6m: (row && row.expiring_6m) || 0,
       scrapped: (row && row.scrapped) || 0,
       salvage_sell: (row && row.salvage_sell) || 0,
@@ -87,6 +92,26 @@ router.get('/summary', verifyToken, staffOnly, (req, res) => {
     });
   });
 });
+
+// BME Regulated Medical Device Guardrail (Comprehensive clinical equipment keywords)
+const BME_REGULATED_REGEX = /\b(ventilator|infusion\s*pump|syringe\s*pump|defibrillator|patient\s*monitor|vital\s*signs?\s*monitor|anesthesia\s*machine|dialysis|aed|ecg|ekg|bp\s*monitor|nibp|pulse\s*oximeter|spo2|ultrasound|centrifuge)\b|เครื่องช่วยหายใจ|เครื่องให้สารละลาย|เครื่องกระตุกหัวใจ|เครื่องติดตามสัญญาณชีพ|เครื่องดมยาสลบ|เครื่องฟอกไต|เครื่องวัดความดัน|เครื่องวัดออกซิเจน|เครื่องตรวจคลื่นหัวใจ|เครื่องตรวจคลื่นไฟฟ้าหัวใจ|อัลตราซาวด์|เครื่องอัลตราซาวด์|เครื่องปั่นเหวี่ยง|เครื่องปั่นตกตะกอน/i;
+
+function checkBmeRegulatedDevice(fields) {
+  const combined = fields.filter(Boolean).join(' ');
+  if (BME_REGULATED_REGEX.test(combined)) {
+    return {
+      isBme: true,
+      error: 'ไม่อนุญาตให้ลงทะเบียนหรือแก้ไขเป็นอุปกรณ์ทางการแพทย์ควบคุม (Regulated Medical Device) ในระบบ ClaimIT: อุปกรณ์นี้อยู่ภายใต้การกำกับดูแลของศูนย์เครื่องมือแพทย์ (Biomedical Engineering Department / งานเครื่องมือแพทย์) กรุณาติดต่อแผนกเครื่องมือแพทย์เพื่อดำเนินการตามระเบียบ'
+    };
+  }
+  return { isBme: false };
+}
+
+function isStorageSensitiveAsset(category, deviceName) {
+  const sensitiveRegex = /computer|pc|laptop|desktop|all-in-one|aio|tablet|server|workstation|storage|drive|nas|san|คอมพิวเตอร์|โน้ตบุ๊ก|แท็บเล็ต|เซิร์ฟเวอร์/i;
+  const combined = `${category || ''} ${deviceName || ''}`;
+  return sensitiveRegex.test(combined);
+}
 
 // Create New Asset (Admin-only)
 router.post('/', verifyToken, adminOnly, (req, res) => {
@@ -96,22 +121,29 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลครุภัณฑ์ให้ครบถ้วน' });
   }
 
-  const sReq = sanitization_required ? 1 : 0;
+  // Enforce BME Medical Device Guardrail
+  const bmeCheck = checkBmeRegulatedDevice([device_name, model, brand, category]);
+  if (bmeCheck.isBme) {
+    return res.status(400).json({ error: bmeCheck.error, is_bme_device: true });
+  }
+
+  // Enforce PDPA: Computing and storage hardware strictly requires data sanitization
+  let sReq = sanitization_required ? 1 : 0;
+  if (isStorageSensitiveAsset(category, device_name)) {
+    sReq = 1;
+  }
   const price = parseFloat(purchase_price) || 0;
   const wMonths = parseInt(warranty_months, 10) || 36;
-  const lMonths = parseInt(expected_lifespan_months, 10) || 60;
+  const isClinicalIT = ['Clinical IT Display', 'Clinical Workstation', 'Healthcare Scanner', 'Mobile Nursing Cart'].includes(category);
+  const defaultLifespan = isClinicalIT ? 84 : 60;
+  const lMonths = parseInt(expected_lifespan_months, 10) || defaultLifespan;
   const actionUser = action_by_username || (req.user ? req.user.username : 'admin');
 
   db.run(`INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, po_number, invoice_no, salvage_status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working', ?, ?, ?, ?, ?, 'None')`,
     [asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sReq, price, wMonths, lMonths, po_number || '', invoice_no || ''],
     function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE')) {
-          return res.status(400).json({ error: 'รหัสครุภัณฑ์หรือ Serial Number นี้มีอยู่ในระบบแล้ว' });
-        }
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return handleDbError(res, err);
 
       const logCode = recordAuditLog(db, {
         asset_tag,
@@ -149,27 +181,38 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
 
 // Update Asset Details (Admin-only)
 router.put('/:tag', verifyToken, adminOnly, (req, res) => {
-  const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status } = req.body;
+  const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status, new_asset_tag } = req.body;
   const tag = req.params.tag;
   const actionUser = req.user ? req.user.username : 'admin';
 
-  db.run(`UPDATE mains SET category=?, brand=?, model=?, serial_no=?, device_name=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?, purchase_price=?, warranty_months=?, expected_lifespan_months=?, salvage_status=?
+  // Enforce BME Medical Device Guardrail on update
+  const bmeCheck = checkBmeRegulatedDevice([device_name, model, brand, category]);
+  if (bmeCheck.isBme) {
+    return res.status(400).json({ error: bmeCheck.error, is_bme_device: true });
+  }
+
+  const targetTag = (new_asset_tag && new_asset_tag.trim()) || (req.body.asset_tag && req.body.asset_tag.trim()) || tag;
+  const isClinicalIT = ['Clinical IT Display', 'Clinical Workstation', 'Healthcare Scanner', 'Mobile Nursing Cart'].includes(category);
+  const defaultLifespan = isClinicalIT ? 84 : 60;
+  const lMonths = parseInt(expected_lifespan_months, 10) || defaultLifespan;
+
+  db.run(`UPDATE mains SET asset_tag=?, category=?, brand=?, model=?, serial_no=?, device_name=?, location=?, warranty_start=?, warranty_end=?, sanitization_required=?, status=?, purchase_price=?, warranty_months=?, expected_lifespan_months=?, salvage_status=?
           WHERE asset_tag=? AND is_deleted=0`,
-    [category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, parseFloat(purchase_price)||0, parseInt(warranty_months)||36, parseInt(expected_lifespan_months)||60, salvage_status || 'None', tag],
+    [targetTag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required ? 1 : 0, status, parseFloat(purchase_price)||0, parseInt(warranty_months)||36, lMonths, salvage_status || 'None', tag],
     function(err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return handleDbError(res, err);
 
       const logCode = recordAuditLog(db, {
-        asset_tag: tag,
+        asset_tag: targetTag,
         department_name: location || 'IT Dept',
         floor: 'Floor 1',
         status: status || 'Working',
         moved_direction: 'IN',
         action_by_username: actionUser,
-        details: `อัปเดตข้อมูลครุภัณฑ์: ${device_name || tag}`
+        details: targetTag !== tag ? `แก้ไขรหัสครุภัณฑ์จาก ${tag} เป็น ${targetTag} (Cascade Updated)` : `อัปเดตข้อมูลครุภัณฑ์: ${device_name || tag}`
       });
 
-      res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ', log_code: logCode });
+      res.json({ message: 'อัปเดตข้อมูลครุภัณฑ์สำเร็จ', asset_tag: targetTag, log_code: logCode });
     }
   );
 });
@@ -179,7 +222,7 @@ router.delete('/:tag', verifyToken, adminOnly, (req, res) => {
   const tag = req.params.tag;
   const actionUser = req.user ? req.user.username : 'admin';
   db.run("UPDATE mains SET is_deleted = 1 WHERE asset_tag = ?", [tag], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
 
     const logCode = recordAuditLog(db, {
       asset_tag: tag,
@@ -193,6 +236,176 @@ router.delete('/:tag', verifyToken, adminOnly, (req, res) => {
 
     res.json({ message: 'ลบรายการครุภัณฑ์สำเร็จ', log_code: logCode });
   });
+});
+
+// Restore Soft-Deleted Asset (Admin-only)
+router.post('/:tag/restore', verifyToken, adminOnly, (req, res) => {
+  const tag = req.params.tag.toUpperCase();
+  const actionUser = req.user ? req.user.username : 'admin';
+
+  db.get("SELECT * FROM mains WHERE UPPER(asset_tag) = ? AND is_deleted = 1", [tag], (err, row) => {
+    if (err) return handleDbError(res, err);
+    if (!row) {
+      return res.status(404).json({ error: 'ไม่พบรายการครุภัณฑ์ที่ถูกลบชั่วคราว หรือครุภัณฑ์ยังอยู่ในระบบ' });
+    }
+
+    db.run("UPDATE mains SET is_deleted = 0 WHERE id = ?", [row.id], function(updateErr) {
+      if (updateErr) return handleDbError(res, updateErr);
+
+      const logCode = recordAuditLog(db, {
+        asset_tag: row.asset_tag,
+        department_name: row.location || 'Technical Support',
+        floor: 'Floor 1',
+        status: row.status,
+        moved_direction: 'RESTORE',
+        action_by_username: actionUser,
+        details: `กู้คืนรายการครุภัณฑ์ (Restore Soft Deleted Asset): ${row.device_name}`
+      });
+
+      res.json({
+        message: 'กู้คืนรายการครุภัณฑ์สำเร็จ',
+        asset: { ...row, is_deleted: 0 },
+        log_code: logCode
+      });
+    });
+  });
+});
+
+// POST /api/assets/batch (Batch Asset Intake, Admin-only)
+router.post('/batch', verifyToken, adminOnly, (req, res) => {
+  const { common, items } = req.body;
+
+  if (!common || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'กรุณาระบุข้อมูลส่วนกลาง (common) และรายการครุภัณฑ์ (items)' });
+  }
+
+  if (items.length > 50) {
+    return res.status(400).json({ error: 'ลงทะเบียนแบบกลุ่มได้สูงสุดครั้งละ 50 รายการ' });
+  }
+
+  const { category, brand, model, location, warranty_start, warranty_end, purchase_price, warranty_months, po_number } = common;
+
+  if (!category || !brand || !model || !location || !warranty_start || !warranty_end) {
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลส่วนกลางให้ครบถ้วน' });
+  }
+
+  // Enforce BME check on common specs
+  const bmeCheck = checkBmeRegulatedDevice([category, brand, model]);
+  if (bmeCheck.isBme) {
+    return res.status(400).json({ error: bmeCheck.error, is_bme_device: true });
+  }
+
+  // Validate items
+  const cleanItems = [];
+  const tagSet = new Set();
+  const serialSet = new Set();
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const tag = (item.asset_tag || '').trim().toUpperCase();
+    const serial = (item.serial_no || '').trim();
+    const devName = (item.device_name || `${brand} ${model}`).trim();
+
+    if (!tag || !serial) {
+      return res.status(400).json({ error: `รายการลำดับที่ ${i + 1} ข้อมูลไม่ครบถ้วน (ต้องมี Asset Tag และ Serial Number)` });
+    }
+
+    if (tagSet.has(tag)) {
+      return res.status(400).json({ error: `รหัสครุภัณฑ์ซ้ำกันภายในชุดข้อมูล: ${tag}` });
+    }
+    if (serialSet.has(serial)) {
+      return res.status(400).json({ error: `หมายเลข Serial Number ซ้ำกันภายในชุดข้อมูล: ${serial}` });
+    }
+
+    tagSet.add(tag);
+    serialSet.add(serial);
+    cleanItems.push({ asset_tag: tag, serial_no: serial, device_name: devName });
+  }
+
+  const isClinicalIT = ['Clinical IT Display', 'Clinical Workstation', 'Healthcare Scanner', 'Mobile Nursing Cart'].includes(category);
+  const defaultLifespan = isClinicalIT ? 84 : 60;
+  const lMonths = parseInt(common.expected_lifespan_months, 10) || defaultLifespan;
+  const wMonths = parseInt(warranty_months, 10) || 36;
+  const price = parseFloat(purchase_price) || 0;
+  let sReq = common.sanitization_required ? 1 : 0;
+  if (isStorageSensitiveAsset(category, common.device_name || model)) {
+    sReq = 1;
+  }
+  const actionUser = req.user ? req.user.username : 'admin';
+
+  // Check database for collisions
+  const placeholders = cleanItems.map(() => '?').join(',');
+  const allTags = cleanItems.map(it => it.asset_tag);
+  const allSerials = cleanItems.map(it => it.serial_no);
+
+  db.all(
+    `SELECT asset_tag, serial_no FROM mains WHERE (asset_tag IN (${placeholders}) OR serial_no IN (${placeholders})) AND is_deleted = 0`,
+    [...allTags, ...allSerials],
+    (collErr, collisions) => {
+      if (collErr) return handleDbError(res, collErr);
+      if (collisions && collisions.length > 0) {
+        const dup = collisions[0];
+        return res.status(400).json({
+          error: `พบข้อมูลซ้ำกับในระบบ: รหัส ${dup.asset_tag} หรือ S/N ${dup.serial_no} มีอยู่แล้ว`
+        });
+      }
+
+      // Execute batch insert inside atomic transaction
+      db.serialize(() => {
+        db.run("BEGIN IMMEDIATE TRANSACTION;");
+
+        const stmt = db.prepare(`
+          INSERT INTO mains (
+            asset_tag, category, brand, model, serial_no, device_name, location,
+            warranty_start, warranty_end, sanitization_required, status,
+            purchase_price, warranty_months, expected_lifespan_months, po_number, salvage_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Working', ?, ?, ?, ?, 'None')
+        `);
+
+        cleanItems.forEach(it => {
+          stmt.run([
+            it.asset_tag, category, brand, model, it.serial_no, it.device_name, location,
+            warranty_start, warranty_end, sReq, price, wMonths, lMonths, po_number || ''
+          ]);
+        });
+
+        stmt.finalize((finErr) => {
+          if (finErr) {
+            db.run("ROLLBACK;");
+            return handleDbError(res, finErr);
+          }
+
+          db.run("COMMIT;", (commitErr) => {
+            if (commitErr) {
+              db.run("ROLLBACK;");
+              return handleDbError(res, commitErr);
+            }
+
+            let batchLogCode = null;
+            cleanItems.forEach((item, idx) => {
+              const code = recordAuditLog(db, {
+                asset_tag: item.asset_tag,
+                department_name: location,
+                floor: 'Floor 1',
+                status: 'Working',
+                moved_direction: 'IN_BATCH',
+                action_by_username: actionUser,
+                details: `ลงทะเบียนครุภัณฑ์แบบกลุ่ม (Batch Intake ${idx + 1}/${cleanItems.length}): ${brand} ${model} S/N: ${item.serial_no}`
+              });
+              if (idx === 0) batchLogCode = code;
+            });
+
+            res.status(201).json({
+              message: `ลงทะเบียนครุภัณฑ์แบบกลุ่มสำเร็จ ${cleanItems.length} รายการ`,
+              count: cleanItems.length,
+              log_code: batchLogCode,
+              assets: cleanItems
+            });
+          });
+        });
+      });
+    }
+  );
 });
 
 // Evaluate Claim Worthiness Endpoint (Staff/Admin)
@@ -219,12 +432,26 @@ router.get('/:tag/evaluate', verifyToken, staffOnly, (req, res) => {
 router.get('/:tag', verifyToken, staffOnly, (req, res) => {
   const tag = req.params.tag.toUpperCase();
   db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE (m.asset_tag = ? OR m.serial_no = ?) AND m.is_deleted = 0", [tag, tag], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return handleDbError(res, err);
     if (row) {
-      res.json(row);
+      return res.json(row);
+    }
+    
+    // Check if item is soft-deleted and requested by admin
+    if (req.user && req.user.role === 'admin') {
+      db.get("SELECT * FROM mains WHERE (UPPER(asset_tag) = ? OR UPPER(serial_no) = ?) AND is_deleted = 1", [tag, tag], (delErr, delRow) => {
+        if (!delErr && delRow) {
+          return res.json({ ...delRow, is_deleted: 1 });
+        }
+        performFuzzyLookup();
+      });
     } else {
+      performFuzzyLookup();
+    }
+
+    function performFuzzyLookup() {
       db.all("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE m.is_deleted = 0", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return handleDbError(res, err);
         
         let bestMatch = null;
         let minDistance = Infinity;
@@ -315,17 +542,25 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
   if (!asset_tag) return res.status(400).json({ error: 'Missing asset_tag' });
 
   // Strict Wipe Authorization Code Check
-  const validCodes = ['WIPED', 'CONFIRM-WIPE', 'WIPE-CONFIRM', '9999', asset_tag.toUpperCase()];
+  const validCodes = ['WIPED', 'CONFIRM-WIPE', 'WIPE-CONFIRM'];
   const cleanCode = (wipe_code || '').trim().toUpperCase();
   if (!validCodes.includes(cleanCode)) {
     return res.status(400).json({ 
-      error: 'รหัสยืนยันความปลอดภัยไม่ถูกต้อง! กรุณาระบุรหัสยืนยัน (พิมพ์ "WIPED" หรือรหัสครุภัณฑ์) เพื่อความปลอดภัยสูงสุด' 
+      error: 'รหัสยืนยันความปลอดภัยไม่ถูกต้อง! กรุณาระบุรหัสยืนยัน (พิมพ์ "WIPED") เพื่อความปลอดภัยตามมาตรฐาน PDPA' 
     });
   }
 
   const actionUser = action_by_username || (req.user ? req.user.username : 'staff');
   const now = new Date().toISOString();
-  const note = sanitization_note || 'Confirmed storage media wiped / drive removed with authorization code: ' + cleanCode;
+  const method = req.body.sanitization_method || 'PHYSICAL_STORAGE_REMOVED';
+  const methodLabels = {
+    'PHYSICAL_STORAGE_REMOVED': 'ถอดสื่อบันทึกข้อมูลออกแล้ว (Storage Media Physically Removed)',
+    'STANDARD_OVERWRITE': 'ล้างข้อมูลระดับมาตรฐาน (Standard Secure Format/Wipe)',
+    'NIST_800_88': 'ล้างข้อมูลระดับความมั่นคงสูง (NIST 800-88 / Cryptographic Erase)',
+    'NO_STORAGE_MEDIA': 'อุปกรณ์ไม่มีสื่อบันทึกข้อมูล (No Storage Device)'
+  };
+  const methodLabel = methodLabels[method] || method;
+  const note = sanitization_note || `Confirmed ${methodLabel} (Authorization Code: ${cleanCode})`;
 
   db.serialize(() => {
     db.run(`INSERT INTO rma_claims (asset_tag, vendor_name, vendor_rma_number, claim_date, expected_return_date, data_wiped_confirmed, data_wiped_by, data_wiped_at, sanitization_note, status) 
@@ -334,7 +569,7 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
               data_wiped_confirmed = 1, data_wiped_by = excluded.data_wiped_by, data_wiped_at = excluded.data_wiped_at, sanitization_note = excluded.sanitization_note, status = 'Sanitized'`,
       [asset_tag, actionUser, now, note], 
       function(err) {
-        if (err) return res.status(500).json({ error: 'Failed to confirm sanitization' });
+        if (err) return handleDbError(res, err);
         
         db.run(`UPDATE mains SET status = 'Sanitized' WHERE asset_tag = ?`, [asset_tag]);
         
@@ -368,7 +603,7 @@ router.post('/claim', verifyToken, staffOnly, (req, res) => {
       if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
 
       db.get("SELECT * FROM rma_claims WHERE asset_tag = ? AND is_deleted = 0", [asset_tag], (rmaErr, existingRma) => {
-        const isWiped = data_wiped_confirmed || (existingRma && existingRma.data_wiped_confirmed === 1);
+        const isWiped = Boolean(data_wiped_confirmed) || (existingRma && existingRma.data_wiped_confirmed === 1 && existingRma.status === 'Sanitized');
 
         if (asset.sanitization_required === 1 && !isWiped) {
           return res.status(400).json({ 
@@ -385,7 +620,7 @@ router.post('/claim', verifyToken, staffOnly, (req, res) => {
                   vendor_name = excluded.vendor_name, vendor_rma_number = excluded.vendor_rma_number, claim_date = excluded.claim_date, expected_return_date = excluded.expected_return_date, data_wiped_confirmed = 1, data_wiped_by = excluded.data_wiped_by, data_wiped_at = excluded.data_wiped_at, sanitization_note = excluded.sanitization_note, status = 'Out to Vendor'`, 
           [asset_tag, vendor_name, vendor_rma_number, claimDate, expected_return_date, actionUser, now, note], 
           function(claimErr) {
-            if (claimErr) return res.status(500).json({ error: claimErr.message });
+            if (claimErr) return handleDbError(res, claimErr);
 
             db.run("UPDATE mains SET status = 'Pending Pickup' WHERE asset_tag = ?", [asset_tag], function(updateErr) {
               if (updateErr) return res.status(500).json({ error: 'Failed to update asset status' });
@@ -427,7 +662,7 @@ router.post('/resolve-claim', verifyToken, staffOnly, (req, res) => {
       db.run("UPDATE mains SET status = ?, serial_no = ? WHERE asset_tag = ?", [newStatus, newSerial, asset_tag], function(updateErr) {
         if (updateErr) return res.status(500).json({ error: 'Failed to update asset' });
 
-        db.run(`UPDATE rma_claims SET status = 'Returned', resolved_date = ?, resolution_type = ?, replacement_serial_no = ?, repair_cost = ? WHERE asset_tag = ? AND is_deleted = 0`,
+        db.run(`UPDATE rma_claims SET status = 'Returned', data_wiped_confirmed = 0, resolved_date = ?, resolution_type = ?, replacement_serial_no = ?, repair_cost = ? WHERE asset_tag = ? AND is_deleted = 0`,
           [resolvedDate, resolution_type, newSerial, parseFloat(repair_cost)||0, asset_tag], function(rmaErr) {
             
             const logCode = recordAuditLog(db, {
@@ -462,7 +697,7 @@ router.post('/salvage', verifyToken, adminOnly, (req, res) => {
 
   db.serialize(() => {
     db.run("UPDATE mains SET salvage_status = ?, status = ? WHERE asset_tag = ? AND is_deleted = 0", [salvage_status, newAssetStatus, asset_tag], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return handleDbError(res, err);
 
       const logCode = recordAuditLog(db, {
         asset_tag,
@@ -513,8 +748,9 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     const titleFont = isThai ? 'ThaiBold' : 'Helvetica-Bold';
     const regularFont = isThai ? 'ThaiRegular' : 'Helvetica';
 
+    const hospTitle = process.env.HOSPITAL_NAME || 'Hospital IT Department (ฝ่ายเทคโนโลยีสารสนเทศ)';
     doc.font(titleFont).fontSize(16).fillColor('#0284c7').text('ClaimIT — Hospital Asset Warranty & RMA Report', { align: 'center' });
-    doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: Phyathai 3 Hospital (โรงพยาบาลพญาไท 3) | Generated: ${new Date().toLocaleString('th-TH')}`, { align: 'center' });
+    doc.font(regularFont).fontSize(9).fillColor('#64748b').text(`Hospital: ${hospTitle} | Generated: ${new Date().toLocaleString('th-TH')}`, { align: 'center' });
     doc.moveDown(1);
 
     // Section 1: Asset Information
@@ -558,5 +794,8 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     doc.end();
   });
 });
+
+router.checkBmeRegulatedDevice = checkBmeRegulatedDevice;
+router.BME_REGULATED_REGEX = BME_REGULATED_REGEX;
 
 module.exports = router;

@@ -37,42 +37,17 @@ function verifyPassword(inputPassword, storedHash) {
   return storedHash === legacyHash;
 }
 
-// Safely add missing columns to existing SQLite tables
-function migrateColumns() {
-  const migrations = [
-    { table: 'users', col: 'is_active', def: 'INTEGER DEFAULT 1' },
-    { table: 'users', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
-    { table: 'departments', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
-    { table: 'mains', col: 'purchase_price', def: 'REAL DEFAULT 0' },
-    { table: 'mains', col: 'warranty_months', def: 'INTEGER DEFAULT 36' },
-    { table: 'mains', col: 'expected_lifespan_months', def: 'INTEGER DEFAULT 60' },
-    { table: 'mains', col: 'po_number', def: 'TEXT' },
-    { table: 'mains', col: 'invoice_no', def: 'TEXT' },
-    { table: 'mains', col: 'salvage_status', def: "TEXT DEFAULT 'None'" },
-    { table: 'mains', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
-    { table: 'mains', col: 'updated_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' },
-    { table: 'rma_claims', col: 'data_wiped_by', def: 'TEXT' },
-    { table: 'rma_claims', col: 'data_wiped_at', def: 'DATETIME' },
-    { table: 'rma_claims', col: 'sanitization_note', def: 'TEXT' },
-    { table: 'rma_claims', col: 'resolved_date', def: 'TEXT' },
-    { table: 'rma_claims', col: 'resolution_type', def: 'TEXT' },
-    { table: 'rma_claims', col: 'replacement_serial_no', def: 'TEXT' },
-    { table: 'rma_claims', col: 'repair_cost', def: 'REAL DEFAULT 0' },
-    { table: 'move_log', col: 'details', def: 'TEXT' },
-    { table: 'move_log', col: 'log_code', def: 'TEXT' },
-    { table: 'configurations', col: 'created_at', def: 'DATETIME DEFAULT CURRENT_TIMESTAMP' }
-  ];
+const { runMigrations } = require('./migrations');
 
-  migrations.forEach(m => {
-    db.run(`ALTER TABLE ${m.table} ADD COLUMN ${m.col} ${m.def}`, () => {
-      if (m.col === 'log_code') {
-        db.run("CREATE INDEX IF NOT EXISTS idx_move_log_code ON move_log(log_code);");
-        db.run("UPDATE move_log SET log_code = 'CHG-LEGACY-' || id WHERE log_code IS NULL OR log_code = '';");
-      }
-    });
+// Safely execute versioned database schema migrations
+function migrateColumns() {
+  runMigrations(db, (err, res) => {
+    if (err) {
+      console.error('[DB Migrations Failed]:', err);
+    } else if (res && res.appliedCount > 0) {
+      console.log(`[DB Migrations] Applied ${res.appliedCount} new schema migration(s).`);
+    }
   });
-  // Fallback backfill for existing databases
-  db.run("UPDATE move_log SET log_code = 'CHG-LEGACY-' || id WHERE log_code IS NULL OR log_code = '';", () => {});
 }
 
 // Generate guaranteed-unique change tracking code
@@ -121,6 +96,8 @@ function initializeDatabase() {
       department TEXT NOT NULL,
       is_active INTEGER DEFAULT 1,
       is_deleted INTEGER DEFAULT 0,
+      token_version INTEGER DEFAULT 0,
+      must_change_password INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -195,7 +172,8 @@ function initializeDatabase() {
       sanitization_note TEXT,
       item_status TEXT DEFAULT 'Pending Pickup',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (claim_id) REFERENCES claims (id)
+      FOREIGN KEY (claim_id) REFERENCES claims (id) ON DELETE CASCADE,
+      FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE RESTRICT
     )`);
 
     // 6. RMA Claims Table (Compatibility)
@@ -215,7 +193,8 @@ function initializeDatabase() {
       replacement_serial_no TEXT,
       repair_cost REAL DEFAULT 0,
       status TEXT DEFAULT 'Initiated',
-      is_deleted INTEGER DEFAULT 0
+      is_deleted INTEGER DEFAULT 0,
+      FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE RESTRICT
     )`);
 
     // 7. Evidence Table
@@ -230,7 +209,9 @@ function initializeDatabase() {
       file_size INTEGER NOT NULL,
       checksum TEXT,
       is_deleted INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (claim_id) REFERENCES claims (id) ON DELETE SET NULL,
+      FOREIGN KEY (asset_tag) REFERENCES mains (asset_tag) ON UPDATE CASCADE ON DELETE SET NULL
     )`);
 
     // 8. Move Log Table (Audit trail)
@@ -294,6 +275,10 @@ function initializeDatabase() {
           ['category', 'Tablet', ''],
           ['category', 'Webcam', ''],
           ['category', 'Monitor', ''],
+          ['category', 'Clinical IT Display', ''],
+          ['category', 'Clinical Workstation', ''],
+          ['category', 'Healthcare Scanner', ''],
+          ['category', 'Mobile Nursing Cart', ''],
           ['location', 'Ward 20', 'Floor 2'],
           ['location', 'ICU', 'Floor 3'],
           ['location', 'ฉุกเฉิน (ER)', 'Floor 1'],
@@ -307,28 +292,25 @@ function initializeDatabase() {
       }
     });
 
-    // Seed 4 Admins and 4 Staff (IT Leadership & On-Site Technicians)
+    // Seed 1 Admin and 1 Staff (Initial Bootstrap with forced password change)
     const adminPass = hashPassword('admin123');
     const staffPass = hashPassword('staff123');
     const standardUsers = [
       ['admin', adminPass, 'admin', 'IT Administrator', 'Technical Support & Infrastructure'],
-      ['admin2', adminPass, 'admin', 'IT Operations Admin', 'Technical Support & Infrastructure'],
-      ['admin3', adminPass, 'admin', 'IT Systems Admin', 'Technical Support & Infrastructure'],
-      ['admin4', adminPass, 'admin', 'IT RMA Admin', 'Technical Support & Infrastructure'],
-      ['staff', staffPass, 'staff', 'IT Support Staff', 'Technical Support & Infrastructure'],
-      ['staff2', staffPass, 'staff', 'IT Ward Technician', 'Technical Support & Infrastructure'],
-      ['staff3', staffPass, 'staff', 'IT Hardware Technician', 'Technical Support & Infrastructure'],
-      ['staff4', staffPass, 'staff', 'IT Helpdesk Staff', 'Technical Support & Infrastructure']
+      ['staff', staffPass, 'staff', 'IT Support Staff', 'Technical Support & Infrastructure']
     ];
 
     standardUsers.forEach(u => {
       db.run(
-        `INSERT INTO users (username, password, role, name, department, is_active)
-         SELECT ?, ?, ?, ?, ?, 1
+        `INSERT INTO users (username, password, role, name, department, is_active, must_change_password)
+         SELECT ?, ?, ?, ?, ?, 1, 1
          WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)`,
         [u[0], u[1], u[2], u[3], u[4], u[0]]
       );
     });
+
+    // Eliminate excess default demo accounts if any remain
+    db.run("DELETE FROM users WHERE username IN ('admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4') AND token_version = 0;");
 
     db.get("SELECT COUNT(*) as count FROM departments", (err, row) => {
       if (row && row.count === 0) {

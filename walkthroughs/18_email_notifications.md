@@ -32,15 +32,23 @@ Endpoint:
 
 ---
 
-## Email Templates ที่มี
+## Email Templates ที่มี (4 เทมเพลตมาตรฐาน)
 
-Template: ASSET_ADDED
-- เมื่อ Admin เพิ่มครุภัณฑ์ใหม่
-- เนื้อหา: asset_tag, device_name, category, brand, model, location, warranty
+1. **Template: ASSET_ADDED**
+   - เมื่อลงทะเบียนครุภัณฑ์ใหม่เข้าสู่คลัง
+   - เนื้อหา: asset_tag, device_name, category, brand, model, location, warranty_start, warranty_end
 
-Template: VIABILITY_REPORT
-- เมื่อสร้างใบเคลม + มี recipient_email
-- เนื้อหา: claim_number, viability_status, viability_score, asset_count
+2. **Template: VIABILITY_REPORT**
+   - เมื่อสร้างใบเคลม RMA + ระบุ recipient_email
+   - เนื้อหา: claim_number, viability_status, viability_score, asset_count
+
+3. **Template: RMA_DISPATCH**
+   - เมื่อบันทึกส่งมอบครุภัณฑ์ให้ศูนย์บริการ/Vendor
+   - เนื้อหา: claim_number, vendor_name, vendor_rma_number, claim_date, expected_return_date, PDPA compliance note
+
+4. **Template: CLAIM_RESOLVED**
+   - เมื่อรับเครื่องคืนและปิดงานเคลม
+   - เนื้อหา: claim_number, resolution_type, repair_cost, replacement_serial_no
 
 ---
 

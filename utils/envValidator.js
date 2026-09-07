@@ -17,6 +17,7 @@ const MAX_FILE_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10);
 const MAX_CLAIM_ASSETS = parseInt(process.env.MAX_CLAIM_ASSETS || '5', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const SECRET_PORTAL_PATH = process.env.SECRET_PORTAL_PATH || '';
+const VENDOR_WEBHOOK_KEY = process.env.VENDOR_WEBHOOK_KEY || 'claimit_vendor_webhook_secret_2026';
 
 // Strict validation of JWT Secret in production
 if (!JWT_SECRET) {
@@ -31,6 +32,13 @@ if (JWT_SECRET && JWT_SECRET.length < 16 && NODE_ENV === 'production') {
   process.exit(1);
 }
 
+// Validation of Vendor Webhook Key in production
+if (NODE_ENV === 'production') {
+  if (!VENDOR_WEBHOOK_KEY || VENDOR_WEBHOOK_KEY === 'claimit_vendor_webhook_secret_2026') {
+    console.warn('[Security Warning]: VENDOR_WEBHOOK_KEY is using default development secret. Please rotate to a random 32+ char secret in production.');
+  }
+}
+
 module.exports = {
   NODE_ENV,
   PORT,
@@ -42,5 +50,6 @@ module.exports = {
   MAX_FILE_SIZE_MB,
   MAX_CLAIM_ASSETS,
   HOST,
-  SECRET_PORTAL_PATH
+  SECRET_PORTAL_PATH,
+  VENDOR_WEBHOOK_KEY
 };

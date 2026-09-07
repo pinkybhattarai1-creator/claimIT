@@ -8,13 +8,14 @@ const { db, recordAuditLog } = require('../db');
 const { evaluateClaimWorthiness, evaluateComprehensiveAsset } = require('../claim_calculator');
 
 const MAX_ASSETS_PER_CLAIM = 5;
+const HIGH_VALUE_REPAIR_THRESHOLD = 20000;
 
 // Strict Controlled Claim State Transitions
 const VALID_STATE_TRANSITIONS = {
   'DRAFT': ['VIABLE', 'NOT_VIABLE', 'CANCELLED'],
-  'VIABLE': ['CONFIRMED', 'CANCELLED'],
-  'NOT_VIABLE': ['CANCELLED'],
-  'CONFIRMED': ['SUBMITTED', 'CANCELLED'],
+  'VIABLE': ['CONFIRMED', 'DRAFT', 'CANCELLED'],
+  'NOT_VIABLE': ['DRAFT', 'CANCELLED'],
+  'CONFIRMED': ['SUBMITTED', 'VIABLE', 'DRAFT', 'CANCELLED'],
   'SUBMITTED': ['VENDOR_RESPONSE', 'RETURNED', 'REJECTED', 'CANCELLED'],
   'VENDOR_RESPONSE': ['RETURNED', 'REJECTED', 'CANCELLED'],
   'RETURNED': ['CLOSED'],
@@ -111,7 +112,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
     // 2. Fetch all requested assets from database
     const placeholders = cleanTags.map(() => '?').join(',');
     db.all(`SELECT * FROM mains WHERE asset_tag IN (${placeholders}) AND is_deleted = 0`, cleanTags, (err, rows) => {
-      if (err) return reject({ status: 500, message: 'Database error fetching assets: ' + err.message });
+      if (err) return reject({ status: 500, message: 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูลครุภัณฑ์' });
 
       if (rows.length !== cleanTags.length) {
         const foundTags = new Set(rows.map(r => r.asset_tag));
@@ -119,12 +120,26 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
         return reject({ status: 404, message: `ไม่พบครุภัณฑ์รหัส: ${missing.join(', ')}` });
       }
 
+      // Check BME Regulated Medical Device Guardrail on attached assets
+      const BME_REGEX = /\b(ventilator|infusion\s*pump|syringe\s*pump|defibrillator|patient\s*monitor|vital\s*signs?\s*monitor|anesthesia\s*machine|dialysis|aed|ecg|ekg|bp\s*monitor|nibp|pulse\s*oximeter|spo2|ultrasound|centrifuge)\b|เครื่องช่วยหายใจ|เครื่องให้สารละลาย|เครื่องกระตุกหัวใจ|เครื่องติดตามสัญญาณชีพ|เครื่องดมยาสลบ|เครื่องฟอกไต|เครื่องวัดความดัน|เครื่องวัดออกซิเจน|เครื่องตรวจคลื่นหัวใจ|เครื่องตรวจคลื่นไฟฟ้าหัวใจ|อัลตราซาวด์|เครื่องอัลตราซาวด์|เครื่องปั่นเหวี่ยง|เครื่องปั่นตกตะกอน/i;
+
+      for (const asset of rows) {
+        const combined = `${asset.device_name || ''} ${asset.model || ''} ${asset.brand || ''} ${asset.category || ''}`;
+        if (BME_REGEX.test(combined)) {
+          return reject({
+            status: 400,
+            code: 'BME_REGULATED_DEVICE',
+            message: `ไม่อนุญาตให้เปิดใบเคลมไอทีสำหรับอุปกรณ์ทางการแพทย์ควบคุม [${asset.asset_tag} - ${asset.device_name}]: อุปกรณ์นี้อยู่ภายใต้ความรับผิดชอบของศูนย์เครื่องมือแพทย์ (Biomedical Engineering)`
+          });
+        }
+      }
+
       // Check PDPA Sanitization requirement (via mains status or rma_claims wipe confirmation)
       db.all(
         `SELECT asset_tag, data_wiped_confirmed FROM rma_claims WHERE asset_tag IN (${placeholders}) AND is_deleted = 0`,
         cleanTags,
         (rmaErr, rmaRows) => {
-          if (rmaErr) return reject({ status: 500, message: 'Database error checking sanitization: ' + rmaErr.message });
+          if (rmaErr) return reject({ status: 500, message: 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูลการล้างข้อมูล (PDPA)' });
           const wipedTags = new Set((rmaRows || []).filter(r => r.data_wiped_confirmed === 1).map(r => r.asset_tag));
 
           for (const asset of rows) {
@@ -141,10 +156,23 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
           const viability = calculateServerViability(rows);
           const claimDate = new Date().toISOString().split('T')[0];
 
-          // 4. Begin Atomic SQLite Transaction
+          // 4. Begin Atomic SQLite Transaction with IMMEDIATE write lock
           db.serialize(() => {
-            db.run('BEGIN TRANSACTION', (beginErr) => {
-              if (beginErr) return reject({ status: 500, message: 'Failed to start transaction' });
+            db.run('BEGIN IMMEDIATE', (beginErr) => {
+              if (beginErr) {
+                const isConflict = beginErr.code === 'SQLITE_BUSY' || 
+                                   (beginErr.message && (
+                                     beginErr.message.includes('busy') || 
+                                     beginErr.message.includes('locked') || 
+                                     beginErr.message.includes('transaction')
+                                   ));
+                return reject({ 
+                  status: isConflict ? 409 : 500, 
+                  message: isConflict 
+                    ? 'ระบบกำลังประมวลผลคำขอนี้อยู่ กรุณาลองใหม่อีกครั้ง (Concurrent claim transaction conflict)' 
+                    : 'ไม่สามารถเริ่มทำรายการส่งเคลมได้' 
+                });
+              }
 
           // Insert into claims table
           const insertClaimSql = `
@@ -169,7 +197,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
           ], function(insertClaimErr) {
             if (insertClaimErr) {
               db.run('ROLLBACK');
-              return reject({ status: 500, message: 'Failed to create claim record: ' + insertClaimErr.message });
+              return reject({ status: 500, message: 'ไม่สามารถสร้างรายการใบส่งเคลมได้' });
             }
 
             const claimId = this.lastID;
@@ -187,7 +215,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
             insertAssetStmt.finalize((stmtErr) => {
               if (stmtErr) {
                 db.run('ROLLBACK');
-                return reject({ status: 500, message: 'Failed to insert claim assets: ' + stmtErr.message });
+                return reject({ status: 500, message: 'ไม่สามารถบันทึกรายการครุภัณฑ์ในใบเคลมได้' });
               }
 
               // Update asset statuses to Pending Pickup
@@ -195,7 +223,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
               db.run(updateMainsSql, cleanTags, (updateMainsErr) => {
                 if (updateMainsErr) {
                   db.run('ROLLBACK');
-                  return reject({ status: 500, message: 'Failed to update asset statuses' });
+                  return reject({ status: 500, message: 'ไม่สามารถอัปเดตสถานะครุภัณฑ์ได้' });
                 }
 
                 // Insert Audit Logs with guaranteed unique codes
@@ -243,7 +271,7 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
 /**
  * Perform a strict state transition on a claim and synchronize attached asset states
  */
-function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_type, replacement_serial_no, repair_cost }) {
+function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_type, replacement_serial_no, repair_cost, supervisor_approval, supervisor_notes }) {
   return new Promise((resolve, reject) => {
     db.get("SELECT * FROM claims WHERE id = ? AND is_deleted = 0", [claim_id], (err, claim) => {
       if (err || !claim) {
@@ -260,30 +288,72 @@ function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_t
         });
       }
 
-      const confirmedBy = new_status === 'CONFIRMED' ? (user ? user.username : 'staff') : claim.confirmed_by;
+      const repCost = (repair_cost !== undefined && repair_cost !== null) ? parseFloat(repair_cost) : (claim.repair_cost || 0);
+
+      // Enforce Point 14: Multi-tier supervisor approval for high-value repairs (> ฿20,000)
+      if (new_status === 'CONFIRMED' && repCost > HIGH_VALUE_REPAIR_THRESHOLD) {
+        if (!supervisor_approval) {
+          return reject({
+            status: 400,
+            message: `การอนุมัติงานซ่อมที่มีมูลค่าสูงกว่า ฿${HIGH_VALUE_REPAIR_THRESHOLD.toLocaleString()} บาท ต้องได้รับการอนุมัติจากหัวหน้างาน (Supervisor Approval Required)`
+          });
+        }
+      }
+
+      const confirmedBy = new_status === 'CONFIRMED' ? (user ? user.username : 'staff') : (new_status === 'DRAFT' ? null : claim.confirmed_by);
       const resolvedDate = (new_status === 'RETURNED' || new_status === 'CLOSED') ? new Date().toISOString().split('T')[0] : claim.resolved_date;
       const resType = resolution_type || claim.resolution_type;
-      const repCost = (repair_cost !== undefined && repair_cost !== null) ? parseFloat(repair_cost) : claim.repair_cost;
       const repSerial = replacement_serial_no || claim.replacement_serial_no;
 
       db.serialize(() => {
-        db.run('BEGIN TRANSACTION', (beginErr) => {
-          if (beginErr) return reject({ status: 500, message: beginErr.message });
+        db.run('BEGIN IMMEDIATE', (beginErr) => {
+          if (beginErr) {
+            const isConflict = beginErr.code === 'SQLITE_BUSY' || 
+                               (beginErr.message && (
+                                 beginErr.message.includes('busy') || 
+                                 beginErr.message.includes('locked') || 
+                                 beginErr.message.includes('transaction')
+                               ));
+            return reject({ 
+              status: isConflict ? 409 : 500, 
+              message: isConflict 
+                ? 'ระบบกำลังประมวลผลคำขอนี้อยู่ กรุณาลองใหม่อีกครั้ง (Concurrent transaction conflict detected)' 
+                : beginErr.message 
+            });
+          }
 
           const updateClaimSql = `
             UPDATE claims 
             SET status = ?, confirmed_by = ?, notes = COALESCE(?, notes),
                 resolved_date = ?, resolution_type = ?, replacement_serial_no = ?, repair_cost = ?,
                 updated_at = CURRENT_TIMESTAMP 
-            WHERE id = ?
+            WHERE id = ? AND status = ?
           `;
 
           db.run(updateClaimSql, [
-            new_status, confirmedBy, notes, resolvedDate, resType, repSerial, repCost, claim_id
+            new_status, confirmedBy, notes, resolvedDate, resType, repSerial, repCost, claim_id, currentStatus
           ], function(updateErr) {
             if (updateErr) {
               db.run('ROLLBACK');
-              return reject({ status: 500, message: updateErr.message });
+              const isConflict = updateErr.code === 'SQLITE_BUSY' || 
+                                 (updateErr.message && (
+                                   updateErr.message.includes('busy') || 
+                                   updateErr.message.includes('locked')
+                                 ));
+              return reject({ 
+                status: isConflict ? 409 : 500, 
+                message: isConflict 
+                  ? 'ระบบกำลังประมวลผลคำขอนี้อยู่ กรุณาลองใหม่อีกครั้ง (Concurrent write lock conflict)' 
+                  : updateErr.message 
+              });
+            }
+
+            if (this.changes === 0) {
+              db.run('ROLLBACK');
+              return reject({
+                status: 409,
+                message: 'สถานะใบเคลมถูกเปลี่ยนแปลงโดยผู้ใช้อื่นแล้ว กรุณารีเฟรชข้อมูล (Concurrent claim modification detected)'
+              });
             }
 
             // Fetch attached assets
@@ -340,6 +410,7 @@ function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_t
                 }
 
                 function finishTransition() {
+                  const supervisorInfo = supervisor_approval ? ` [อนุมัติโดยหัวหน้างาน: ${user ? user.username : 'Supervisor'}${supervisor_notes ? ' - ' + supervisor_notes : ''}]` : '';
                   // Record audit log with guaranteed unique tracking code
                   recordAuditLog(db, {
                     asset_tag: claim.claim_number,
@@ -348,7 +419,7 @@ function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_t
                     status: new_status,
                     moved_direction: 'STATE_CHANGE',
                     action_by_username: user ? user.username : 'system',
-                    details: `เปลี่ยนสถานะใบเคลม: จาก ${currentStatus} เป็น ${new_status} (ครุภัณฑ์: ${assetTags.length} รายการ -> ${mainAssetStatus || itemStatus})`
+                    details: `เปลี่ยนสถานะใบเคลม: จาก ${currentStatus} เป็น ${new_status} (ครุภัณฑ์: ${assetTags.length} รายการ -> ${mainAssetStatus || itemStatus})${supervisorInfo}`
                   });
 
                   db.run('COMMIT', (commitErr) => {
@@ -380,6 +451,7 @@ function transitionClaimStatus({ claim_id, new_status, user, notes, resolution_t
 
 module.exports = {
   MAX_ASSETS_PER_CLAIM,
+  HIGH_VALUE_REPAIR_THRESHOLD,
   VALID_STATE_TRANSITIONS,
   calculateServerViability,
   createClaim,

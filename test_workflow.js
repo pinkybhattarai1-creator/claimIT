@@ -1,7 +1,10 @@
 const http = require('http');
+const assert = require('assert');
+const { app } = require('./server');
 
 let authToken = null;
 let activePort = 8847;
+let localServerInstance = null;
 
 function makeRequest(path, method = 'GET', data = null, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -43,24 +46,48 @@ function makeRequest(path, method = 'GET', data = null, headers = {}) {
 
 async function runTests() {
   try {
-    // Check active port
-    try {
-      await makeRequest('/api/configurations');
-    } catch {
-      activePort = 8847;
+    // Check if server is already running on port
+    const isRunning = await new Promise(resolve => {
+      const testReq = http.get(`http://127.0.0.1:${activePort}/health`, (res) => {
+        resolve(res.statusCode === 200);
+      });
+      testReq.on('error', () => resolve(false));
+      testReq.setTimeout(500, () => {
+        testReq.destroy();
+        resolve(false);
+      });
+    });
+
+    if (!isRunning) {
+      localServerInstance = app.listen(activePort, '127.0.0.1');
+      await new Promise(resolve => localServerInstance.on('listening', resolve));
     }
+
+    // Allow DB initialization to settle
+    await new Promise(r => setTimeout(r, 600));
 
     console.log(`--- 1. Testing Admin Authentication (Port: ${activePort}) ---`);
     let res = await makeRequest('/api/auth/login', 'POST', { username: 'admin', password: 'admin123' });
     console.log('Admin login status:', res.status);
-    if (res.data.token) {
-      authToken = res.data.token;
-      console.log('JWT Token acquired:', authToken.substring(0, 20) + '...');
-    }
+    assert.strictEqual(res.status, 200, 'Admin login must return 200 OK');
+    assert(res.data && res.data.token, 'Admin login must return a valid JWT token');
+    authToken = res.data.token;
+    console.log('JWT Token acquired:', authToken.substring(0, 20) + '...');
+
+    // Reset baseline state for CIT-2022-TAB-03 so test is 100% idempotent
+    await makeRequest('/api/assets/resolve-claim', 'POST', {
+      asset_tag: 'CIT-2022-TAB-03',
+      resolution_type: 'Returned',
+      repair_cost: 0,
+      action_by_username: 'admin'
+    });
 
     console.log('\n--- 2. Search Asset (CIT-2022-TAB-03) ---');
     res = await makeRequest('/api/assets/CIT-2022-TAB-03');
-    console.log('Asset search status:', res.status, '| Tag:', res.data.asset_tag, '| Status:', res.data.status, '| Sanitization Required:', res.data.sanitization_required);
+    console.log('Asset search status:', res.status, '| Tag:', res.data.asset_tag, '| Status:', res.data.status);
+    assert.strictEqual(res.status, 200, 'Asset lookup must return 200 OK');
+    assert.strictEqual(res.data.asset_tag, 'CIT-2022-TAB-03', 'Asset tag must match CIT-2022-TAB-03');
+    assert.strictEqual(res.data.sanitization_required, 1, 'Tablet asset must require sanitization');
 
     console.log('\n--- 3. Testing PDPA Gate (Initiate RMA without wipe confirmation) ---');
     res = await makeRequest('/api/assets/claim', 'POST', {
@@ -72,6 +99,8 @@ async function runTests() {
       action_by_username: 'admin'
     });
     console.log('Claim without wipe response (Expect 400 PDPA block):', res.status, res.data);
+    assert.strictEqual(res.status, 400, 'Initiating claim on sanitization-required asset without wipe confirmation must return 400 Bad Request');
+    assert(res.data && res.data.error, 'Response must contain descriptive error message');
 
     console.log('\n--- 4. Perform Data Sanitization Security Tests (POST /api/assets/sanitize) ---');
     // 4a. Test with invalid/missing wipe code (Expect 400 rejection)
@@ -81,6 +110,7 @@ async function runTests() {
       sanitization_note: 'Attempting wipe without code'
     });
     console.log('Sanitization with missing code (Expect 400 block):', badRes.status, badRes.data.error || badRes.data);
+    assert.strictEqual(badRes.status, 400, 'Sanitization with missing wipe code must return 400 Bad Request');
 
     // 4b. Test with valid wipe code
     res = await makeRequest('/api/assets/sanitize', 'POST', {
@@ -90,6 +120,7 @@ async function runTests() {
       wipe_code: 'WIPED'
     });
     console.log('Sanitization response with valid code:', res.status, res.data);
+    assert.strictEqual(res.status, 200, 'Sanitization with valid wipe code must return 200 OK');
 
     console.log('\n--- 5. Initiate RMA Claim WITH Data Wipe Confirmation ---');
     res = await makeRequest('/api/assets/claim', 'POST', {
@@ -102,14 +133,15 @@ async function runTests() {
       action_by_username: 'admin'
     });
     console.log('Claim with wipe response:', res.status, res.data);
+    assert.strictEqual(res.status, 200, 'Claim with wipe confirmation must succeed with 200 OK');
 
     console.log('\n--- 6. Verify Asset Status after RMA ---');
     res = await makeRequest('/api/assets/CIT-2022-TAB-03');
     console.log('- Asset Status:', res.data.status);
     console.log('- RMA Vendor:', res.data.vendor_name);
-    console.log('- Data Wiped By:', res.data.data_wiped_by);
-    console.log('- Data Wiped At:', res.data.data_wiped_at);
-    console.log('- Sanitization Note:', res.data.sanitization_note);
+    assert.strictEqual(res.status, 200, 'Asset lookup after claim must return 200 OK');
+    assert.strictEqual(res.data.status, 'Pending Pickup', 'Asset status must transition to "Pending Pickup"');
+    assert.strictEqual(res.data.vendor_name, 'Apple', 'RMA vendor must be recorded as Apple');
 
     console.log('\n--- 7. Resolve RMA Claim (Return to Stock) ---');
     res = await makeRequest('/api/assets/resolve-claim', 'POST', {
@@ -120,6 +152,7 @@ async function runTests() {
       action_by_username: 'admin'
     });
     console.log('Resolve RMA response:', res.status, res.data);
+    assert.strictEqual(res.status, 200, 'Resolving RMA claim must return 200 OK');
 
     console.log('\n--- 8. Testing EOL Salvage Management (Pending Sell & Pending Donation) ---');
     res = await makeRequest('/api/assets/salvage', 'POST', {
@@ -128,24 +161,36 @@ async function runTests() {
       action_by_username: 'admin'
     });
     console.log('Salvage (Pending Sell) response:', res.status, res.data);
+    assert.strictEqual(res.status, 200, 'Setting salvage status Pending Sell must return 200 OK');
 
-    res = await makeRequest('/api/assets/salvage', 'POST', {
+    let res2 = await makeRequest('/api/assets/salvage', 'POST', {
       asset_tag: 'CIT-2021-AIO-01',
       salvage_status: 'Pending Donation',
       action_by_username: 'admin'
     });
-    console.log('Salvage (Pending Donation) response:', res.status, res.data);
+    console.log('Salvage (Pending Donation) response:', res2.status, res2.data);
+    assert.strictEqual(res2.status, 200, 'Setting salvage status Pending Donation must return 200 OK');
 
     console.log('\n--- 9. Verify Audit Logs ---');
     res = await makeRequest('/api/audit-logs');
+    assert.strictEqual(res.status, 200, 'Fetching audit logs must return 200 OK');
     const logs = Array.isArray(res.data) ? res.data : (res.data.logs || []);
     console.log(`Total Audit Logs: ${logs.length}`);
+    assert(logs.length > 0, 'Audit logs must contain recorded operations');
     const recentLogs = logs.slice(0, 5);
     recentLogs.forEach(l => console.log(`  [${l.timestamp}] ${l.action_by_username} -> ${l.asset_tag} (${l.status})`));
 
-    console.log('\n✅ ALL INTEGRATION TESTS PASSED SUCCESSFULLY!');
+    console.log('\n===============================================================');
+    console.log('✅ ALL 9 INTEGRATION STAGES VERIFIED WITH STRICT ASSERTIONS');
+    console.log('===============================================================');
   } catch (err) {
-    console.error('Test execution error:', err);
+    console.error('\n❌ INTEGRATION TEST SUITE FAILED WITH ASSERTION ERROR:');
+    console.error(err);
+    process.exit(1);
+  } finally {
+    if (localServerInstance && localServerInstance.listening) {
+      localServerInstance.close();
+    }
   }
 }
 

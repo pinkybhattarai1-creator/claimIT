@@ -8,7 +8,7 @@
 
 - Node.js >= 18
 - npm >= 9
-- SQLite3 (มาพร้อม better-sqlite3 ไม่ต้องติดตั้งแยก)
+- SQLite3 (ไดรเวอร์ `sqlite3` ติดตั้งอัตโนมัติผ่าน npm install ไม่ต้องติดตั้งโปรแกรม Database แยก)
 - OS: Windows, Linux, macOS
 
 ---
@@ -41,7 +41,8 @@ Step 3: เริ่มระบบ
 
 | Branch | ประเภท | วัตถุประสงค์ |
 |---|---|---|
-| **`finalhtinmc`** | Production Release | โค้ดหลักระบบพร้อมใช้งานสำหรับฝ่ายไอที รพ. (Clean Core, Non-AI, 4 Admins + 4 Staff) |
+| **`rewrite`** | Target Production Release | โค้ดหลักระบบ ClaimIT v1.0 ปรับปรุงโครงสร้าง Full-Stack ใหม่, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone/มือถือ, และระบบ Multi-Asset Claim *(Active Branch)* |
+| **`finalhtinmc`** | Stable Release | โค้ดหลักระบบพร้อมใช้งานสำหรับฝ่ายไอที รพ. (Clean Core, Non-AI, 4 Admins + 4 Staff) |
 | **`main`** | Production Master | รวมโค้ดหลักเพื่อการ Deploy ขึ้น Production |
 | **`finalhtinmc-experiment`** | Experimental AI | ระบบทดลองปัญญาประดิษฐ์ Multi-Provider (Groq, OpenRouter, Gemini) และ OCR วิเคราะห์ภาพ |
 
@@ -58,11 +59,10 @@ Step 3: เริ่มระบบ
 | CORS_ORIGIN | ไม่ | * | CORS Allowlist (comma separated) |
 | APP_PASSCODE | ไม่ | 1 | รหัส Security Gate หน้า Login |
 | SECRET_PORTAL_PATH | ไม่ | - | URL ลับ redirect ไป / (Hidden Door) |
-| SENDGRID_API_KEY | ไม่ | - | Background email (ASSET_ADDED/VIABILITY) |
-| SENDGRID_FROM | ไม่ | no-reply@claimit.local | อีเมลผู้ส่ง (SendGrid) |
-| RESEND_API_KEY | ไม่ | - | Direct email (/api/email/send) |
-| RESEND_FROM | ไม่ | no-reply@claimit.local | อีเมลผู้ส่ง (Resend) |
+| RESEND_API_KEY | ไม่ | - | API Key บริการส่งอีเมล Resend (https://resend.com) |
+| RESEND_FROM | ไม่ | onboarding@resend.dev | อีเมลผู้ส่ง (Resend) |
 | NOTIFY_EMAIL | ไม่ | admin@claimit.local | รับอีเมลแจ้งเตือนเพิ่มครุภัณฑ์ |
+| MAX_FILE_SIZE_MB | ไม่ | 10 | ขนาดไฟล์หลักฐานสูงสุด (MB) |
 
 ---
 

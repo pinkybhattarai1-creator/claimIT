@@ -1,26 +1,26 @@
-﻿# 16 — ส่งออกข้อมูล Excel / CSV
+# 16 — ส่งออกข้อมูล Excel / CSV
 
-กลุ่มผู้ใช้: Staff / IT Admin
+กลุ่มผู้ใช้: IT Admin (ส่งออก Excel ทั้งระบบ .xls) / Staff & IT Admin (ส่งออก CSV ครุภัณฑ์และบันทึกประวัติ)
 
 ---
 
 ## ภาพรวม
 
 ระบบรองรับการส่งออกข้อมูลในหลายรูปแบบ:
-1. Multi-Sheet Excel (.xls) — ครอบคลุมทุกตาราง
-2. CSV ครุภัณฑ์ (.csv) — เฉพาะรายการครุภัณฑ์
-3. CSV Audit Log (.csv) — ประวัติการเคลื่อนย้าย
+1. Multi-Sheet Excel (.xls) — ครอบคลุมทุกตาราง (สิทธิ์: IT Admin เท่านั้น)
+2. CSV ครุภัณฑ์ (.csv) — เฉพาะรายการครุภัณฑ์ (สิทธิ์: Staff & IT Admin)
+3. CSV Audit Log (.csv) — ประวัติการเคลื่อนย้าย (สิทธิ์: Staff & IT Admin)
 
 ---
 
-## 1. ดาวน์โหลด Excel ทั้งหมด
+## 1. ดาวน์โหลด Excel ทั้งหมด (Admin Only)
 
 ### วิธีเข้าถึง:
-- ปุ่ม [ส่งออก Excel ทั้งหมด] ในตาราง Inventory
-- ปุ่ม [ส่งออก Excel] ใน Nav Bar Header
-- ปุ่ม [ดาวน์โหลด Excel ทั้งหมด] ใน Quick Sidebar
+- ปุ่ม [ส่งออก Excel ทั้งหมด] ในตาราง Inventory (เฉพาะ Admin)
+- ปุ่ม [ส่งออก Excel] ใน Nav Bar Header (เฉพาะ Admin)
+- ปุ่ม [ดาวน์โหลด Excel ทั้งหมด] ใน Quick Sidebar (เฉพาะ Admin)
 
-API: GET /api/export/excel
+API: GET /api/export/excel (สิทธิ์: `adminOnly` — บัญชี Staff ทั่วไปจะถูกปฏิเสธสิทธิ์ด้วย HTTP 403)
 
 ### ชีต (Sheets) ในไฟล์ Excel:
 | ชีต | ข้อมูล |

@@ -28,7 +28,9 @@ function playScanBeep() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.12);
-  } catch {}
+  } catch (err) {
+    console.debug('[AudioContext Beep] Playback skipped or not permitted by browser audio policy:', err);
+  }
 }
 
 // Deterministic Tag Parser for Hospital IT Assets & Hardware
@@ -100,17 +102,16 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
     // Allow control keys (Backspace, Tab, Delete, Arrow keys, etc.)
     if (e.key.length > 1) return;
 
-    // Anti-Typo: If Scanner-Only Mode is checked, prevent slow human typing
-    if (scannerOnlyChk && scannerOnlyChk.checked) {
-      if (delta > 60 && input.value.length > 0) {
-        e.preventDefault();
-        showToast('🔒 โหมดสแกนเนอร์เปิดอยู่: กรุณาใช้เครื่องสแกนบาร์โค้ด หรือยกเลิกเครื่องหมายเพื่อพิมพ์ด้วยมือ', 'warning', 2500);
-        return;
-      }
+    // Normal typing is always allowed without keystroke timing choke.
+    // Escape key clears any active suggestions/focus
+    if (e.key === 'Escape') {
+      hideFuzzySuggestion();
+      return;
     }
 
-    // Scanner Burst Detector: When rapid keystrokes stop (<180ms debounce)
+    // Scanner Burst Detector: When rapid keystrokes stop (<180ms debounce, or 60ms if scanner-only)
     clearTimeout(burstTimer);
+    const debounceMs = (scannerOnlyChk && scannerOnlyChk.checked) ? 60 : 180;
     burstTimer = setTimeout(() => {
       const clean = input.value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toUpperCase();
       // Check if length is within flexible hospital tag range (6 to 30 chars)
@@ -120,8 +121,29 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
           lookupAsset(clean);
         }
       }
-    }, 180);
+    }, debounceMs);
   });
+
+  if (scannerOnlyChk) {
+    scannerOnlyChk.addEventListener('change', () => {
+      if (scannerOnlyChk.checked) {
+        input.focus();
+      }
+    });
+
+    // When scanner-only is checked, re-focus if blur occurs when no modal is open
+    input.addEventListener('blur', () => {
+      if (scannerOnlyChk.checked) {
+        setTimeout(() => {
+          const activeModals = document.querySelectorAll('.modal.is-active, [id$="-modal"]');
+          const isModalOpen = Array.from(activeModals).some(m => m.style.display && m.style.display !== 'none' && m.offsetParent !== null);
+          if (!isModalOpen && scannerOnlyChk.checked) {
+            input.focus();
+          }
+        }, 150);
+      }
+    });
+  }
 
   input.addEventListener('input', () => {
     // Auto-uppercase & remove invalid whitespace / zero-width characters

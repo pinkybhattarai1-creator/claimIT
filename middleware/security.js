@@ -53,11 +53,19 @@ function corsMiddleware(req, res, next) {
   next();
 }
 
-// 3. Sliding Window In-Memory Rate Limiter
+// 3. Sliding Window In-Memory Rate Limiter with Route Normalization & Strict Size Cap
+const MAX_RATE_LIMITER_ENTRIES = 5000;
+
+function normalizeRouteSegment(req) {
+  const cleanPath = (req.originalUrl || req.url || req.path || '').split('?')[0];
+  const parts = cleanPath.split('/').filter(Boolean);
+  return parts.slice(0, 2).join('_') || 'root';
+}
+
 function createRateLimiter({ windowMs = 60000, max = 100, message = 'Too many requests, please try again later.' }) {
   const hits = new Map();
 
-  // Cleanup old entries every 5 minutes
+  // Cleanup old entries periodically
   setInterval(() => {
     const now = Date.now();
     for (const [key, record] of hits.entries()) {
@@ -69,8 +77,27 @@ function createRateLimiter({ windowMs = 60000, max = 100, message = 'Too many re
 
   return function rateLimiter(req, res, next) {
     const ip = req.ip || req.connection.remoteAddress || '127.0.0.1';
-    const key = `${req.path}:${ip}`;
+    const routePrefix = normalizeRouteSegment(req);
+    const key = `${routePrefix}:${ip}`;
     const now = Date.now();
+
+    // Prevent map ballooning by enforcing hard capacity ceiling
+    if (hits.size >= MAX_RATE_LIMITER_ENTRIES) {
+      for (const [k, rec] of hits.entries()) {
+        if (now - rec.startTime > windowMs) {
+          hits.delete(k);
+        }
+      }
+      if (hits.size >= MAX_RATE_LIMITER_ENTRIES) {
+        const evictCount = Math.ceil(MAX_RATE_LIMITER_ENTRIES * 0.1);
+        let count = 0;
+        for (const k of hits.keys()) {
+          hits.delete(k);
+          count++;
+          if (count >= evictCount) break;
+        }
+      }
+    }
 
     let record = hits.get(key);
     if (!record || now - record.startTime > windowMs) {
@@ -80,11 +107,14 @@ function createRateLimiter({ windowMs = 60000, max = 100, message = 'Too many re
       record.count += 1;
     }
 
-    res.setHeader('X-RateLimit-Limit', max);
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
+    const isLoopback = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    const effectiveMax = isLoopback ? Math.max(max, 300) : max;
+
+    res.setHeader('X-RateLimit-Limit', effectiveMax);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, effectiveMax - record.count));
     res.setHeader('X-RateLimit-Reset', Math.ceil((record.startTime + windowMs) / 1000));
 
-    if (record.count > max) {
+    if (record.count > effectiveMax) {
       return res.status(429).json({ error: message });
     }
     next();
@@ -97,6 +127,12 @@ const loginLimiter = createRateLimiter({
   windowMs: isDevOrTest ? 1000 : 15 * 60 * 1000, // 1 second in dev/test, 15m in prod
   max: isDevOrTest ? 1000 : 15,
   message: 'เข้าสู่ระบบล้มเหลวหลายครั้งเกินไป กรุณารอ 15 นาทีก่อนลองใหม่อีกครั้ง'
+});
+
+const resetLimiter = createRateLimiter({
+  windowMs: isDevOrTest ? 1000 : 15 * 60 * 1000,
+  max: isDevOrTest ? 1000 : 5,
+  message: 'คำขอรีเซ็ตรหัสผ่านถี่เกินไป กรุณารอ 15 นาทีก่อนทำรายการใหม่'
 });
 
 const apiLimiter = createRateLimiter({
@@ -123,8 +159,7 @@ function errorHandler(err, req, res, next) {
     : (NODE_ENV === 'production' ? 'เกิดข้อผิดพลาดภายในระบบ กรุณาติดต่อผู้ดูแล' : err.message || 'Internal Server Error');
 
   res.status(status).json({
-    error: clientMessage,
-    ...(NODE_ENV !== 'production' && !isClientError ? { stack: err.stack } : {})
+    error: clientMessage
   });
 }
 
@@ -133,6 +168,7 @@ module.exports = {
   corsMiddleware,
   createRateLimiter,
   loginLimiter,
+  resetLimiter,
   apiLimiter,
   errorHandler
 };

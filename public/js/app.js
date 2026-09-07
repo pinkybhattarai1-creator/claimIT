@@ -16,6 +16,7 @@ function initApp() {
     try {
       state.user = JSON.parse(storedUser);
       showUserNavigation();
+      if (typeof startSessionMonitor === 'function') startSessionMonitor();
     } catch {
       localStorage.removeItem('claimit_user');
       state.user = null;
@@ -61,10 +62,15 @@ function initApp() {
 
 // Routing & View Switcher with URL Path Synchronization
 function switchView(viewName, pushHistory = true) {
-  // Enforce RBAC Guard: Non-admin users can never navigate to IT Workbench or Admin Config
-  if ((viewName === 'it' || viewName === 'config') && (!state.user || state.user.role !== 'admin')) {
+  // Enforce RBAC Guard: Only admin can access system config. Staff and Admin can access IT Workbench & Ward.
+  if (viewName === 'config' && (!state.user || state.user.role !== 'admin')) {
     if (state.user) {
-      showToast('สิทธิ์การเข้าถึงถูกจำกัด: เฉพาะผู้ดูแลระบบไอที (IT Admin) เท่านั้น', 'warning', 3500);
+      showToast('สิทธิ์การเข้าถึงถูกจำกัด: เฉพาะผู้ดูแลระบบไอที (IT Admin) เท่านั้นสำหรับการตั้งค่าระบบ', 'warning', 3500);
+    }
+    viewName = state.user ? 'it' : 'auth';
+  } else if (viewName === 'it' && (!state.user || (state.user.role !== 'admin' && state.user.role !== 'staff'))) {
+    if (state.user) {
+      showToast('กรุณาเข้าสู่ระบบด้วยบัญชีเจ้าหน้าที่เพื่อเข้าถึงระบบไอที', 'warning', 3500);
     }
     viewName = state.user ? 'ward' : 'auth';
   }
@@ -246,10 +252,23 @@ function updatePaginationUI() {
   const btnNext = document.getElementById('btn-next-page');
   if (btnPrev && btnNext) {
     const maxPage = Math.ceil(state.pagination.total / state.pagination.limit);
+    btnPrev.disabled = state.pagination.page <= 1;
+    btnNext.disabled = (state.pagination.page >= maxPage || maxPage === 0);
     btnPrev.style.display = state.pagination.page <= 1 ? 'none' : 'inline-block';
     btnNext.style.display = (state.pagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
   }
 }
+
+function changePage(delta) {
+  if (!state.pagination) return;
+  const maxPage = Math.ceil(state.pagination.total / state.pagination.limit) || 1;
+  const newPage = state.pagination.page + delta;
+  if (newPage >= 1 && newPage <= maxPage) {
+    state.pagination.page = newPage;
+    refreshData();
+  }
+}
+window.changePage = changePage;
 
 function closeEmailModal() {
   const emailModal = document.getElementById('email-preview-modal');
@@ -267,13 +286,19 @@ function setupEventListeners() {
   const toItBtn = document.getElementById('btn-to-it');
   if (toItBtn) {
     toItBtn.addEventListener('click', () => {
-      if (state.user && state.user.role === 'admin') {
+      if (state.user && (state.user.role === 'admin' || state.user.role === 'staff')) {
         switchView('it');
       } else {
-        showToast('เฉพาะเจ้าหน้าที่ IT (Admin) เท่านั้นที่สามารถเข้าถึงระบบ IT Portal ได้', 'warning');
+        showToast('เฉพาะเจ้าหน้าที่ IT (Staff/Admin) เท่านั้นที่สามารถเข้าถึงระบบ IT Portal ได้', 'warning');
       }
     });
   }
+
+  // Asset Table Pagination Buttons
+  const btnPrevPage = document.getElementById('btn-prev-page');
+  if (btnPrevPage) btnPrevPage.addEventListener('click', () => changePage(-1));
+  const btnNextPage = document.getElementById('btn-next-page');
+  if (btnNextPage) btnNextPage.addEventListener('click', () => changePage(1));
 
   const toConfigBtn = document.getElementById('btn-to-config');
   if (toConfigBtn) {
@@ -547,6 +572,20 @@ function setupEventListeners() {
   document.getElementById('user-avatar')?.addEventListener('click', openProfileModal);
   document.getElementById('user-profile-info')?.addEventListener('click', openProfileModal);
   document.getElementById('profile-form')?.addEventListener('submit', handleProfileSubmit);
+  document.getElementById('change-password-form')?.addEventListener('submit', handleChangePasswordSubmit);
+
+  // Proactive Warranty Expiry Badge Quick Filter (60-day threshold)
+  document.getElementById('warranty-expiring-badge')?.addEventListener('click', () => {
+    switchView('it');
+    switchItTab('inventory');
+    const filterStatus = document.getElementById('filter-status');
+    if (filterStatus) {
+      filterStatus.value = 'expiring_60d';
+      state.filters.status = 'expiring_60d';
+      state.pagination.page = 1;
+      refreshData();
+    }
+  });
 
   // Initialize Modular Sub-systems
   setupQuickSidebar();

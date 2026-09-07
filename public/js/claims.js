@@ -168,15 +168,18 @@ async function handleClaimInitiate(e) {
     ? `กำหนดการรับคืนอุปกรณ์โดยประมาณ: ${expectedDate}` 
     : `กำหนดการเข้ารับ/รับคืน: รอนัดหมายรอบการเข้ารับจากศูนย์บริการ (Pending Pickup / Waiting for vendor schedule)`;
 
+  const hosp = (typeof getHospitalConfig === 'function') ? getHospitalConfig() : (window.claimitHospitalConfig || {});
+  const hospName = hosp.fullName || hosp.shortName || 'โรงพยาบาล';
+
   const body = `เรียน ทีมงานศูนย์บริการ ${vendorName},\n\n` +
-               `ทางโรงพยาบาลขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
+               `ทาง${hospName}ขอแจ้งส่งซ่อมอุปกรณ์คอมพิวเตอร์ที่อยู่ในระยะรับประกัน โดยมีรายละเอียดดังนี้:\n\n` +
                `รหัสครุภัณฑ์ (Asset Tag): ${state.selectedAsset.asset_tag}\n` +
                `ชื่ออุปกรณ์: ${state.selectedAsset.device_name}\n` +
                `ยี่ห้อ/รุ่น: ${state.selectedAsset.brand} ${state.selectedAsset.model}\n` +
                `Serial Number: ${state.selectedAsset.serial_no}\n` +
                `RMA / Case ID: ${rmaNumber}\n\n` +
                `${dateText}\n\n` +
-               `ขอแสดงความนับถือ,\n${state.user.name} (${state.user.department})\nClaimIT System`;
+               `ขอแสดงความนับถือ,\n${state.user?.name || 'เจ้าหน้าที่'} (${state.user?.department || hospName})\nClaimIT System`;
 
   document.getElementById('email-preview-to').textContent = to;
   document.getElementById('email-preview-subject').textContent = subject;
@@ -266,8 +269,9 @@ const CLAIM_STATUS_BADGES = {
 
 const NEXT_STATUS_OPTIONS = {
   DRAFT: ['VIABLE', 'CANCELLED'],
-  VIABLE: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['SUBMITTED', 'CANCELLED'],
+  VIABLE: ['CONFIRMED', 'DRAFT', 'CANCELLED'],
+  NOT_VIABLE: ['DRAFT', 'CANCELLED'],
+  CONFIRMED: ['SUBMITTED', 'VIABLE', 'DRAFT', 'CANCELLED'],
   SUBMITTED: ['VENDOR_RESPONSE', 'RETURNED', 'CANCELLED'],
   VENDOR_RESPONSE: ['RETURNED', 'REJECTED'],
   RETURNED: ['CLOSED'],
@@ -282,13 +286,20 @@ async function loadClaimsList() {
   if (!tbody) return;
 
   const statusFilter = document.getElementById('filter-claim-status')?.value || '';
-  const url = statusFilter ? `/api/claims?status=${encodeURIComponent(statusFilter)}` : '/api/claims';
+  const page = state.claimsPagination ? state.claimsPagination.page : 1;
+  const limit = state.claimsPagination ? state.claimsPagination.limit : 50;
+  let url = `/api/claims?page=${page}&limit=${limit}`;
+  if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
 
   try {
     const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) return;
     const data = await res.json();
     const claims = Array.isArray(data) ? data : (Array.isArray(data?.claims) ? data.claims : []);
+    if (data && typeof data.total === 'number' && state.claimsPagination) {
+      state.claimsPagination.total = data.total;
+      updateClaimsPaginationUI();
+    }
     renderClaimsTable(claims);
   } catch (err) {
     console.error('Failed to load claims list:', err);
@@ -316,19 +327,19 @@ function renderClaimsTable(claims) {
 
   list.forEach(c => {
     const tr = document.createElement('tr');
-    const badge = CLAIM_STATUS_BADGES[c.status] || `<span class="badge">${c.status}</span>`;
+    const badge = CLAIM_STATUS_BADGES[c.status] || `<span class="badge">${escapeHtml(c.status || '')}</span>`;
     const scoreColor = (c.viability_score !== null && c.viability_score <= 5) ? 'var(--success)' : 'var(--danger)';
-    const scoreText = c.viability_score !== null ? `<span style="color:${scoreColor}; font-weight:700;">${c.viability_score}</span>` : '-';
+    const scoreText = c.viability_score !== null ? `<span style="color:${scoreColor}; font-weight:700;">${escapeHtml(String(c.viability_score))}</span>` : '-';
     const dateText = formatDualDate(c.claim_date || (c.created_at ? c.created_at.slice(0,10) : ''));
 
     tr.innerHTML = `
-      <td><strong>${c.claim_number}</strong></td>
-      <td>${c.vendor_name}</td>
-      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${c.asset_count || 1} รายการ</span></td>
+      <td><strong>${escapeHtml(c.claim_number || '')}</strong></td>
+      <td>${escapeHtml(c.vendor_name || '')}</td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${escapeHtml(String(c.asset_count || 1))} รายการ</span></td>
       <td>${dateText}</td>
       <td>${scoreText}</td>
       <td>${badge}</td>
-      <td>${c.created_by || '-'}</td>
+      <td>${escapeHtml(c.created_by || '-')}</td>
       <td>
         <div style="display:flex; gap:6px;">
           <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; min-height:auto;" onclick="openClaimDetailsModal(${c.id})">
@@ -343,6 +354,39 @@ function renderClaimsTable(claims) {
     tbody.appendChild(tr);
   });
 }
+
+function updateClaimsPaginationUI() {
+  if (!state.claimsPagination) return;
+  const start = (state.claimsPagination.page - 1) * state.claimsPagination.limit + 1;
+  const end = Math.min(state.claimsPagination.total, state.claimsPagination.page * state.claimsPagination.limit);
+  const infoEl = document.getElementById('claims-pagination-info');
+  if (infoEl) {
+    infoEl.textContent = `แสดง ${state.claimsPagination.total === 0 ? 0 : start} - ${end} จาก ${state.claimsPagination.total} รายการ`;
+  }
+
+  const pageDisplay = document.getElementById('claims-page-num-display');
+  if (pageDisplay) {
+    pageDisplay.textContent = `หน้า ${state.claimsPagination.page}`;
+  }
+
+  const btnPrev = document.getElementById('claims-btn-prev-page');
+  const btnNext = document.getElementById('claims-btn-next-page');
+  if (btnPrev && btnNext) {
+    const maxPage = Math.ceil(state.claimsPagination.total / state.claimsPagination.limit);
+    btnPrev.style.display = state.claimsPagination.page <= 1 ? 'none' : 'inline-block';
+    btnNext.style.display = (state.claimsPagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
+  }
+}
+
+window.claimsChangePage = function(delta) {
+  if (!state.claimsPagination) return;
+  const maxPage = Math.ceil(state.claimsPagination.total / state.claimsPagination.limit) || 1;
+  const newPage = state.claimsPagination.page + delta;
+  if (newPage >= 1 && newPage <= maxPage) {
+    state.claimsPagination.page = newPage;
+    loadClaimsList();
+  }
+};
 
 // Download PDF for Claim
 async function downloadClaimPDF(claimId) {
@@ -426,6 +470,9 @@ function persistClaimDraft() {
 // Submit New Multi-Asset Claim
 async function handleNewMultiClaimSubmit(e) {
   e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type="submit"]') || e.submitter;
+  const originalBtnText = submitBtn ? submitBtn.textContent : '';
+
   const vendorName = document.getElementById('multi-claim-vendor').value;
   const vendorRma = document.getElementById('multi-claim-rma').value.trim();
   const claimType = document.getElementById('multi-claim-type').value;
@@ -453,6 +500,11 @@ async function handleNewMultiClaimSubmit(e) {
     return;
   }
 
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ กำลังสร้างใบเคลม...';
+  }
+
   try {
     const res = await fetch('/api/claims', {
       method: 'POST',
@@ -471,6 +523,7 @@ async function handleNewMultiClaimSubmit(e) {
       showToast(`สร้างใบเคลม ${data.claim.claim_number} สำเร็จ (${data.claim.asset_count} รายการ)`, 'success');
       document.getElementById('new-multi-claim-modal').style.display = 'none';
       document.getElementById('new-multi-claim-form').reset();
+      if (typeof clearFormDraft === 'function') clearFormDraft('new-multi-claim-form');
       loadClaimsList();
       refreshData();
     } else {
@@ -480,6 +533,11 @@ async function handleNewMultiClaimSubmit(e) {
   } catch (err) {
     console.error('Create claim error:', err);
     showToast('เกิดข้อผิดพลาดในการสร้างใบเคลม', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
   }
 }
 
@@ -494,12 +552,13 @@ async function openClaimDetailsModal(claimId) {
     const res = await fetch(`/api/claims/${claimId}`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Could not fetch claim details');
     const claim = await res.json();
+    state.currentClaimRepairCost = claim.repair_cost || 0;
 
     document.getElementById('cd-modal-title').textContent = `📋 ใบเคลม: ${claim.claim_number}`;
     document.getElementById('cd-claim-no').textContent = claim.claim_number;
     document.getElementById('cd-vendor').textContent = claim.vendor_name;
-    document.getElementById('cd-status').innerHTML = CLAIM_STATUS_BADGES[claim.status] || claim.status;
-    document.getElementById('cd-viability').textContent = claim.viability_score !== null ? `${claim.viability_score} / 10` : '-';
+    document.getElementById('cd-status').innerHTML = CLAIM_STATUS_BADGES[claim.status] || `<span class="badge">${escapeHtml(claim.status || '')}</span>`;
+    document.getElementById('cd-viability').textContent = claim.viability_score !== null ? `${escapeHtml(String(claim.viability_score))} / 10` : '-';
     document.getElementById('cd-date').textContent = formatDualDate(claim.claim_date || claim.created_at?.slice(0,10) || '', true);
     document.getElementById('cd-created-by').textContent = claim.created_by || '-';
 
@@ -510,10 +569,10 @@ async function openClaimDetailsModal(claimId) {
       const tr = document.createElement('tr');
       const itemStatusLabel = a.item_status === 'Pending Pickup' ? 'รอศูนย์บริการเข้ารับ' : (a.item_status === 'Returned' ? 'รับเครื่องคืนแล้ว' : (a.item_status || 'รอส่งเคลม'));
       tr.innerHTML = `
-        <td><strong>${a.asset_tag}</strong></td>
-        <td>${a.device_name || '-'} (${a.brand || '-'} ${a.model || ''})</td>
-        <td><span class="badge">${itemStatusLabel}</span></td>
-        <td>${a.viability_score !== null ? a.viability_score : '-'}</td>
+        <td><strong>${escapeHtml(a.asset_tag || '')}</strong></td>
+        <td>${escapeHtml(a.device_name || '-')} (${escapeHtml(a.brand || '-')} ${escapeHtml(a.model || '')})</td>
+        <td><span class="badge">${escapeHtml(itemStatusLabel)}</span></td>
+        <td>${a.viability_score !== null ? escapeHtml(String(a.viability_score)) : '-'}</td>
       `;
       assetsTbody.appendChild(tr);
     });
@@ -523,17 +582,28 @@ async function openClaimDetailsModal(claimId) {
     actionsContainer.innerHTML = '';
     const nextStates = NEXT_STATUS_OPTIONS[claim.status] || [];
     if (nextStates.length === 0) {
-      actionsContainer.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">ใบเคลมนี้อยู่ในสถานะสิ้นสุดแล้ว (${claim.status})</span>`;
+      actionsContainer.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">ใบเคลมนี้อยู่ในสถานะสิ้นสุดแล้ว (${escapeHtml(claim.status || '')})</span>`;
     } else {
       nextStates.forEach(ns => {
         const btn = document.createElement('button');
         btn.className = 'btn';
         btn.style.cssText = 'padding:6px 12px; font-size:12px;';
-        if (ns === 'CANCELLED') btn.className = 'btn btn-danger';
-        else if (ns === 'RETURNED' || ns === 'CLOSED') btn.className = 'btn btn-success';
-        else btn.className = 'btn btn-secondary';
+        if (ns === 'CANCELLED') {
+          btn.className = 'btn btn-danger';
+          btn.textContent = '✕ ยกเลิกใบเคลม';
+        } else if (ns === 'DRAFT') {
+          btn.className = 'btn btn-secondary';
+          btn.style.border = '1.5px dashed #f59e0b';
+          btn.style.color = '#f59e0b';
+          btn.textContent = '↩️ ย้อนกลับเป็นร่าง (Revert to Draft)';
+        } else if (ns === 'RETURNED' || ns === 'CLOSED') {
+          btn.className = 'btn btn-success';
+          btn.textContent = `➡️ ปรับเป็น ${ns}`;
+        } else {
+          btn.className = 'btn btn-secondary';
+          btn.textContent = `➡️ ปรับเป็น ${ns}`;
+        }
 
-        btn.textContent = `➡️ ปรับเป็น ${ns}`;
         btn.onclick = () => handleAdvanceClaimStatus(claimId, ns);
         actionsContainer.appendChild(btn);
       });
@@ -562,7 +632,25 @@ async function handleAdvanceClaimStatus(claimId, targetStatus) {
     resolutionType = 'Repaired';
   }
 
+  let supervisorApproval = undefined;
+  let supervisorNotes = undefined;
+
+  // Point 14: Multi-tier approval for high-value repairs (> ฿20,000)
+  if (targetStatus === 'CONFIRMED' && (state.currentClaimRepairCost || 0) > 20000) {
+    const costFormatted = Number(state.currentClaimRepairCost).toLocaleString();
+    const confirmed = confirm(`⚠️ ใบเคลมนี้มีมูลค่าซ่อมสูง (฿${costFormatted} เกินเกณฑ์ ฿20,000)\n\nคุณยืนยันการอนุมัติในฐานะหัวหน้างาน (Supervisor Approval) ใช่หรือไม่?`);
+    if (!confirmed) return;
+    supervisorApproval = true;
+    supervisorNotes = prompt('ระบุหมายเหตุการอนุมัติ (Supervisor Approval Notes):', 'อนุมัติการซ่อมบำรุงตามใบเสนอราคา') || 'Supervisor Approved';
+  }
+
   const notes = `สถานะปรับปรุงเป็น [${targetStatus}] โดย ${state.user ? state.user.name : 'เจ้าหน้าที่ไอที'}`;
+  const actionsContainer = document.getElementById('cd-status-actions');
+  const actionButtons = actionsContainer ? Array.from(actionsContainer.querySelectorAll('button')) : [];
+  actionButtons.forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  });
 
   try {
     const res = await fetch(`/api/claims/${claimId}/status`, {
@@ -571,7 +659,9 @@ async function handleAdvanceClaimStatus(claimId, targetStatus) {
       body: JSON.stringify({
         status: targetStatus,
         notes,
-        resolution_type: resolutionType
+        resolution_type: resolutionType,
+        supervisor_approval: supervisorApproval,
+        supervisor_notes: supervisorNotes
       })
     });
 
@@ -587,6 +677,11 @@ async function handleAdvanceClaimStatus(claimId, targetStatus) {
   } catch (err) {
     console.error('Advance status error:', err);
     showToast('เกิดข้อผิดพลาดในการเปลี่ยนสถานะ', 'error');
+  } finally {
+    actionButtons.forEach(btn => {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    });
   }
 }
 
@@ -628,29 +723,75 @@ function renderEvidenceList(container, items, refreshCallback) {
     return;
   }
 
+  const docTypeLabels = {
+    'DAMAGE_PHOTO': { label: '📷 รูปเสียหาย', bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171' },
+    'VENDOR_QUOTE': { label: '📄 ใบเสนอราคา', bg: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' },
+    'PROOF_OF_DELIVERY': { label: '📦 ใบรับ/ส่งของ', bg: 'rgba(16, 185, 129, 0.2)', color: '#34d399' },
+    'INVOICE': { label: '🧾 ใบแจ้งหนี้', bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' },
+    'GENERAL': { label: '📎 ทั่วไป', bg: 'rgba(148, 163, 184, 0.2)', color: '#94a3b8' }
+  };
+
   items.forEach(item => {
     const div = document.createElement('div');
     div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:6px;';
     const isImage = item.file_type && item.file_type.startsWith('image/');
     const icon = isImage ? '🖼️' : '📄';
+    const dt = docTypeLabels[item.doc_type] || docTypeLabels['GENERAL'];
+    const docBadge = `<span style="display:inline-block; font-size:10.5px; padding:2px 6px; border-radius:4px; background:${dt.bg}; color:${dt.color}; font-weight:600; margin-right:6px; vertical-align:middle;">${dt.label}</span>`;
+    const safeFilename = escapeHtml(item.original_filename || 'file').replace(/'/g, "\\'");
 
     div.innerHTML = `
       <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
         <span style="font-size:16px;">${icon}</span>
         <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-          <a href="/api/evidence/${item.id}/view" target="_blank" style="color:#38bdf8; font-weight:600; text-decoration:none;">
-            ${item.original_filename}
+          ${docBadge}
+          <a href="javascript:void(0)" onclick="viewEvidenceFile(${item.id}, '${safeFilename}')" style="color:#38bdf8; font-weight:600; text-decoration:none;">
+            ${escapeHtml(item.original_filename || 'file')}
           </a>
           <span style="color:var(--text-muted); font-size:12px; margin-left:8px;">(${(item.file_size / 1024).toFixed(1)} KB)</span>
         </div>
       </div>
-      <a href="/api/evidence/${item.id}/view" target="_blank" class="btn btn-secondary" style="padding:4px 10px; font-size:11.5px; text-decoration:none; min-height:auto;">
+      <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:11.5px; min-height:auto;" onclick="viewEvidenceFile(${item.id}, '${safeFilename}')">
         👁️ เปิดดู
-      </a>
+      </button>
     `;
     container.appendChild(div);
   });
 }
+
+// Secure Evidence Viewer using Authenticated Fetch and Blob URL
+async function viewEvidenceFile(id, originalFilename) {
+  try {
+    showToast('กำลังโหลดไฟล์หลักฐาน...', 'info', 1500);
+    const res = await fetch(`/api/evidence/${id}/view`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `ไม่สามารถเปิดดูไฟล์ได้ (HTTP ${res.status})`);
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const win = window.open(objectUrl, '_blank');
+    if (!win) {
+      showToast('เบราว์เซอร์บล็อกป๊อปอัป กำลังดาวน์โหลดไฟล์ลงเครื่องแทน...', 'warning', 4000);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = originalFilename || `evidence_${id}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    // Clean up memory after 60 seconds
+    setTimeout(() => {
+      try { URL.revokeObjectURL(objectUrl); } catch (e) {}
+    }, 60000);
+  } catch (err) {
+    console.error('Evidence view error:', err);
+    showToast(err.message || 'เกิดข้อผิดพลาดในการเปิดดูหลักฐาน', 'error', 4000);
+  }
+}
+window.viewEvidenceFile = viewEvidenceFile;
 
 // Upload Evidence for Active Asset
 async function uploadActiveAssetEvidence() {
@@ -668,6 +809,11 @@ async function uploadActiveAssetEvidence() {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('asset_tag', state.selectedAsset.asset_tag);
+
+  const docTypeEl = document.getElementById('asset-evidence-doc-type');
+  if (docTypeEl && docTypeEl.value) {
+    formData.append('doc_type', docTypeEl.value);
+  }
 
   try {
     showToast('กำลังอัปโหลดไฟล์หลักฐาน...', 'info', 2000);
@@ -705,6 +851,11 @@ async function uploadActiveClaimEvidence() {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('claim_id', activeViewingClaimId);
+
+  const docTypeEl = document.getElementById('cd-evidence-doc-type');
+  if (docTypeEl && docTypeEl.value) {
+    formData.append('doc_type', docTypeEl.value);
+  }
 
   try {
     showToast('กำลังอัปโหลดไฟล์หลักฐาน...', 'info', 2000);

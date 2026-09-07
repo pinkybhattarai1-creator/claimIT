@@ -16,8 +16,6 @@ function verifyToken(req, res, next) {
     } else {
       return res.status(401).json({ error: 'รูปแบบ Authorization Header ไม่ถูกต้อง (Format: Bearer <token>)' });
     }
-  } else if (req.query && req.query.token) {
-    token = req.query.token;
   }
 
   if (!token) {
@@ -32,9 +30,9 @@ function verifyToken(req, res, next) {
       return res.status(401).json({ error: 'Token ไม่ถูกต้องหรือถูกแก้ไข (Invalid authentication token)' });
     }
 
-    // Verify user is still active in database
+    // Verify user is still active in database and validate token version
     db.get(
-      "SELECT id, username, role, name, department, is_deleted, is_active FROM users WHERE username = ?",
+      "SELECT id, username, role, name, department, is_deleted, is_active, token_version, must_change_password FROM users WHERE username = ?",
       [decoded.username],
       (dbErr, user) => {
         if (dbErr) {
@@ -47,12 +45,20 @@ function verifyToken(req, res, next) {
           return res.status(403).json({ error: 'บัญชีผู้ใช้งานนี้ถูกปิดการใช้งานชั่วคราว (Account inactive)' });
         }
 
+        const dbTokenVersion = user.token_version || 0;
+        const decodedTokenVersion = decoded.token_version !== undefined ? decoded.token_version : 0;
+        if (decodedTokenVersion !== dbTokenVersion) {
+          return res.status(401).json({ error: 'เซสชันถูกยกเลิกเนื่องจากมีการเปลี่ยนรหัสผ่านหรือรีเซ็ตบัญชี กรุณาเข้าสู่ระบบใหม่ (Session revoked)' });
+        }
+
         req.user = {
           id: user.id,
           username: user.username,
           role: user.role,
           name: user.name,
-          department: user.department
+          department: user.department,
+          token_version: dbTokenVersion,
+          must_change_password: Boolean(user.must_change_password)
         };
         next();
       }

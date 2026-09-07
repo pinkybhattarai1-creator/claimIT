@@ -46,7 +46,7 @@ router.post('/send', verifyToken, staffOnly, async (req, res) => {
       if (dbErr) console.error('[EMAIL LOG ERROR]', dbErr.message);
 
       if (status === 'FAILED') {
-        return res.status(500).json({ error: 'Failed to send email via provider', details: errorMessage });
+        return res.status(500).json({ error: 'ไม่สามารถส่งอีเมลแจ้งเตือนผ่านผู้ให้บริการได้ กรุณาตรวจสอบการตั้งค่าเครือข่ายหรืออีเมล' });
       }
 
       res.json({
