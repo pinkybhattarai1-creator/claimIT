@@ -113,13 +113,61 @@ router.post('/', optionalAuth, (req, res) => {
 
   db.run(sql, [userId, finalName, finalDept, cleanCategory, cleanPageUrl, cleanComment, cleanRating, finalDevice, finalScreen], function(err) {
     if (err) return handleDbError(res, err);
+    const feedbackId = this.lastID;
     syncFeedbackLogFile();
+
+    // Instant external backup & alert via Webhook (Discord, Telegram, Slack, Google Sheets, etc.)
+    if (process.env.FEEDBACK_WEBHOOK_URL) {
+      try {
+        const webhookUrl = process.env.FEEDBACK_WEBHOOK_URL;
+        const colors = { bug: 0xef4444, suggestion: 0x3b82f6, ux: 0xf59e0b, other: 0x10b981 };
+        const payload = {
+          content: `🔔 **มีข้อเสนอแนะ/แจ้งปัญหาใหม่จาก รพ. (ClaimIT)**\n**ประเภท:** ${cleanCategory}\n**ผู้แจ้ง:** ${finalName} (${finalDept})\n**หน้าจอ:** ${cleanPageUrl}\n**อุปกรณ์:** ${finalDevice}\n**ข้อความ:** ${cleanComment}\n**คะแนน:** ${cleanRating ? '⭐️'.repeat(cleanRating) : '-'}`
+        };
+
+        if (webhookUrl.includes('discord.com/api/webhooks')) {
+          payload.embeds = [{
+            title: `[${cleanCategory.toUpperCase()}] ข้อคิดเห็น/ปัญหาใหม่ #${feedbackId}`,
+            description: cleanComment,
+            color: colors[cleanCategory] || 0x3b82f6,
+            fields: [
+              { name: 'ผู้แจ้ง / แผนก', value: `${finalName} (${finalDept})`, inline: true },
+              { name: 'หน้าจอ', value: cleanPageUrl, inline: true },
+              { name: 'อุปกรณ์', value: finalDevice, inline: true },
+              { name: 'คะแนน', value: cleanRating ? '⭐️'.repeat(cleanRating) : 'ไม่ได้ระบุ', inline: true }
+            ],
+            timestamp: new Date().toISOString()
+          }];
+        }
+
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(e => console.error('[Feedback Webhook Error]:', e.message));
+      } catch (e) {
+        console.error('[Feedback Webhook Exception]:', e.message);
+      }
+    }
+
     res.status(201).json({
       success: true,
-      id: this.lastID,
+      id: feedbackId,
       message: 'ขอบคุณสำหรับข้อเสนอแนะ! บันทึกข้อมูลเรียบร้อยแล้ว ทีมงานจะนำไปปรับปรุงระบบต่อไป'
     });
   });
+});
+
+// GET /api/feedback/public - Public read-only list for testers to verify their comments
+router.get('/public', (req, res) => {
+  db.all(
+    'SELECT id, category, page_url, comment, rating, reporter_name, department, device_info, status, created_at FROM user_feedback ORDER BY created_at DESC LIMIT 50',
+    [],
+    (err, rows) => {
+      if (err) return handleDbError(res, err);
+      res.json(rows || []);
+    }
+  );
 });
 
 // GET /api/feedback/export/csv - Export CSV with UTF-8 BOM for Microsoft Excel

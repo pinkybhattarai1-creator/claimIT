@@ -54,16 +54,28 @@
     modal.className = 'modal-backdrop';
     modal.style.display = 'none';
     modal.innerHTML = `
-      <div class="modal-dialog feedback-modal-dialog">
-        <div class="modal-header">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">💬</span>
-            <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">ติชมหรือแจ้งปัญหา (Hospital Feedback)</h3>
+      <div class="modal-dialog feedback-modal-dialog" style="max-width: 580px;">
+        <div class="modal-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">💬</span>
+              <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">ระบบติชม & กระดานติดตามปัญหา (Hospital Feedback)</h3>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeFeedbackModal()" aria-label="ปิด">✕</button>
           </div>
-          <button type="button" class="modal-close-btn" onclick="closeFeedbackModal()" aria-label="ปิด">✕</button>
+          <!-- Modal Tab Navigation -->
+          <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px;">
+            <button type="button" id="feedback-tab-form-btn" class="feedback-nav-tab active" onclick="switchFeedbackTab('form')">
+              ✍️ ส่งข้อคิดเห็น / แจ้งปัญหา
+            </button>
+            <button type="button" id="feedback-tab-board-btn" class="feedback-nav-tab" onclick="switchFeedbackTab('board')">
+              📋 กระดานรายการที่แจ้งไว้ (<span id="feedback-board-count">0</span>)
+            </button>
+          </div>
         </div>
 
-        <div class="modal-body" style="padding: 16px 20px;">
+        <!-- TAB 1: SUBMISSION FORM -->
+        <div id="feedback-tab-form-content" class="modal-body" style="padding: 16px 20px;">
           <!-- PDPA & Hospital Privacy Reminder -->
           <div class="feedback-pdpa-alert">
             🛡️ <strong>ข้อกำหนดความเป็นส่วนตัว (PDPA):</strong> กรุณาไม่กรอกข้อมูลส่วนบุคคลของผู้ป่วย (เช่น HN, เลขบัตรประชาชน หรือประวัติรักษา)
@@ -128,11 +140,38 @@
           </div>
         </div>
 
-        <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="button" class="btn btn-secondary" onclick="closeFeedbackModal()">ยกเลิก</button>
-          <button type="button" class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()" style="min-width: 120px;">
-            🚀 ส่งความคิดเห็น
-          </button>
+        <!-- TAB 2: PUBLIC BOARD & HEALTH STATUS -->
+        <div id="feedback-tab-board-content" class="modal-body" style="padding: 16px 20px; display: none;">
+          <!-- Live Health Status Indicator -->
+          <div id="feedback-server-health-box" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); margin-bottom: 12px; font-size: 12.5px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="health-dot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #22c55e;"></span>
+              <strong id="health-text" style="color: #166534;">เซิร์ฟเวอร์ออนไลน์ & ฐานข้อมูลเชื่อมต่อแล้ว</strong>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="loadPublicFeedbackBoard()" style="font-size: 11.5px; padding: 4px 8px;">🔄 รีเฟรช</button>
+          </div>
+
+          <!-- Explanation notice -->
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+            📌 ทุกคนสามารถดูรายการข้อเสนอแนะและปัญหาที่แจ้งไว้ได้ที่นี่ เพื่อความโปร่งใสและตรวจสอบว่าข้อมูลถูกส่งถึงระบบเรียบร้อย:
+          </div>
+
+          <!-- Feedback Items List -->
+          <div id="feedback-public-items-list" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">กำลังโหลดข้อมูล...</div>
+          </div>
+        </div>
+
+        <div class="modal-footer" id="feedback-modal-footer" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="closeFeedbackModal()">ปิด</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" id="btn-view-board" onclick="switchFeedbackTab('board')">
+              📋 ดูกระดานสถานะ
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()" style="min-width: 120px;">
+              🚀 ส่งความคิดเห็น
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -140,6 +179,7 @@
 
     // Initial default pill
     setFeedbackCategory('suggestion');
+    loadPublicFeedbackCount();
   }
 
   function openFeedbackModal() {
@@ -263,14 +303,24 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'ส่งข้อมูลไม่สำเร็จ');
 
-      closeFeedbackModal();
+      // Save ticket to local storage on this device (Permanent offline backup)
+      try {
+        const myIds = JSON.parse(localStorage.getItem('claimit_my_feedback_ids') || '[]');
+        myIds.unshift({ id: data.id, comment, time: new Date().toISOString(), category: selectedCategory });
+        localStorage.setItem('claimit_my_feedback_ids', JSON.stringify(myIds.slice(0, 50)));
+      } catch (e) {}
+
       if (commentInput) commentInput.value = '';
+      loadPublicFeedbackCount();
 
       if (typeof showToast === 'function') {
-        showToast('🎉 ขอบคุณสำหรับข้อเสนอแนะ! บันทึกส่งทีมไอทีเรียบร้อยแล้ว', 'success', 4000);
+        showToast(`🎉 ขอบคุณสำหรับข้อเสนอแนะ! บันทึกรหัส #${data.id} เรียบร้อยแล้ว`, 'success', 4000);
       } else {
-        alert('ขอบคุณสำหรับข้อเสนอแนะ! บันทึกข้อมูลเรียบร้อยแล้ว');
+        alert(`ขอบคุณสำหรับข้อเสนอแนะ! บันทึกรหัส #${data.id} เรียบร้อยแล้ว`);
       }
+
+      // Auto-switch to board tab so the tester sees their feedback right on the screen
+      switchFeedbackTab('board');
     } catch (err) {
       console.error('Feedback submit error:', err);
       if (typeof showToast === 'function') {
@@ -286,6 +336,159 @@
     }
   }
   window.submitFeedback = submitFeedback;
+
+  function switchFeedbackTab(tab) {
+    const formTabBtn = document.getElementById('feedback-tab-form-btn');
+    const boardTabBtn = document.getElementById('feedback-tab-board-btn');
+    const formContent = document.getElementById('feedback-tab-form-content');
+    const boardContent = document.getElementById('feedback-tab-board-content');
+    const submitBtn = document.getElementById('btn-submit-feedback');
+    const viewBoardBtn = document.getElementById('btn-view-board');
+
+    if (tab === 'board') {
+      if (formTabBtn) formTabBtn.classList.remove('active');
+      if (boardTabBtn) boardTabBtn.classList.add('active');
+      if (formContent) formContent.style.display = 'none';
+      if (boardContent) boardContent.style.display = 'block';
+      if (submitBtn) submitBtn.style.display = 'none';
+      if (viewBoardBtn) {
+        viewBoardBtn.innerHTML = '✍️ กลับไปหน้าเขียน';
+        viewBoardBtn.onclick = () => switchFeedbackTab('form');
+      }
+      loadPublicFeedbackBoard();
+    } else {
+      if (formTabBtn) formTabBtn.classList.add('active');
+      if (boardTabBtn) boardTabBtn.classList.remove('active');
+      if (formContent) formContent.style.display = 'block';
+      if (boardContent) boardContent.style.display = 'none';
+      if (submitBtn) submitBtn.style.display = 'inline-block';
+      if (viewBoardBtn) {
+        viewBoardBtn.innerHTML = '📋 ดูกระดานสถานะ';
+        viewBoardBtn.onclick = () => switchFeedbackTab('board');
+      }
+    }
+  }
+  window.switchFeedbackTab = switchFeedbackTab;
+
+  async function checkServerHealth() {
+    const box = document.getElementById('feedback-server-health-box');
+    const dot = document.getElementById('health-dot');
+    const text = document.getElementById('health-text');
+    if (!box || !dot || !text) return;
+
+    try {
+      const res = await fetch('/health');
+      const data = await res.json();
+      if (res.ok && data.status === 'UP') {
+        box.style.background = '#f0fdf4';
+        box.style.borderColor = '#bbf7d0';
+        dot.style.background = '#22c55e';
+        text.style.color = '#166534';
+        text.textContent = '🟢 เซิร์ฟเวอร์ออนไลน์ & ฐานข้อมูลเชื่อมต่อปกติ (Connected)';
+      } else {
+        throw new Error('Database status not OK');
+      }
+    } catch (e) {
+      box.style.background = '#fef2f2';
+      box.style.borderColor = '#fecaca';
+      dot.style.background = '#ef4444';
+      text.style.color = '#991b1b';
+      text.textContent = '🔴 ตรวจพบปัญหาการเชื่อมต่อเซิร์ฟเวอร์';
+    }
+  }
+
+  async function loadPublicFeedbackCount() {
+    try {
+      const res = await fetch('/api/feedback/public');
+      if (!res.ok) return;
+      const list = await res.json();
+      const countEl = document.getElementById('feedback-board-count');
+      if (countEl) countEl.textContent = list.length || 0;
+    } catch (e) {}
+  }
+
+  async function loadPublicFeedbackBoard() {
+    checkServerHealth();
+    const container = document.getElementById('feedback-public-items-list');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">กำลังโหลดกระดานข้อเสนอแนะ...</div>';
+
+    try {
+      const res = await fetch('/api/feedback/public');
+      if (!res.ok) throw new Error('ไม่สามารถโหลดข้อมูลได้');
+      const items = await res.json();
+
+      const countEl = document.getElementById('feedback-board-count');
+      if (countEl) countEl.textContent = items.length || 0;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">ยังไม่มีรายการแจ้งปัญหาในระบบ (คุณสามารถเป็นคนแรกที่ส่งได้ครับ)</div>';
+        return;
+      }
+
+      // Check which feedbacks belong to this browser device
+      let myIds = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem('claimit_my_feedback_ids') || '[]');
+        myIds = stored.map(s => s.id);
+      } catch (e) {}
+
+      const catBadges = {
+        bug: '<span style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🐞 แจ้งปัญหา</span>',
+        suggestion: '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">💡 ข้อเสนอแนะ</span>',
+        ux: '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">❓ ใช้งานยาก</span>',
+        other: '<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">💬 ทั่วไป</span>'
+      };
+
+      const statusBadges = {
+        open: '<span style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">⏳ รอตรวจ</span>',
+        reviewed: '<span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">👀 รับทราบแล้ว</span>',
+        resolved: '<span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">✅ แก้ไขแล้ว</span>'
+      };
+
+      container.innerHTML = items.map(item => {
+        const isMine = myIds.includes(item.id);
+        const mineBadge = isMine ? '<span style="background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700;">📱 เครื่องของคุณ</span>' : '';
+        const cat = catBadges[item.category] || catBadges.other;
+        const status = statusBadges[item.status] || item.status;
+        const stars = item.rating ? '⭐️'.repeat(item.rating) : '';
+        const timeStr = item.created_at ? new Date(item.created_at).toLocaleString('th-TH', { hour12: false }) : '';
+
+        return `
+          <div style="background: var(--surface-card); border: 1px solid ${isMine ? '#f472b6' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 700; color: var(--text-primary);">#${item.id}</span>
+                ${cat}
+                ${mineBadge}
+              </div>
+              <div>${status}</div>
+            </div>
+            <div style="color: var(--text-primary); font-size: 13.5px; margin: 6px 0; line-height: 1.4;">
+              ${escapeHtml(item.comment)}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              <span>👤 ${escapeHtml(item.reporter_name || 'ทั่วไป')} (${escapeHtml(item.department || '-')})</span>
+              <span>${stars} ${timeStr}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--danger); font-size: 13px;">เกิดข้อผิดพลาดในการโหลดกระดาน: ${e.message}</div>`;
+    }
+  }
+  window.loadPublicFeedbackBoard = loadPublicFeedbackBoard;
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
   // Auto-mount widget once DOM is ready
   if (document.readyState === 'loading') {

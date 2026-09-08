@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { app } = require('../server');
+const { app, server } = require('../server');
 const { db } = require('../db');
 const { runMigrations } = require('../db/migrations');
 
@@ -12,37 +12,37 @@ async function runTests() {
     runMigrations(db, () => resolve());
   });
 
-  // Helper to make local HTTP request to app
-  const server = app.listen(0, '127.0.0.1', async () => {
-    const port = server.address().port;
-    const baseUrl = `http://127.0.0.1:${port}`;
+  const testServer = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => testServer.on('listening', resolve));
+  const port = testServer.address().port;
+  const baseUrl = `http://127.0.0.1:${port}`;
 
-    function makeRequest(method, path, body, token) {
-      return new Promise((resolve, reject) => {
-        const url = new URL(path, baseUrl);
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+  function makeRequest(method, path, body, token) {
+    return new Promise((resolve, reject) => {
+      const url = new URL(path, baseUrl);
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const req = request.request(url, { method, headers }, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            try {
-              resolve({ status: res.statusCode, body: data ? JSON.parse(data) : null });
-            } catch (e) {
-              resolve({ status: res.statusCode, body: data });
-            }
-          });
+      const req = request.request(url, { method, headers }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, body: data ? JSON.parse(data) : null });
+          } catch (e) {
+            resolve({ status: res.statusCode, body: data });
+          }
         });
-        req.on('error', reject);
-        if (body) req.write(JSON.stringify(body));
-        req.end();
       });
-    }
+      req.on('error', reject);
+      if (body) req.write(JSON.stringify(body));
+      req.end();
+    });
+  }
 
-    try {
-      // 1. Test POST /api/feedback with valid data
-      console.log('Test 1: POST /api/feedback with valid data');
+  try {
+    // 1. Test POST /api/feedback with valid data
+    console.log('Test 1: POST /api/feedback with valid data');
       const testPayload = {
         category: 'bug',
         page_url: 'ระบบแจ้งซ่อมภาคสนาม (/ward)',
@@ -86,6 +86,13 @@ async function runTests() {
       assert.ok(res4.body.success);
       console.log('  ✓ Status updated to reviewed');
 
+      // 4.5. Test GET /api/feedback/public (Public board without auth)
+      console.log('Test 4.5: GET /api/feedback/public');
+      const resPublic = await makeRequest('GET', '/api/feedback/public');
+      assert.strictEqual(resPublic.status, 200);
+      assert.ok(Array.isArray(resPublic.body), 'Expected public feedback list to be an array');
+      console.log(`  ✓ Public board returned ${resPublic.body.length} items without authentication`);
+
       // 5. Test DELETE /api/feedback/:id
       console.log('Test 5: DELETE /api/feedback/:id cleanup');
       const res5 = await makeRequest('DELETE', `/api/feedback/${createdId}`);
@@ -100,15 +107,14 @@ async function runTests() {
       assert.ok(res6.body.port, 'Expected port to exist');
       console.log(`  ✓ Network info detected: IP=${res6.body.detectedIp}, Port=${res6.body.port}`);
 
-      console.log('\n🎉 ALL 6 FEEDBACK & MOBILE VERIFICATION TESTS PASSED!\n');
+      console.log('\n🎉 ALL 7 FEEDBACK & MOBILE VERIFICATION TESTS PASSED!\n');
       process.exit(0);
     } catch (err) {
       console.error('\n❌ Test failure:', err);
       process.exit(1);
     } finally {
-      server.close();
+      try { testServer.close(); } catch {}
     }
-  });
 }
 
 runTests();

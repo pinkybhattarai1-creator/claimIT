@@ -1641,6 +1641,29 @@ tbody td strong {
   line-height: 1.4;
 }
 
+.feedback-nav-tab {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.feedback-nav-tab:hover {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.feedback-nav-tab.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   #claimit-feedback-btn {
     bottom: 16px;
