@@ -1,16 +1,11 @@
+process.env.NODE_ENV = 'test';
 const assert = require('assert');
-const { app, server } = require('../server');
+const { app } = require('../server');
 const { db } = require('../db');
-const { runMigrations } = require('../db/migrations');
 
 async function runTests() {
   console.log('🧪 Starting Feedback & Mobile Features Verification Tests...\n');
   const request = require('http');
-
-  // Ensure migrations are run on db
-  await new Promise(resolve => {
-    runMigrations(db, () => resolve());
-  });
 
   const testServer = app.listen(0, '127.0.0.1');
   await new Promise(resolve => testServer.on('listening', resolve));

@@ -77,8 +77,72 @@ function syncFeedbackLogFile() {
 // Initial sync on module load
 try { syncFeedbackLogFile(); } catch {}
 
+// Anti-Spam Rate Limiter: Max 5 submissions per minute per IP, and 3-second cooldown
+const ipTracker = new Map();
+const COOLDOWN_MS = 3000;       // 3 seconds cooldown between consecutive submits
+const WINDOW_MS = 60000;        // 1 minute window
+const MAX_PER_WINDOW = 5;       // max 5 comments per minute
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of ipTracker.entries()) {
+    if (now - data.lastTime > WINDOW_MS * 2) {
+      ipTracker.delete(ip);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
+function checkSpam(req) {
+  if (process.env.NODE_ENV === 'test') return null;
+
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const data = ipTracker.get(clientIp);
+
+  if (data) {
+    // 1. Enforce cooldown
+    if (now - data.lastTime < COOLDOWN_MS) {
+      const waitSec = Math.ceil((COOLDOWN_MS - (now - data.lastTime)) / 1000);
+      return `กรุณารออีก ${waitSec} วินาทีก่อนส่งข้อคิดเห็นถัดไป (Anti-spam cooldown)`;
+    }
+
+    // 2. Enforce window limit
+    if (now - data.windowStart < WINDOW_MS) {
+      if (data.count >= MAX_PER_WINDOW) {
+        return 'คุณส่งข้อคิดเห็นเกินกำหนด (สูงสุด 5 ครั้งต่อนาที) กรุณารอสักครู่';
+      }
+      data.count++;
+    } else {
+      data.windowStart = now;
+      data.count = 1;
+    }
+
+    // 3. Duplicate text check within 30s
+    if (data.lastComment === req.body.comment?.trim() && (now - data.lastTime < 30000)) {
+      return 'ข้อความนี้เพิ่งถูกส่งไปแล้ว กรุณาอย่าส่งข้อความซ้ำครับ';
+    }
+
+    data.lastTime = now;
+    data.lastComment = req.body.comment?.trim();
+  } else {
+    ipTracker.set(clientIp, {
+      lastTime: now,
+      windowStart: now,
+      count: 1,
+      lastComment: req.body.comment?.trim()
+    });
+  }
+
+  return null;
+}
+
 // POST /api/feedback - Submit new feedback or bug report
 router.post('/', optionalAuth, (req, res) => {
+  const spamError = checkSpam(req);
+  if (spamError) {
+    return res.status(429).json({ error: spamError });
+  }
+
   const { 
     category = 'suggestion', 
     page_url = '/', 

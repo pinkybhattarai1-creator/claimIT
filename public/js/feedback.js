@@ -321,6 +321,23 @@
 
       // Auto-switch to board tab so the tester sees their feedback right on the screen
       switchFeedbackTab('board');
+
+      // Enforce 3-second frontend anti-spam cooldown on the submit button
+      if (btn) {
+        let cd = 3;
+        btn.disabled = true;
+        btn.innerHTML = `⏳ รออีก ${cd}s`;
+        const cdTimer = setInterval(() => {
+          cd--;
+          if (cd <= 0) {
+            clearInterval(cdTimer);
+            btn.disabled = false;
+            btn.innerHTML = '🚀 ส่งความคิดเห็น';
+          } else {
+            btn.innerHTML = `⏳ รออีก ${cd}s`;
+          }
+        }, 1000);
+      }
     } catch (err) {
       console.error('Feedback submit error:', err);
       if (typeof showToast === 'function') {
@@ -328,7 +345,6 @@
       } else {
         alert(err.message || 'ส่งข้อมูลไม่สำเร็จ');
       }
-    } finally {
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = '🚀 ส่งความคิดเห็น';
