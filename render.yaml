@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: claimit-hospital-system
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGIN
+        value: "*"

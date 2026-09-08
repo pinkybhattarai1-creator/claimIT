@@ -778,9 +778,16 @@ async function fetchNetworkInfo() {
 
     const customInput = document.getElementById('custom-ip-input');
     if (customInput && savedCustomIp) customInput.value = savedCustomIp;
+
+    if (typeof renderQRCode === 'function') {
+      renderQRCode('modal-qr-container', currentMobileUrl, 170);
+    }
   } catch (e) {
     console.warn('Network info fetch error:', e);
     currentMobileUrl = window.location.origin;
+    if (typeof renderQRCode === 'function') {
+      renderQRCode('modal-qr-container', currentMobileUrl, 170);
+    }
   }
 }
 

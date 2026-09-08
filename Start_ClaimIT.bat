@@ -27,6 +27,7 @@ if not exist "%CLAIM_DIR%\start.bat" goto :err_no_start
 if /i "%~f0"=="%CLAIM_DIR%\start.bat" goto :err_recursion
 
 :: 4. Change directory to ClaimIT project folder and execute start.bat
+start "" "http://localhost:8847"
 cd /d "%CLAIM_DIR%"
 call "%CLAIM_DIR%\start.bat"
 set "LAUNCH_EXIT_CODE=%errorlevel%"

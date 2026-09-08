@@ -313,6 +313,31 @@ const migrations = [
         });
       });
     }
+  },
+  {
+    version: '008_create_user_feedback_table',
+    description: 'Create user_feedback table for hospital staff feedback and issue reporting',
+    up: (db, done) => {
+      db.run(`CREATE TABLE IF NOT EXISTS user_feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        reporter_name TEXT,
+        department TEXT,
+        category TEXT NOT NULL,
+        page_url TEXT NOT NULL,
+        comment TEXT NOT NULL,
+        rating INTEGER,
+        device_info TEXT,
+        screen_size TEXT,
+        status TEXT DEFAULT 'open',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );`, (err) => {
+        if (err) return done(err);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_user_feedback_status ON user_feedback(status);`, () => {
+          db.run(`CREATE INDEX IF NOT EXISTS idx_user_feedback_created_at ON user_feedback(created_at);`, done);
+        });
+      });
+    }
   }
 ];
 

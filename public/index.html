@@ -154,6 +154,12 @@
                 <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">ระบบจัดการรับประกันและส่งเคลมครุภัณฑ์ไอทีโรงพยาบาล</p>
               </div>
 
+              <!-- PDPA & Hospital Privacy Notice -->
+              <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 18px; font-size: 11.5px; line-height: 1.5; color: #b45309;">
+                🛡️ <strong>คำเตือน PDPA & ความปลอดภัยข้อมูลโรงพยาบาล:</strong><br>
+                ระบบนี้ใช้สำหรับจัดการครุภัณฑ์และส่งเคลมอุปกรณ์ไอที <u>ห้ามกรอกข้อมูลส่วนบุคคลของผู้ป่วย (HN, CID, ประวัติการรักษา)</u> ลงในระบบโดยเด็ดขาด
+              </div>
+
               <form id="login-form">
                 <div class="form-group">
                   <label for="login-username">ชื่อผู้ใช้งาน (Username)</label>
@@ -205,6 +211,9 @@
             <div class="scanner-input-group">
               <input type="text" id="ward-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัส เช่น CIT-2024-AIO-02">
               <button class="btn" id="ward-search-btn">🔍 ค้นหา</button>
+              <button type="button" class="btn btn-primary" onclick="openCameraBarcodeScanner('ward')" title="สแกนบาร์โค้ดด้วยกล้องมือถือ/แท็บเล็ต">
+                🏷️ สแกนกล้อง
+              </button>
               
               <input type="file" id="ward-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleWardPhotoCapture(event)">
               <button type="button" class="btn btn-secondary" onclick="document.getElementById('ward-camera-input').click()" title="ถ่ายภาพครุภัณฑ์หรือจุดชำรุด">
@@ -466,6 +475,9 @@
                 <div class="scanner-input-group">
                   <input type="text" id="it-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัส เช่น CIT-2022-TAB-03">
                   <button class="btn" id="it-search-btn">🔍 ค้นหา</button>
+                  <button type="button" class="btn btn-primary" onclick="openCameraBarcodeScanner('it')" title="สแกนบาร์โค้ดด้วยกล้องมือถือ/แท็บเล็ต">
+                    🏷️ สแกนกล้อง
+                  </button>
                 </div>
                 <div id="it-scanner-status" style="font-size: 11.5px; color: var(--primary); margin-top: 6px;">
                   ⚡ ระบบค้นหาอัตโนมัติเมื่อใช้หัวอ่านบาร์โค้ด (Auto-Scan Ready)
@@ -825,10 +837,11 @@
         <!-- ================================================================ -->
         <section id="config-section" class="view-section">
           <!-- Config Sub-Navigation Tabs Bar -->
-          <div class="card" style="padding: 8px 12px; margin-bottom: 20px; display: flex; gap: 6px;">
+          <div class="card" style="padding: 8px 12px; margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap;">
             <button type="button" class="btn btn-secondary btn-sm active config-tab-btn" data-tab="tab-cfg-settings">⚙️ ตั้งค่าระบบ</button>
             <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-users">👥 จัดการบัญชีผู้ใช้</button>
             <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-backup">💾 สำรองข้อมูล & ความปลอดภัย</button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-feedback" onclick="loadAdminFeedback()">💬 ข้อคิดเห็น & แจ้งปัญหา (<span id="feedback-count-badge">0</span>)</button>
           </div>
 
           <!-- CONFIG TAB 1: SYSTEM CONFIGS -->
@@ -904,6 +917,52 @@
                   💾 สำรองฐานข้อมูลทันที
                 </button>
                 <span id="backup-status-text" style="font-size: 12.5px; color: var(--text-muted);">พร้อมทำการสำรองข้อมูล</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONFIG TAB 4: USER FEEDBACK & BUG REPORTS -->
+          <div id="tab-cfg-feedback" class="config-tab-pane" style="display: none;">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">💬 รายการข้อเสนอแนะ & แจ้งปัญหาจากผู้ใช้ (Feedback & Bugs)</h3>
+                  <div class="card-subtitle">ข้อคิดเห็น ปัญหา หรือข้อเสนอแนะที่ส่งมาจากหน้าจอต่างๆ แบบ Real-time</div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminFeedback()">🔄 รีเฟรช</button>
+                  <a href="/api/feedback/export/csv" class="btn btn-secondary btn-sm" title="ดาวน์โหลดข้อเสนอแนะทั้งหมดเป็น Excel/CSV">📊 โหลด Excel (CSV)</a>
+                  <a href="/api/feedback/export/markdown" class="btn btn-secondary btn-sm" title="ดาวน์โหลดข้อเสนอแนะทั้งหมดเป็นไฟล์สรุป Markdown">📋 โหลด FEEDBACK_LOG.md</a>
+                </div>
+              </div>
+
+              <!-- Filter Pills -->
+              <div style="display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('all')">ทั้งหมด</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('bug')">🐞 ปัญหา (Bugs)</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('suggestion')">💡 ข้อเสนอแนะ</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('ux')">❓ ใช้งานยาก (UX)</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('open')">⏳ รอตรวจ (Open)</button>
+              </div>
+
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 70px;">เวลา</th>
+                      <th style="width: 110px;">ประเภท</th>
+                      <th style="width: 180px;">หน้าจอ / อุปกรณ์</th>
+                      <th>ข้อความ / รายละเอียด</th>
+                      <th style="width: 140px;">ผู้แจ้ง / แผนก</th>
+                      <th style="width: 80px;">คะแนน</th>
+                      <th style="width: 110px;">สถานะ</th>
+                      <th style="width: 110px;">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="feedback-table-body">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1552,6 +1611,19 @@
         <button class="modal-close-btn" aria-label="ปิด" onclick="document.getElementById('mobile-ip-modal').style.display='none'">✕</button>
       </div>
       <div class="modal-body">
+        <!-- Offline Scannable QR Code -->
+        <div style="text-align: center; margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+            📷 สแกน QR Code ด้วยกล้องมือถือ/iPhone เพื่อเข้าใช้งานทันที:
+          </label>
+          <div id="modal-qr-container" style="display: flex; justify-content: center; align-items: center; min-height: 170px; background: #f8fafc; border-radius: var(--radius-md); padding: 8px; border: 1px dashed var(--border-strong);">
+            <span style="font-size: 12px; color: var(--text-muted);">กำลังสร้าง QR Code...</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0;">
+            💡 ไม่ต้องพิมพ์ URL เอง — เปิดแอปกล้องบนมือถือแล้วส่องที่หน้าจอนี้ได้ทันที
+          </p>
+        </div>
+
         <div class="form-group">
           <label>URL สำหรับเปิดบนอุปกรณ์มือถือ:</label>
           <div style="display: flex; gap: 6px;">
@@ -1714,6 +1786,9 @@
     </div>
   </div>
 
+  <!-- Mobile Drawer Backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
+
   <!-- Toast Notification Stack -->
   <div id="toast-container" role="status" aria-live="polite"></div>
 
@@ -1728,11 +1803,19 @@
   <script src="js/admin.js?v=2.0.0"></script>
   <script src="js/auth.js?v=2.0.0"></script>
   <script src="js/app.js?v=2.0.0"></script>
+  <script src="js/qrcode_generator.js?v=2.0.0"></script>
+  <script src="js/feedback.js?v=2.0.0"></script>
 
   <script>
     function toggleMobileSidebar() {
       const sidebar = document.getElementById('app-sidebar');
-      if (sidebar) sidebar.classList.toggle('open');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar) {
+        sidebar.classList.toggle('open');
+        if (backdrop) {
+          backdrop.classList.toggle('active', sidebar.classList.contains('open'));
+        }
+      }
     }
   </script>
 </body>

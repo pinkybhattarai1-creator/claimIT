@@ -1,0 +1,296 @@
+/**
+ * ClaimIT Frontend - Instant Hospital Feedback & Bug Reporting Widget
+ * Provides a zero-friction floating feedback button and quick submission modal
+ * with automatic context capture (device, page, screen dimensions) and PDPA notice.
+ */
+
+(function() {
+  let selectedCategory = 'suggestion';
+  let selectedRating = 5;
+
+  function detectDeviceInfo() {
+    const ua = navigator.userAgent;
+    let device = 'Desktop PC';
+    if (/iPhone/i.test(ua)) device = 'Apple iPhone';
+    else if (/iPad/i.test(ua)) device = 'Apple iPad';
+    else if (/Android/i.test(ua)) device = 'Android Device';
+    else if (/Mobile/i.test(ua)) device = 'Mobile Browser';
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    return {
+      label: `${device} (${width}x${height})`,
+      screen: `${width}x${height}`
+    };
+  }
+
+  function getActivePageName() {
+    if (typeof state !== 'undefined' && state.activeView) {
+      if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมภาคสนาม (Ward/Staff)';
+      if (state.activeView === 'it') return 'ศูนย์จัดการเคลม & IT Hub';
+      if (state.activeView === 'config') return 'ตั้งค่าระบบ (Admin/Config)';
+      if (state.activeView === 'auth') return 'หน้าจอเข้าสู่ระบบ (Login)';
+    }
+    return window.location.pathname || 'หน้าหลัก';
+  }
+
+  function initFeedbackWidget() {
+    if (document.getElementById('claimit-feedback-btn')) return;
+
+    // 1. Inject Floating Action Button (FAB)
+    const fab = document.createElement('div');
+    fab.id = 'claimit-feedback-btn';
+    fab.innerHTML = `
+      <button type="button" class="feedback-fab-btn" onclick="openFeedbackModal()" title="ส่งความคิดเห็น / แจ้งปัญหาการใช้งาน">
+        <span class="feedback-fab-icon">💬</span>
+        <span class="feedback-fab-text">ติชม / แจ้งปัญหา</span>
+      </button>
+    `;
+    document.body.appendChild(fab);
+
+    // 2. Inject Feedback Modal
+    const modal = document.createElement('div');
+    modal.id = 'claimit-feedback-modal';
+    modal.className = 'modal-backdrop';
+    modal.style.display = 'none';
+    modal.innerHTML = `
+      <div class="modal-dialog feedback-modal-dialog">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px;">💬</span>
+            <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">ติชมหรือแจ้งปัญหา (Hospital Feedback)</h3>
+          </div>
+          <button type="button" class="modal-close-btn" onclick="closeFeedbackModal()" aria-label="ปิด">✕</button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px 20px;">
+          <!-- PDPA & Hospital Privacy Reminder -->
+          <div class="feedback-pdpa-alert">
+            🛡️ <strong>ข้อกำหนดความเป็นส่วนตัว (PDPA):</strong> กรุณาไม่กรอกข้อมูลส่วนบุคคลของผู้ป่วย (เช่น HN, เลขบัตรประชาชน หรือประวัติรักษา)
+          </div>
+
+          <!-- Category Selection -->
+          <div style="margin-top: 14px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              ประเภทข้อเสนอแนะ:
+            </label>
+            <div class="feedback-category-pills">
+              <button type="button" class="feedback-cat-pill" data-cat="suggestion" onclick="setFeedbackCategory('suggestion')">
+                💡 ข้อเสนอแนะ / อยากให้มี
+              </button>
+              <button type="button" class="feedback-cat-pill" data-cat="bug" onclick="setFeedbackCategory('bug')">
+                🐞 พบปัญหา / ปุ่มกดไม่ติด
+              </button>
+              <button type="button" class="feedback-cat-pill" data-cat="ux" onclick="setFeedbackCategory('ux')">
+                ❓ ใช้งานยาก / สับสน
+              </button>
+            </div>
+          </div>
+
+          <!-- Star Rating -->
+          <div style="margin-top: 14px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">
+              ระดับความพึงพอใจในจุดนี้:
+            </label>
+            <div class="feedback-stars-row" id="feedback-stars-container">
+              <span class="star active" data-val="1" onclick="setFeedbackRating(1)">★</span>
+              <span class="star active" data-val="2" onclick="setFeedbackRating(2)">★</span>
+              <span class="star active" data-val="3" onclick="setFeedbackRating(3)">★</span>
+              <span class="star active" data-val="4" onclick="setFeedbackRating(4)">★</span>
+              <span class="star active" data-val="5" onclick="setFeedbackRating(5)">★</span>
+              <span id="feedback-rating-label" style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">ดีมาก (5/5)</span>
+            </div>
+          </div>
+
+          <!-- Comment Textarea -->
+          <div style="margin-top: 14px;">
+            <label for="feedback-comment-input" style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              รายละเอียด (บอกเราได้เต็มที่เลยครับ): <span style="color: var(--danger);">*</span>
+            </label>
+            <textarea id="feedback-comment-input" class="form-control" rows="3" placeholder="เช่น 'ปุ่มบันทึกบนมือถือกดยาก', 'อยากให้มีช่องพิมพ์ชื่อหมวดหมู่เร็วขึ้น'..." style="resize: vertical; font-size: 14px;"></textarea>
+          </div>
+
+          <!-- Reporter Name (Optional) -->
+          <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" id="feedback-user-info-row">
+            <div>
+              <label for="feedback-reporter-name" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">ชื่อผู้แจ้ง (ระบุหรือไม่ก็ได้):</label>
+              <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น พยาบาลตึก 3 / ช่างไอที">
+            </div>
+            <div>
+              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">แผนก / ตึก:</label>
+              <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น OPD, ER, เภสัช">
+            </div>
+          </div>
+
+          <!-- Auto Context Footer -->
+          <div class="feedback-context-tag" id="feedback-context-display">
+            📍 กำลังส่งข้อมูลจาก: กำลังตรวจจับ...
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeFeedbackModal()">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" id="btn-submit-feedback" onclick="submitFeedback()" style="min-width: 120px;">
+            🚀 ส่งความคิดเห็น
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Initial default pill
+    setFeedbackCategory('suggestion');
+  }
+
+  function openFeedbackModal() {
+    initFeedbackWidget();
+    const modal = document.getElementById('claimit-feedback-modal');
+    if (!modal) return;
+
+    // Fill contextual information
+    const dev = detectDeviceInfo();
+    const page = getActivePageName();
+    const contextEl = document.getElementById('feedback-context-display');
+    if (contextEl) {
+      contextEl.innerHTML = `📍 <strong>หน้าจอ:</strong> ${page} &nbsp;|&nbsp; 📱 <strong>อุปกรณ์:</strong> ${dev.label}`;
+    }
+
+    // Pre-fill user if logged in
+    if (typeof state !== 'undefined' && state.user) {
+      const nameInput = document.getElementById('feedback-reporter-name');
+      const deptInput = document.getElementById('feedback-reporter-dept');
+      if (nameInput && !nameInput.value) nameInput.value = state.user.name || state.user.username || '';
+      if (deptInput && !deptInput.value) deptInput.value = state.user.department || '';
+    }
+
+    modal.style.display = 'flex';
+    const commentInput = document.getElementById('feedback-comment-input');
+    if (commentInput) {
+      setTimeout(() => commentInput.focus(), 100);
+    }
+  }
+  window.openFeedbackModal = openFeedbackModal;
+
+  function closeFeedbackModal() {
+    const modal = document.getElementById('claimit-feedback-modal');
+    if (modal) modal.style.display = 'none';
+  }
+  window.closeFeedbackModal = closeFeedbackModal;
+
+  function setFeedbackCategory(cat) {
+    selectedCategory = cat;
+    const pills = document.querySelectorAll('.feedback-cat-pill');
+    pills.forEach(p => {
+      if (p.getAttribute('data-cat') === cat) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+  }
+  window.setFeedbackCategory = setFeedbackCategory;
+
+  function setFeedbackRating(val) {
+    selectedRating = val;
+    const stars = document.querySelectorAll('#feedback-stars-container .star');
+    stars.forEach((s, idx) => {
+      if (idx < val) s.classList.add('active');
+      else s.classList.remove('active');
+    });
+
+    const labels = {
+      1: 'ปรับปรุงด่วน (1/5)',
+      2: 'ยังใช้งานยาก (2/5)',
+      3: 'พอใช้ได้ (3/5)',
+      4: 'ใช้งานดี (4/5)',
+      5: 'ยอดเยี่ยม สะดวกมาก (5/5)'
+    };
+    const labelEl = document.getElementById('feedback-rating-label');
+    if (labelEl) labelEl.textContent = labels[val] || `${val}/5`;
+  }
+  window.setFeedbackRating = setFeedbackRating;
+
+  async function submitFeedback() {
+    const commentInput = document.getElementById('feedback-comment-input');
+    const comment = commentInput ? commentInput.value.trim() : '';
+
+    if (!comment) {
+      if (typeof showToast === 'function') {
+        showToast('กรุณากรอกข้อความก่อนส่งความคิดเห็นครับ', 'warning');
+      } else {
+        alert('กรุณากรอกข้อความก่อนส่งความคิดเห็น');
+      }
+      if (commentInput) commentInput.focus();
+      return;
+    }
+
+    const nameInput = document.getElementById('feedback-reporter-name');
+    const deptInput = document.getElementById('feedback-reporter-dept');
+    const reporter_name = nameInput ? nameInput.value.trim() : '';
+    const department = deptInput ? deptInput.value.trim() : '';
+
+    const dev = detectDeviceInfo();
+    const page_url = window.location.pathname + (window.location.hash || '');
+
+    const btn = document.getElementById('btn-submit-feedback');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ กำลังส่ง...';
+    }
+
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (typeof getAuthHeaders === 'function') {
+        const auth = getAuthHeaders();
+        if (auth.Authorization) headers.Authorization = auth.Authorization;
+      }
+
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          category: selectedCategory,
+          page_url: `${getActivePageName()} (${page_url})`,
+          comment,
+          rating: selectedRating,
+          reporter_name: reporter_name || undefined,
+          department: department || undefined,
+          device_info: dev.label,
+          screen_size: dev.screen
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'ส่งข้อมูลไม่สำเร็จ');
+
+      closeFeedbackModal();
+      if (commentInput) commentInput.value = '';
+
+      if (typeof showToast === 'function') {
+        showToast('🎉 ขอบคุณสำหรับข้อเสนอแนะ! บันทึกส่งทีมไอทีเรียบร้อยแล้ว', 'success', 4000);
+      } else {
+        alert('ขอบคุณสำหรับข้อเสนอแนะ! บันทึกข้อมูลเรียบร้อยแล้ว');
+      }
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      if (typeof showToast === 'function') {
+        showToast(err.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล', 'error');
+      } else {
+        alert(err.message || 'ส่งข้อมูลไม่สำเร็จ');
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 ส่งความคิดเห็น';
+      }
+    }
+  }
+  window.submitFeedback = submitFeedback;
+
+  // Auto-mount widget once DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFeedbackWidget);
+  } else {
+    initFeedbackWidget();
+  }
+})();

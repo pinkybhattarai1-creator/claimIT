@@ -125,6 +125,7 @@ app.use('/api/evidence', require('./routes/evidence'));
 app.use('/api/export', require('./routes/export'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api', require('./routes/audit'));
 const { performBackup } = require('./scripts/backup');
 const { verifyToken, adminOnly } = require('./middleware/auth');
@@ -192,7 +193,7 @@ if (require.main === module) {
       // 9. Automatically open browser on startup when launched directly (npm start / node server.js)
       if (!process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
         const openUrl = `http://${hostLabel}:${PORT}`;
-        const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+        const startCmd = process.platform === 'win32' ? `start "" "${openUrl}"` :
                          process.platform === 'darwin' ? `open ${openUrl}` :
                          `xdg-open ${openUrl}`;
         try {
@@ -214,7 +215,7 @@ if (require.main === module) {
       console.error(`\n[ClaimIT Warning] ⚠️ พอร์ต ${PORT} กำลังถูกใช้งานอยู่ (Port ${PORT} is already in use).`);
       console.log(`[ClaimIT Info] อาจมีหน้าต่าง ClaimIT เปิดทำงานอยู่แล้ว สามารถเปิดใช้งานได้ที่: ${openUrl}\n`);
       if (!process.argv.includes('--no-open') && process.env.NODE_ENV !== 'test') {
-        const startCmd = process.platform === 'win32' ? `start ${openUrl}` :
+        const startCmd = process.platform === 'win32' ? `start "" "${openUrl}"` :
                          process.platform === 'darwin' ? `open ${openUrl}` :
                          `xdg-open ${openUrl}`;
         try {

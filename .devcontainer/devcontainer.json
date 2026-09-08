@@ -1,0 +1,13 @@
+{
+  "name": "ClaimIT Hospital System",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "forwardPorts": [8847],
+  "portsAttributes": {
+    "8847": {
+      "label": "ClaimIT Application",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "node server.js"
+}

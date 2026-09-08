@@ -250,6 +250,22 @@ function initializeDatabase() {
       sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // 11. User Feedback Table (Hospital Tester & Staff Feedback)
+    db.run(`CREATE TABLE IF NOT EXISTS user_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      reporter_name TEXT,
+      department TEXT,
+      category TEXT NOT NULL,
+      page_url TEXT NOT NULL,
+      comment TEXT NOT NULL,
+      rating INTEGER,
+      device_info TEXT,
+      screen_size TEXT,
+      status TEXT DEFAULT 'open',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // Create Indexes
     db.run(`CREATE INDEX IF NOT EXISTS idx_mains_asset_tag ON mains(asset_tag);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_mains_serial_no ON mains(serial_no);`);
@@ -257,6 +273,8 @@ function initializeDatabase() {
     db.run(`CREATE INDEX IF NOT EXISTS idx_claim_assets_claim_id ON claim_assets(claim_id);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_evidence_storage_key ON evidence(storage_key);`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_move_log_asset_tag ON move_log(asset_tag);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_user_feedback_status ON user_feedback(status);`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_user_feedback_created_at ON user_feedback(created_at);`);
 
     // Apply migrations
     migrateColumns();

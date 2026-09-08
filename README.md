@@ -2,6 +2,24 @@
 **ระบบติดตามรับประกันและส่งเคลมครุภัณฑ์ไอทีโรงพยาบาล**  
 *Hospital IT Warranty & RMA Claim Management System*
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new)
+
+---
+
+## 🚀 เข้าใช้งานออนไลน์ทันทีโดยไม่ต้องติดตั้งโปรแกรม (Zero-Download Cloud Usage)
+สำหรับเจ้าหน้าที่โรงพยาบาล หรือผู้ทดสอบที่ไม่มี Node.js / Git / nodemon:
+1. **เปิดผ่าน Cloud (Render / Railway)**: กดปุ่ม **Deploy to Render** ด้านบนเพื่อสร้างเว็บแอปพลิเคชันออนไลน์ `https://...` ได้ฟรีทันที ผู้ใช้งานเปิดผ่านมือถือหรือคอมพิวเตอร์ได้ทันที
+2. **เปิดผ่าน GitHub Codespaces**: กดปุ่ม **Open in GitHub Codespaces** เพื่อรันระบบบนเบราว์เซอร์ของ GitHub โดยตรง ระบบจะเปิดหน้าต่าง ClaimIT ให้โดยอัตโนมัติ ไม่ต้องดาวน์โหลดใดๆ ลงเครื่อง
+
+---
+
+## 📋 สมุดบันทึกข้อเสนอแนะ & สิ่งที่ต้องตรวจสอบในไฟล์เดียว (FEEDBACK_LOG.md)
+เมื่อผู้ใช้งานส่งความคิดเห็นหรือแจ้งปัญหาผ่านปุ่ม **`💬 ติชม / แจ้งปัญหา`** บนหน้าจอ:
+- ระบบจะบันทึกข้อความทั้งหมดลงในไฟล์ **[`FEEDBACK_LOG.md`](./FEEDBACK_LOG.md)** โดยอัตโนมัติแบบ Real-time
+- บันทึกเป็น Action Checklist (`- [ ]`) ให้ผู้ดูแลระบบเปิดเช็คความเรียบร้อยและติ๊กถูก (`- [x]`) ได้ในไฟล์เดียว
+- สามารถดาวน์โหลดรายงานทั้งหมดเป็นไฟล์ **Excel (.csv)** หรือ **Markdown** ได้จากหน้า Admin Portal
+
 ---
 
 ## 📌 ภาพรวมระบบ (Overview)
