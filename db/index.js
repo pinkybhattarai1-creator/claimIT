@@ -371,6 +371,10 @@ function initializeDatabase() {
 
         console.log('ClaimIT database initialized with core tables and realistic hospital presets.');
       }
+
+      // Auto-populate synthetic mock hospital test assets if needed
+      const { seedRealisticMockData } = require('./mock_seed');
+      seedRealisticMockData(db);
     });
   });
 }
