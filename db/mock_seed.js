@@ -314,55 +314,55 @@ function seedRealisticMockData(db, callback) {
         }
       ];
 
-      // Insert mock assets with dynamic SQL expressions
-      mockAssets.forEach((a) => {
-        db.run(`
-          INSERT INTO mains (
-            asset_tag, category, brand, model, serial_no, device_name, location,
-            warranty_start, warranty_end, sanitization_required, status,
-            purchase_price, warranty_months, expected_lifespan_months, salvage_status
-          ) VALUES (
-            '${a.asset_tag}', '${a.category}', '${a.brand}', '${a.model}', '${a.serial_no}', '${a.device_name}', '${a.location}',
-            ${a.warranty_start}, ${a.warranty_end}, ${a.sanitization_required}, '${a.status}',
-            ${a.purchase_price}, ${a.warranty_months}, ${a.expected_lifespan_months}, '${a.salvage_status}'
-          )
-        `);
-      });
+      // Insert all mock assets in a single atomic statement
+      const valuesSql = mockAssets.map(a => `(
+        '${a.asset_tag}', '${a.category}', '${a.brand}', '${a.model}', '${a.serial_no}', '${a.device_name}', '${a.location}',
+        ${a.warranty_start}, ${a.warranty_end}, ${a.sanitization_required}, '${a.status}',
+        ${a.purchase_price}, ${a.warranty_months}, ${a.expected_lifespan_months}, '${a.salvage_status}'
+      )`).join(',\n');
 
-      // Insert 3 Mock Claims
       db.run(`
-        INSERT INTO claims (
-          claim_number, vendor_name, vendor_rma_number, claim_type, viability_score, viability_status,
-          status, claim_date, expected_return_date, notes, created_by, confirmed_by
+        INSERT INTO mains (
+          asset_tag, category, brand, model, serial_no, device_name, location,
+          warranty_start, warranty_end, sanitization_required, status,
+          purchase_price, warranty_months, expected_lifespan_months, salvage_status
         ) VALUES 
-        (
-          'CLM-2026-001', 'Apple Authorized Service Provider', 'RMA-APL-88214', 'REPAIR', 68.5, 'VIABLE',
-          'IN_PROGRESS', date('now', '-5 days'), date('now', '+9 days'), 'หน้าจอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม ส่งศูนย์ตรวจเช็กเปลี่ยนหน้าจอและแบตเตอรี่', 'staff', 'admin'
-        ),
-        (
-          'CLM-2026-002', 'TSC Thailand Service Center', 'RMA-TSC-3091', 'WARRANTY', 85.0, 'VIABLE',
-          'PENDING', date('now', '-1 days'), date('now', '+14 days'), 'หัวพิมพ์สึกหรอบาร์โค้ดขาดตอน อยู่ในระยะรับประกัน รอรถขนส่งเข้ารับอุปกรณ์', 'staff', 'admin'
-        ),
-        (
-          'CLM-2026-003', 'Dell ProSupport Thailand', 'RMA-DELL-99412', 'WARRANTY', 92.0, 'VIABLE',
-          'COMPLETED', date('now', '-30 days'), date('now', '-20 days'), 'เมนบอร์ดชำรุด ช่าง On-site เข้าเปลี่ยนบอร์ดใหม่เรียบร้อย ทดสอบ Diagnostics ผ่าน 100%', 'admin', 'admin'
-        )
-      `, function(err) {
-        if (err) console.error('INSERT claims error:', err);
-        // Link Claim Assets
-        db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e, c1) => {
-          if (c1) {
-            db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2022-TAB-03', 'ล้างข้อมูลเรียบร้อย (Factory Reset)', 'Pending Pickup')`, [c1.id], (e) => {
-              if (e) console.error('INSERT claim_assets 1 error:', e);
-            });
-          }
-        });
-        db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-002'", (e, c2) => {
-          if (c2) {
-            db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-PRN-02', 'ไม่ต้องล้างข้อมูล (เครื่องพิมพ์)', 'Pending Pickup')`, [c2.id], (e) => {
-              if (e) console.error('INSERT claim_assets 2 error:', e);
-            });
-          }
+        ${valuesSql}
+      `, function(mainsErr) {
+        if (mainsErr) console.error('INSERT mains error:', mainsErr);
+
+        // Insert 3 Mock Claims only after all mains are guaranteed committed
+        db.run(`
+          INSERT INTO claims (
+            claim_number, vendor_name, vendor_rma_number, claim_type, viability_score, viability_status,
+            status, claim_date, expected_return_date, notes, created_by, confirmed_by
+          ) VALUES 
+          (
+            'CLM-2026-001', 'Apple Authorized Service Provider', 'RMA-APL-88214', 'REPAIR', 68.5, 'VIABLE',
+            'IN_PROGRESS', date('now', '-5 days'), date('now', '+9 days'), 'หน้าจอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม ส่งศูนย์ตรวจเช็กเปลี่ยนหน้าจอและแบตเตอรี่', 'staff', 'admin'
+          ),
+          (
+            'CLM-2026-002', 'TSC Thailand Service Center', 'RMA-TSC-3091', 'WARRANTY', 85.0, 'VIABLE',
+            'PENDING', date('now', '-1 days'), date('now', '+14 days'), 'หัวพิมพ์สึกหรอบาร์โค้ดขาดตอน อยู่ในระยะรับประกัน รอรถขนส่งเข้ารับอุปกรณ์', 'staff', 'admin'
+          ),
+          (
+            'CLM-2026-003', 'Dell ProSupport Thailand', 'RMA-DELL-99412', 'WARRANTY', 92.0, 'VIABLE',
+            'COMPLETED', date('now', '-30 days'), date('now', '-20 days'), 'เมนบอร์ดชำรุด ช่าง On-site เข้าเปลี่ยนบอร์ดใหม่เรียบร้อย ทดสอบ Diagnostics ผ่าน 100%', 'admin', 'admin'
+          )
+        `, function(claimsErr) {
+          if (claimsErr) console.error('INSERT claims error:', claimsErr);
+
+          // Link Claim Assets
+          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e, c1) => {
+            if (c1) {
+              db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2022-TAB-03', 'ล้างข้อมูลเรียบร้อย (Factory Reset)', 'Pending Pickup')`, [c1.id]);
+            }
+          });
+          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-002'", (e, c2) => {
+            if (c2) {
+              db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-PRN-02', 'ไม่ต้องล้างข้อมูล (เครื่องพิมพ์)', 'Pending Pickup')`, [c2.id]);
+            }
+          });
         });
       });
 

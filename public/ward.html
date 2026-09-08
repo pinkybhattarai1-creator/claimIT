@@ -136,6 +136,9 @@
           <button type="button" class="btn btn-secondary btn-sm" id="btn-export-excel-header">
             📊 ส่งออก Excel
           </button>
+          <button type="button" class="btn btn-danger btn-sm" id="btn-topbar-logout" onclick="logout()" style="display: none; padding: 4px 10px; font-size: 11.5px; font-weight: 600;" title="ออกจากระบบเพื่อเปลี่ยนบัญชี">
+            🚪 ออกจากระบบ
+          </button>
         </div>
       </header>
 
@@ -173,6 +176,19 @@
                 <button type="submit" class="btn btn-lg" style="width: 100%; margin-top: 10px;">
                   🔐 เข้าสู่ระบบ (Sign In)
                 </button>
+              
+                <!-- 1-Click Quick Role Switch for Testing -->
+                <div style="margin-top: 14px; padding: 10px 12px; background: rgba(56, 189, 248, 0.08); border-radius: var(--radius-md); text-align: center; border: 1px dashed rgba(56, 189, 248, 0.35);">
+                  <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">⚡ สลับบทบาทเพื่อทดสอบระบบด่วน (1-Click):</div>
+                  <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="quickLoginAs('admin')" style="font-size: 11px; padding: 5px 12px; cursor: pointer;">
+                      👑 แอดมิน (admin)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="quickLoginAs('staff')" style="font-size: 11px; padding: 5px 12px; cursor: pointer;">
+                      🩺 เจ้าหน้าที่ (staff)
+                    </button>
+                  </div>
+                </div>
               </form>
 
               <!-- Account Options / Forgot Password -->

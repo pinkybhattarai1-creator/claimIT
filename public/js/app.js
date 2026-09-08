@@ -10,15 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Check local storage for existing session
-  const storedUser = localStorage.getItem('claimit_user');
+  // Clear any legacy persistent login from localStorage so shared terminals don't get stuck
+  try {
+    localStorage.removeItem('claimit_user');
+  } catch (e) {}
+
+  // Check sessionStorage for current active browser tab only
+  const storedUser = sessionStorage.getItem('claimit_user');
   if (storedUser) {
     try {
       state.user = JSON.parse(storedUser);
       showUserNavigation();
       if (typeof startSessionMonitor === 'function') startSessionMonitor();
     } catch {
-      localStorage.removeItem('claimit_user');
+      sessionStorage.removeItem('claimit_user');
       state.user = null;
     }
   }
