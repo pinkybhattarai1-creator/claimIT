@@ -10,59 +10,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Clear any legacy persistent login from localStorage so shared terminals don't get stuck
+  // Wipe any stored session on page load so it NEVER traps users in previous accounts
   try {
+    sessionStorage.removeItem('claimit_user');
     localStorage.removeItem('claimit_user');
   } catch (e) {}
+  state.user = null;
 
-  // Check sessionStorage for current active browser tab only
-  const storedUser = sessionStorage.getItem('claimit_user');
-  if (storedUser) {
-    try {
-      state.user = JSON.parse(storedUser);
-      showUserNavigation();
-      if (typeof startSessionMonitor === 'function') startSessionMonitor();
-    } catch {
-      sessionStorage.removeItem('claimit_user');
-      state.user = null;
-    }
-  }
-
-  // If user is not logged in, always show login form cleanly
-  const path = (window.location.pathname || '').toLowerCase();
-  let defaultView = 'auth';
-
-  if (!state.user) {
-    defaultView = 'auth';
-  } else {
-    // Authenticated user: navigate to requested portal
-    if (path.includes('config') || path.includes('admin')) {
-      defaultView = (state.user.role === 'admin') ? 'config' : 'ward';
-    } else if (path.includes('it')) {
-      defaultView = (state.user.role === 'admin') ? 'it' : 'ward';
-    } else if (path.includes('ward') || path.includes('staff')) {
-      defaultView = 'ward';
-    } else {
-      defaultView = (state.user.role === 'admin') ? 'it' : 'ward';
-    }
-  }
-
-  switchView(defaultView, false);
+  // Always show clean authentication / login screen
+  switchView('auth', false);
 
   // Set up all event listeners across modules
   setupEventListeners();
 
   // Listen for browser forward/back buttons
   window.addEventListener('popstate', (e) => {
-    if (e.state && e.state.view) {
+    if (e.state && e.state.view && state.user) {
       switchView(e.state.view, false);
+    } else {
+      switchView('auth', false);
     }
   });
-
-  // Initial data sync if logged in
-  if (state.user) {
-    refreshData();
-  }
 }
 
 // Routing & View Switcher with URL Path Synchronization
@@ -111,7 +79,17 @@ function switchView(viewName, pushHistory = true) {
     authSection.classList.add('active');
     navTabs.style.display = 'none';
     userBadge.style.display = 'none';
+    const appSidebar = document.getElementById('app-sidebar');
+    if (appSidebar) {
+      appSidebar.style.display = 'none';
+      appSidebar.classList.remove('open');
+    }
+    const topbarLogout = document.getElementById('btn-topbar-logout');
+    if (topbarLogout) topbarLogout.style.display = 'none';
     updateBreadcrumb('', '');
+    if (window.history && window.history.replaceState) {
+      try { window.history.replaceState({}, '', '/'); } catch {}
+    }
   } else if (viewName === 'ward') {
     wardSection.classList.add('active');
     navTabs.style.display = 'flex';
