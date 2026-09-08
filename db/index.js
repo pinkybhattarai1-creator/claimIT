@@ -321,11 +321,14 @@ function initializeDatabase() {
     standardUsers.forEach(u => {
       db.run(
         `INSERT INTO users (username, password, role, name, department, is_active, must_change_password)
-         SELECT ?, ?, ?, ?, ?, 1, 1
+         SELECT ?, ?, ?, ?, ?, 1, 0
          WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)`,
         [u[0], u[1], u[2], u[3], u[4], u[0]]
       );
     });
+
+    // Ensure default test accounts never force password change
+    db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff');");
 
     // Eliminate excess default demo accounts if any remain
     db.run("DELETE FROM users WHERE username IN ('admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4') AND token_version = 0;");

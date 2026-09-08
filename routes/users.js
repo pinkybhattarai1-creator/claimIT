@@ -38,7 +38,7 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
   }
 
   const hashedPassword = hashPassword(password);
-  const mustChange = req.body.must_change_password !== undefined ? (req.body.must_change_password ? 1 : 0) : 1;
+  const mustChange = req.body.must_change_password !== undefined ? (req.body.must_change_password ? 1 : 0) : 0;
   db.run(`INSERT INTO users (username, password, role, name, department, is_active, is_deleted, token_version, must_change_password) VALUES (?, ?, ?, ?, ?, 1, 0, 0, ?)`,
     [username, hashedPassword, role, name, department, mustChange],
     function(err) {

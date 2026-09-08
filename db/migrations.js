@@ -226,8 +226,8 @@ const migrations = [
     description: 'Enforce must_change_password on default accounts, add evidence.doc_type, move_log timestamp index, move_log_archive, and password_resets',
     up: (db, done) => {
       db.serialize(() => {
-        // 1. Enforce must_change_password on seeded default accounts that have not reset yet
-        db.run(`UPDATE users SET must_change_password = 1 WHERE username IN ('admin', 'staff', 'admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4') AND token_version = 0;`);
+        // 1. Keep must_change_password = 0 on seeded default test accounts
+        db.run(`UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff', 'admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4');`);
 
         // 2. Add doc_type column to evidence table if not present
         db.all("PRAGMA table_info(evidence)", (err, rows) => {
@@ -352,6 +352,13 @@ const migrations = [
           done();
         }
       });
+    }
+  },
+  {
+    version: '010_disable_forced_password_change_for_test_accounts',
+    description: 'Disable must_change_password for standard test accounts (admin, staff)',
+    up: (db, done) => {
+      db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff', 'admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4');", done);
     }
   }
 ];

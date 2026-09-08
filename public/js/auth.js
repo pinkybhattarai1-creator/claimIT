@@ -24,7 +24,9 @@ async function handleLogin(e) {
       showUserNavigation();
       startSessionMonitor();
       
-      if (user.must_change_password) {
+      // Never force password change for default test accounts (admin, staff)
+      const isTestAccount = (user.username === 'admin' || user.username === 'staff');
+      if (user.must_change_password && !isTestAccount) {
         openChangePasswordModal(true);
         showToast('⚠️ บัญชีของคุณจำเป็นต้องตั้งรหัสผ่านใหม่ก่อนเริ่มใช้งาน', 'warning', 6000);
       } else {
@@ -392,8 +394,11 @@ function openChangePasswordModal(isForced = false) {
   if (form) form.reset();
 
   if (notice) notice.style.display = isForced ? 'block' : 'none';
-  if (closeBtn) closeBtn.style.display = isForced ? 'none' : 'block';
-  if (cancelBtn) cancelBtn.style.display = isForced ? 'none' : 'inline-block';
+  if (closeBtn) closeBtn.style.display = 'block';
+  if (cancelBtn) {
+    cancelBtn.style.display = 'inline-block';
+    cancelBtn.textContent = isForced ? 'ข้ามไปก่อน (Skip)' : 'ยกเลิก';
+  }
 
   // If opening from profile modal, hide profile modal
   const profileModal = document.getElementById('profile-modal');
@@ -406,12 +411,16 @@ function openChangePasswordModal(isForced = false) {
 window.openChangePasswordModal = openChangePasswordModal;
 
 function closeChangePasswordModal() {
-  if (isPasswordChangeForced) {
-    showToast('จำเป็นต้องเปลี่ยนรหัสผ่านเริ่มต้นก่อนเริ่มใช้งาน', 'warning');
-    return;
-  }
   const modal = document.getElementById('change-password-modal');
   if (modal) modal.style.display = 'none';
+  if (isPasswordChangeForced) {
+    isPasswordChangeForced = false;
+    if (state.user?.role === 'admin') {
+      switchView('it');
+    } else {
+      switchView('ward');
+    }
+  }
 }
 window.closeChangePasswordModal = closeChangePasswordModal;
 
