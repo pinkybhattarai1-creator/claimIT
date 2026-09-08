@@ -224,9 +224,9 @@
             <!-- Quick Presets -->
             <div class="preset-chips-row" style="margin-top: 10px;">
               <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">📌 ลองใช้รหัสตัวอย่าง:</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (OPD มีประกัน)</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (ICU ชำรุด/ล้างข้อมูล)</span>
-              <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (วอร์ด 20)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (Staff มีประกัน)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (Staff จุดบริการ ชำรุด)</span>
+              <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (Staff จุดสแกน)</span>
               <div id="ward-camera-status-tag" style="display: none; align-items: center; gap: 4px; margin-left: auto; font-size: 11.5px; color: var(--success); background: var(--success-light); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--success-border);">
                 📷 แนบรูปภาพแล้ว
                 <span style="cursor: pointer; color: var(--danger);" onclick="clearWardPhoto()" title="ลบภาพ">✕</span>
@@ -501,10 +501,10 @@
                 <div style="margin-top: 20px;">
                   <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">📌 ลองใช้รหัสตัวอย่าง:</div>
                   <div class="preset-chips-row">
-                    <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (OPD มีประกัน)</span>
-                    <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (ICU ชำรุด/ล้างข้อมูล)</span>
-                    <span class="preset-chip" onclick="selectPreset('CIT-2023-AIO-11')">⚠️ Dell OptiPlex (Lab ใกล้หมดประกัน)</span>
-                    <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (วอร์ด 20)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2024-AIO-02')">💻 HP ProOne (Staff มีประกัน)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (Staff จุดบริการ ชำรุด)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2023-AIO-11')">⚠️ Dell OptiPlex (Staff IT ใกล้หมดประกัน)</span>
+                    <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (Staff จุดสแกน)</span>
                     <span class="preset-chip" onclick="selectPreset('041309040002')">📦 Acer Notebook (รอจำหน่าย EOL)</span>
                   </div>
                 </div>
@@ -1102,8 +1102,8 @@
               </select>
             </div>
             <div class="form-group" style="margin-bottom: 8px;">
-              <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก *</label>
-              <input type="text" id="new-location" class="form-control" placeholder="เช่น แผนกผู้ป่วยนอก (OPD), ห้องยา, ER" required style="padding: 5px 8px; font-size: 12.5px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก (Staff / Dept) *</label>
+              <input type="text" id="new-location" class="form-control" placeholder="เช่น Staff Room, IT Server Room, จุดบริการ Staff" required style="padding: 5px 8px; font-size: 12.5px;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -1280,8 +1280,8 @@
             <input type="text" id="new-fullname" class="form-control" placeholder="ระบุชื่อ-นามสกุล" required>
           </div>
           <div class="form-group">
-            <label>แผนก / ฝ่าย *</label>
-            <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น แผนกผู้ป่วยนอก (OPD), ห้องยา, IT" required>
+            <label>ฝ่าย / แผนก (Staff / Dept) *</label>
+            <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น Staff, IT Support" required>
           </div>
           <div class="form-group">
             <label>สิทธิ์การใช้งาน (Role) *</label>
@@ -1357,7 +1357,7 @@
           </div>
           <div class="form-group">
             <label>ชื่อการตั้งค่า (Value) *</label>
-            <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, แผนกยา" required>
+            <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, Staff Room" required>
           </div>
           <div class="form-group">
             <label>รายละเอียด / ขั้นตอนการส่งเคลม</label>

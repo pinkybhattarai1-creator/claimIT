@@ -655,7 +655,7 @@ async function requestStaffPM() {
       body: JSON.stringify({
         asset_tag: 'PM-CYCLE-6M',
         department_name: dept,
-        floor: 'Hospital Ward',
+        floor: 'Staff Area',
         status: 'Pending PM Inspection',
         moved_direction: 'IN',
         details: `[คำขอตรวจเช็คบำรุงรักษาตามรอบ 6 เดือน] แผนก ${dept} แจ้งขอรับการตรวจสภาพครุภัณฑ์ประจำรอบ 6 เดือน`
@@ -686,7 +686,7 @@ async function requestLoanerUnit(unitType) {
       body: JSON.stringify({
         asset_tag: 'LOANER-REQ',
         department_name: dept,
-        floor: 'Hospital Ward',
+        floor: 'Staff Area',
         status: 'Requested Loaner',
         moved_direction: 'OUT',
         details: `[ขอยืมอุปกรณ์สำรองฉุกเฉิน] แผนก ${dept} ขอยืม ${unitType} ชั่วคราวเนื่องจากอุปกรณ์หลักขัดข้อง`

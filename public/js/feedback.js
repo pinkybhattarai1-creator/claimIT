@@ -126,11 +126,11 @@
           <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" id="feedback-user-info-row">
             <div>
               <label for="feedback-reporter-name" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">ชื่อผู้แจ้ง (ระบุหรือไม่ก็ได้):</label>
-              <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น เจ้าหน้าที่แผนกยา / ช่างไอที / แอดมิน">
+              <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น Staff / ช่างเทคนิค / IT Admin">
             </div>
             <div>
-              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">แผนก / จุดบริการ:</label>
-              <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น OPD, แผนกยา, การเงิน, ไอที">
+              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">ฝ่าย / แผนก (Staff / Dept):</label>
+              <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น Staff, IT Support">
             </div>
           </div>
 
