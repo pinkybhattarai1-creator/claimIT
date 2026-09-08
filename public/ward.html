@@ -335,7 +335,7 @@
                 <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('เครื่องพิมพ์ฉลากยา/สติกเกอร์สำรอง')" style="padding: 14px; text-align: center;">
                   🖨️ ขอยืมเครื่องพิมพ์สติกเกอร์
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('แท็บเล็ต iPad สำหรับงาน Ward สำรอง')" style="padding: 14px; text-align: center;">
+                <button type="button" class="btn btn-secondary" onclick="requestLoanerUnit('แท็บเล็ต iPad สำหรับงานบริการสำรอง')" style="padding: 14px; text-align: center;">
                   📱 ขอยืมแท็บเล็ตสำรอง
                 </button>
               </div>
@@ -1103,7 +1103,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 8px;">
               <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก *</label>
-              <input type="text" id="new-location" class="form-control" placeholder="เช่น Ward 20, ER" required style="padding: 5px 8px; font-size: 12.5px;">
+              <input type="text" id="new-location" class="form-control" placeholder="เช่น แผนกผู้ป่วยนอก (OPD), ห้องยา, ER" required style="padding: 5px 8px; font-size: 12.5px;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -1280,13 +1280,13 @@
             <input type="text" id="new-fullname" class="form-control" placeholder="ระบุชื่อ-นามสกุล" required>
           </div>
           <div class="form-group">
-            <label>แผนก / หอผู้ป่วย *</label>
-            <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น Ward 20, IT" required>
+            <label>แผนก / ฝ่าย *</label>
+            <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น แผนกผู้ป่วยนอก (OPD), ห้องยา, IT" required>
           </div>
           <div class="form-group">
             <label>สิทธิ์การใช้งาน (Role) *</label>
             <select id="new-user-role" class="form-control" required>
-              <option value="staff">Staff (ช่างเทคนิคประจำตึก / ภาคสนาม)</option>
+              <option value="staff">Staff (ช่างเทคนิค / เจ้าหน้าที่)</option>
               <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
             </select>
           </div>
@@ -1318,13 +1318,13 @@
             <input type="text" id="edit-user-fullname" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>แผนก / หอผู้ป่วย (Department) *</label>
+            <label>แผนก / ฝ่าย (Department) *</label>
             <input type="text" id="edit-user-department" class="form-control" required>
           </div>
           <div class="form-group">
             <label>สิทธิ์การใช้งาน (Role) *</label>
             <select id="edit-user-role" class="form-control" required>
-              <option value="staff">Staff (ช่างเทคนิคประจำตึก / ภาคสนาม)</option>
+              <option value="staff">Staff (ช่างเทคนิค / เจ้าหน้าที่)</option>
               <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
             </select>
           </div>
@@ -1357,7 +1357,7 @@
           </div>
           <div class="form-group">
             <label>ชื่อการตั้งค่า (Value) *</label>
-            <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, Ward 20" required>
+            <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, แผนกยา" required>
           </div>
           <div class="form-group">
             <label>รายละเอียด / ขั้นตอนการส่งเคลม</label>

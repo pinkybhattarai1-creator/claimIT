@@ -15,8 +15,8 @@ async function updateAssetStatus(newStatus, customDetails) {
     status: newStatus,
     location: state.selectedAsset.location,
     action_by_username: state.user ? state.user.username : 'staff',
-    department_name: state.user ? state.user.department : 'Ward 20',
-    floor: state.activeView === 'ward' ? 'Fl 2' : 'Fl 1',
+    department_name: state.user ? state.user.department : 'แผนกผู้ป่วยนอก (OPD)',
+    floor: state.user?.floor || 'Fl 1',
     details: customDetails ? `แจ้งชำรุด: ${customDetails}` : undefined
   };
   

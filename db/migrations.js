@@ -338,6 +338,21 @@ const migrations = [
         });
       });
     }
+  },
+  {
+    version: '009_add_admin_note_to_user_feedback',
+    description: 'Add admin_note column to user_feedback for admin reply comments and internal remarks',
+    up: (db, done) => {
+      db.all("PRAGMA table_info(user_feedback)", (err, rows) => {
+        if (err) return done(err);
+        const hasCol = (rows || []).some(r => r.name === 'admin_note');
+        if (!hasCol) {
+          db.run("ALTER TABLE user_feedback ADD COLUMN admin_note TEXT", done);
+        } else {
+          done();
+        }
+      });
+    }
   }
 ];
 

@@ -408,9 +408,14 @@ function renderAdminFeedbackTable() {
     const reporter = `${escapeHtml(item.reporter_name || 'ทั่วไป')} <br><small style="color:var(--text-muted);">${escapeHtml(item.department || '-')}</small>`;
     const location = `<strong style="font-size:11.5px;">${escapeHtml(item.page_url || '-')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(item.device_info || '-')}</small>`;
 
+    const adminNoteDisplay = item.admin_note 
+      ? `<div style="margin-top:6px; padding:4px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:4px; font-size:11.5px; color:#166534;"><strong>💬 โน้ตแอดมิน:</strong> ${escapeHtml(item.admin_note)}</div>` 
+      : '';
+
     let actions = `
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
     `;
+    actions += `<button class="btn btn-secondary" style="padding:2px 6px; font-size:10px;" onclick="openAdminNotePrompt(${item.id}, '${escapeHtml(item.admin_note || '')}')" title="เขียนบันทึก/คำตอบกลับจากแอดมิน">📝 โน้ต</button>`;
     if (item.status === 'open') {
       actions += `<button class="btn btn-secondary" style="padding:2px 6px; font-size:10px;" onclick="updateFeedbackStatus(${item.id}, 'reviewed')">👀 รับทราบ</button>`;
     }
@@ -425,7 +430,7 @@ function renderAdminFeedbackTable() {
         <td style="font-size:11px; white-space:nowrap;">${dateStr}</td>
         <td>${catLabels[item.category] || item.category}</td>
         <td style="font-size:11px;">${location}</td>
-        <td style="font-size:12.5px; line-height:1.4;">${escapeHtml(item.comment)}</td>
+        <td style="font-size:12.5px; line-height:1.4;">${escapeHtml(item.comment)}${adminNoteDisplay}</td>
         <td style="font-size:11.5px;">${reporter}</td>
         <td style="color:#f59e0b; font-size:12px;">${stars}</td>
         <td>${statusBadges[item.status] || item.status}</td>
@@ -434,6 +439,28 @@ function renderAdminFeedbackTable() {
     `;
   }).join('');
 }
+
+async function openAdminNotePrompt(id, currentNote) {
+  const note = prompt('ระบุโน้ต/การตอบกลับของแอดมิน (จะแสดงให้ผู้แจ้งและบนกระดานเห็น):', currentNote || '');
+  if (note === null) return;
+  try {
+    const res = await fetch(`/api/feedback/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ admin_note: note.trim() })
+    });
+    if (res.ok) {
+      showToast('บันทึกโน้ตของแอดมินเรียบร้อยแล้ว', 'success');
+      loadAdminFeedback();
+    } else {
+      const d = await res.json();
+      showToast(d.error || 'บันทึกล้มเหลว', 'error');
+    }
+  } catch (e) {
+    showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+  }
+}
+window.openAdminNotePrompt = openAdminNotePrompt;
 
 async function updateFeedbackStatus(id, newStatus) {
   try {

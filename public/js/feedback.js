@@ -26,7 +26,7 @@
 
   function getActivePageName() {
     if (typeof state !== 'undefined' && state.activeView) {
-      if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมภาคสนาม (Ward/Staff)';
+      if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมเจ้าหน้าที่ (Staff Portal)';
       if (state.activeView === 'it') return 'ศูนย์จัดการเคลม & IT Hub';
       if (state.activeView === 'config') return 'ตั้งค่าระบบ (Admin/Config)';
       if (state.activeView === 'auth') return 'หน้าจอเข้าสู่ระบบ (Login)';
@@ -126,11 +126,11 @@
           <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" id="feedback-user-info-row">
             <div>
               <label for="feedback-reporter-name" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">ชื่อผู้แจ้ง (ระบุหรือไม่ก็ได้):</label>
-              <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น พยาบาลตึก 3 / ช่างไอที">
+              <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น เจ้าหน้าที่แผนกยา / ช่างไอที / แอดมิน">
             </div>
             <div>
-              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">แผนก / ตึก:</label>
-              <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น OPD, ER, เภสัช">
+              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">แผนก / จุดบริการ:</label>
+              <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น OPD, แผนกยา, การเงิน, ไอที">
             </div>
           </div>
 
@@ -471,6 +471,12 @@
         const stars = item.rating ? '⭐️'.repeat(item.rating) : '';
         const timeStr = item.created_at ? new Date(item.created_at).toLocaleString('th-TH', { hour12: false }) : '';
 
+        const adminReply = item.admin_note ? `
+          <div style="margin-top: 8px; padding: 6px 10px; background: #f0fdf4; border-left: 3px solid #16a34a; border-radius: 4px; font-size: 12px; color: #166534;">
+            <strong>💬 ตอบกลับจากแอดมิน:</strong> ${escapeHtml(item.admin_note)}
+          </div>
+        ` : '';
+
         return `
           <div style="background: var(--surface-card); border: 1px solid ${isMine ? '#f472b6' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -484,7 +490,8 @@
             <div style="color: var(--text-primary); font-size: 13.5px; margin: 6px 0; line-height: 1.4;">
               ${escapeHtml(item.comment)}
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            ${adminReply}
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
               <span>👤 ${escapeHtml(item.reporter_name || 'ทั่วไป')} (${escapeHtml(item.department || '-')})</span>
               <span>${stars} ${timeStr}</span>
             </div>

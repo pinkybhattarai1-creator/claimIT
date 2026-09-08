@@ -166,7 +166,7 @@ router.post('/', optionalAuth, (req, res) => {
   
   const userId = req.user ? req.user.id : null;
   const finalName = (req.user && req.user.name) ? req.user.name : (reporter_name ? String(reporter_name).trim().substring(0, 100) : 'ผู้ทดสอบทั่วไป');
-  const finalDept = (req.user && req.user.department) ? req.user.department : (department ? String(department).trim().substring(0, 100) : 'ทั่วไป/ภาคสนาม');
+  const finalDept = (req.user && req.user.department) ? req.user.department : (department ? String(department).trim().substring(0, 100) : 'ทั่วไป / เจ้าหน้าที่');
   const finalDevice = device_info ? String(device_info).substring(0, 255) : (req.headers['user-agent'] ? req.headers['user-agent'].substring(0, 255) : 'Unknown');
   const finalScreen = screen_size ? String(screen_size).substring(0, 50) : null;
 
@@ -225,7 +225,7 @@ router.post('/', optionalAuth, (req, res) => {
 // GET /api/feedback/public - Public read-only list for testers to verify their comments
 router.get('/public', (req, res) => {
   db.all(
-    'SELECT id, category, page_url, comment, rating, reporter_name, department, device_info, status, created_at FROM user_feedback ORDER BY created_at DESC LIMIT 50',
+    'SELECT id, category, page_url, comment, rating, reporter_name, department, device_info, status, admin_note, created_at FROM user_feedback ORDER BY created_at DESC LIMIT 50',
     [],
     (err, rows) => {
       if (err) return handleDbError(res, err);
@@ -239,7 +239,7 @@ router.get('/export/csv', optionalAuth, (req, res) => {
   db.all('SELECT * FROM user_feedback ORDER BY created_at DESC', [], (err, rows) => {
     if (err) return handleDbError(res, err);
 
-    let csv = '\uFEFF"ID","Date","Category","Rating","Page URL","Comment","Reporter Name","Department","Device Info","Status"\n';
+    let csv = '\uFEFF"ID","Date","Category","Rating","Page URL","Comment","Reporter Name","Department","Device Info","Status","Admin Note"\n';
     (rows || []).forEach(r => {
       const escapeCsv = (val) => `"${String(val || '').replace(/"/g, '""')}"`;
       csv += [
@@ -252,7 +252,8 @@ router.get('/export/csv', optionalAuth, (req, res) => {
         escapeCsv(r.reporter_name),
         escapeCsv(r.department),
         escapeCsv(r.device_info),
-        escapeCsv(r.status)
+        escapeCsv(r.status),
+        escapeCsv(r.admin_note || '')
       ].join(',') + '\n';
     });
 
@@ -294,19 +295,38 @@ router.get('/', optionalAuth, (req, res) => {
   });
 });
 
-// PATCH /api/feedback/:id - Update status (open, reviewed, resolved)
+// PATCH /api/feedback/:id - Update status and/or admin_note
 router.patch('/:id', optionalAuth, (req, res) => {
-  const { status } = req.body;
-  const validStatus = ['open', 'reviewed', 'resolved'];
-  if (!validStatus.includes(status)) {
-    return res.status(400).json({ error: 'สถานะไม่ถูกต้อง (ต้องเป็น open, reviewed หรือ resolved)' });
+  const { status, admin_note } = req.body;
+  const updates = [];
+  const params = [];
+
+  if (status) {
+    const validStatus = ['open', 'reviewed', 'resolved'];
+    if (!validStatus.includes(status)) {
+      return res.status(400).json({ error: 'สถานะไม่ถูกต้อง (ต้องเป็น open, reviewed หรือ resolved)' });
+    }
+    updates.push('status = ?');
+    params.push(status);
   }
 
-  db.run('UPDATE user_feedback SET status = ? WHERE id = ?', [status, req.params.id], function(err) {
+  if (admin_note !== undefined) {
+    updates.push('admin_note = ?');
+    params.push(String(admin_note).trim().substring(0, 1000));
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'ไม่มีข้อมูลที่ต้องการอัปเดต' });
+  }
+
+  params.push(req.params.id);
+  const sql = `UPDATE user_feedback SET ${updates.join(', ')} WHERE id = ?`;
+
+  db.run(sql, params, function(err) {
     if (err) return handleDbError(res, err);
     if (this.changes === 0) return res.status(404).json({ error: 'ไม่พบรายการข้อเสนอแนะ' });
     syncFeedbackLogFile();
-    res.json({ success: true, message: `อัปเดตสถานะเป็น ${status} เรียบร้อยแล้ว` });
+    res.json({ success: true, message: 'บันทึกการอัปเดตเรียบร้อยแล้ว' });
   });
 });
 
