@@ -20,7 +20,8 @@ async function handleLogin(e) {
     if (response.ok) {
       const user = await response.json();
       state.user = user;
-      localStorage.setItem('claimit_user', JSON.stringify(user));
+      sessionStorage.setItem('claimit_user', JSON.stringify(user));
+      try { localStorage.removeItem('claimit_user'); } catch (e) {}
       showUserNavigation();
       startSessionMonitor();
       
@@ -47,6 +48,26 @@ async function handleLogin(e) {
   }
 }
 
+// 1-Click Quick Role Login for Testing
+function quickLoginAs(role) {
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  if (!usernameInput || !passwordInput) return;
+  if (role === 'admin') {
+    usernameInput.value = 'admin';
+    passwordInput.value = 'admin123';
+  } else {
+    usernameInput.value = 'staff';
+    passwordInput.value = 'staff123';
+  }
+  const form = document.getElementById('login-form');
+  if (form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.click();
+  }
+}
+window.quickLoginAs = quickLoginAs;
+
 function showUserNavigation() {
   if (!state.user) return;
   const isAdmin = state.user && state.user.role === 'admin';
@@ -72,21 +93,28 @@ function showUserNavigation() {
   if (opGroup) opGroup.style.display = isAdmin ? 'block' : 'none';
   if (exportGroup) exportGroup.style.display = isAdmin ? 'block' : 'none';
 
-  // Top Bar Navigation Tabs
+  // Top Bar Navigation Tabs & Logout
   const btnTopIt = document.getElementById('btn-top-it');
   const btnTopConfig = document.getElementById('btn-top-config');
+  const topbarLogout = document.getElementById('btn-topbar-logout');
   if (btnTopIt) btnTopIt.style.display = isAdmin ? 'inline-flex' : 'none';
   if (btnTopConfig) btnTopConfig.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (topbarLogout) topbarLogout.style.display = 'inline-flex';
 }
 
 function logout() {
   stopSessionMonitor();
+  sessionStorage.removeItem('claimit_user');
   localStorage.removeItem('claimit_user');
   state.user = null;
   state.selectedAsset = null;
   state.pendingFuzzyAsset = null;
   state.claimAssets = [];
   state.recentScans = [];
+
+  // Hide Topbar Logout
+  const topbarLogout = document.getElementById('btn-topbar-logout');
+  if (topbarLogout) topbarLogout.style.display = 'none';
 
   // Hide Topbar and Sidebar Navigation
   const appSidebar = document.getElementById('app-sidebar');
@@ -361,7 +389,7 @@ async function handleProfileSubmit(e) {
       const data = await res.json();
       state.user = { ...state.user, ...data.user };
       if (data.token) state.user.token = data.token;
-      localStorage.setItem('claimit_user', JSON.stringify(state.user));
+      sessionStorage.setItem('claimit_user', JSON.stringify(state.user));
       showUserNavigation();
       const modal = document.getElementById('profile-modal');
       if (modal) modal.style.display = 'none';
@@ -470,7 +498,7 @@ async function handleChangePasswordSubmit(e) {
         state.user.token = data.token;
       }
       state.user.must_change_password = false;
-      localStorage.setItem('claimit_user', JSON.stringify(state.user));
+      sessionStorage.setItem('claimit_user', JSON.stringify(state.user));
 
       const modal = document.getElementById('change-password-modal');
       if (modal) modal.style.display = 'none';
@@ -590,7 +618,7 @@ async function extendSession() {
       const data = await res.json();
       if (data.token) {
         state.user.token = data.token;
-        localStorage.setItem('claimit_user', JSON.stringify(state.user));
+        sessionStorage.setItem('claimit_user', JSON.stringify(state.user));
       }
       const warningModal = document.getElementById('session-warning-modal');
       if (warningModal) warningModal.style.display = 'none';
