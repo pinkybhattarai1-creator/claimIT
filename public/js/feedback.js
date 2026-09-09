@@ -59,14 +59,14 @@
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 20px;">💬</span>
-              <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">ระบบติชม & กระดานติดตามปัญหา (Hospital Feedback)</h3>
+              <h3 style="font-size: 16px; margin: 0; color: var(--text-primary);">ระบบข้อเสนอแนะและกระดานติดตามปัญหา (Hospital Feedback)</h3>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeFeedbackModal()" aria-label="ปิด">✕</button>
           </div>
           <!-- Modal Tab Navigation -->
           <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px;">
             <button type="button" id="feedback-tab-form-btn" class="feedback-nav-tab active" onclick="switchFeedbackTab('form')">
-              ✍️ ส่งข้อคิดเห็น / แจ้งปัญหา
+              ✍️ ส่งข้อคิดเห็น / แจ้งปัญหาการใช้งาน
             </button>
             <button type="button" id="feedback-tab-board-btn" class="feedback-nav-tab" onclick="switchFeedbackTab('board')">
               📋 กระดานรายการที่แจ้งไว้ (<span id="feedback-board-count">0</span>)
@@ -76,9 +76,9 @@
 
         <!-- TAB 1: SUBMISSION FORM -->
         <div id="feedback-tab-form-content" class="modal-body" style="padding: 16px 20px;">
-          <!-- PDPA & Hospital Privacy Reminder -->
+          <!-- Privacy & Patient Data Warning -->
           <div class="feedback-pdpa-alert">
-            🛡️ <strong>ข้อกำหนดความเป็นส่วนตัว (PDPA):</strong> กรุณาไม่กรอกข้อมูลส่วนบุคคลของผู้ป่วย (เช่น HN, เลขบัตรประชาชน หรือประวัติรักษา)
+            🛡️ <strong>คำเตือนด้านการคุ้มครองข้อมูลส่วนบุคคล:</strong> กรุณาไม่บันทึกข้อมูลส่วนบุคคลหรือข้อมูลสุขภาพของผู้ป่วย (เช่น HN, เลขประจำตัวประชาชน หรือประวัติการรักษา) ลงในระบบนี้
           </div>
 
           <!-- Category Selection -->
@@ -94,7 +94,7 @@
                 🐞 พบปัญหา / ปุ่มกดไม่ติด
               </button>
               <button type="button" class="feedback-cat-pill" data-cat="ux" onclick="setFeedbackCategory('ux')">
-                ❓ ใช้งานยาก / สับสน
+                ❓ ปัญหาด้านการใช้งาน (UX)
               </button>
             </div>
           </div>
@@ -129,7 +129,7 @@
               <input type="text" id="feedback-reporter-name" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น Staff / ช่างเทคนิค / IT Admin">
             </div>
             <div>
-              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">ฝ่าย / แผนก (Staff / Dept):</label>
+              <label for="feedback-reporter-dept" style="font-size: 11.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">แผนก / หน่วยงาน:</label>
               <input type="text" id="feedback-reporter-dept" class="form-control" style="font-size: 13px; padding: 6px 10px;" placeholder="เช่น Staff, IT Support">
             </div>
           </div>

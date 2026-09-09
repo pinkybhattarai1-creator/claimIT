@@ -234,7 +234,7 @@ function renderRepairOrderHTML(asset, data) {
             <td colspan="2"><strong>สถานที่ติดต่อ</strong> <span style="margin-left:6px;">${esc(hosp.shortName)} แผนก${esc(asset.location || 'เทคโนโลยีสารสนเทศ')} ${esc(hosp.address)}</span></td>
           </tr>
           <tr>
-            <td colspan="2"><strong>เบอร์โทร/มือถือ</strong> <span style="margin-left:6px;">${esc(data.contactPhone)}</span> <strong style="margin-left:24px;">Email</strong> <span style="margin-left:6px;">${esc(state.user?.email || hosp.email)}</span></td>
+            <td colspan="2"><strong>หมายเลขโทรศัพท์</strong> <span style="margin-left:6px;">${esc(data.contactPhone)}</span> <strong style="margin-left:24px;">Email</strong> <span style="margin-left:6px;">${esc(state.user?.email || hosp.email)}</span></td>
           </tr>
         </table>
       </div>
@@ -247,7 +247,7 @@ function renderRepairOrderHTML(asset, data) {
             <td colspan="2"><strong>ประเภท</strong> <span style="margin-left:6px;">${esc(asset.category || 'Thermal Printer')}</span></td>
           </tr>
           <tr>
-            <td style="width:50%;"><strong>หมายเลขเครื่อง</strong> <span style="margin-left:6px; font-weight:bold; font-family:monospace;">${esc(asset.serial_no)}</span></td>
+            <td style="width:50%;"><strong>หมายเลขซีเรียล (S/N)</strong> <span style="margin-left:6px; font-weight:bold; font-family:monospace;">${esc(asset.serial_no)}</span></td>
             <td style="width:50%;"><strong>รายละเอียดปัญหา</strong> <span style="margin-left:6px;">${esc(data.problemDesc)}</span></td>
           </tr>
           <tr>
@@ -269,13 +269,13 @@ function renderRepairOrderHTML(asset, data) {
         <table style="width:100%; border-collapse:collapse;">
           <tr>
             <td style="width:55%;"><strong>ชื่อช่าง</strong> <span style="margin-left:6px;">${esc(data.techName)}</span></td>
-            <td style="width:45%; text-align:right;"><strong>เบอร์ติดต่อ</strong> <span style="margin-left:6px;">${esc(hosp.phone || '02-xxx-xxxx')}</span></td>
+            <td style="width:45%; text-align:right;"><strong>หมายเลขโทรศัพท์</strong> <span style="margin-left:6px;">${esc(hosp.phone || '02-xxx-xxxx')}</span></td>
           </tr>
           <tr>
             <td colspan="2"><strong>วันที่ดำเนินการ</strong> <span style="margin-left:6px;">${esc(data.todayFormatted)}</span> <strong style="margin-left:20px;">เวลาเข้า</strong> <span class="doc-dotted-line" style="min-width:60px;"></span> <strong style="margin-left:12px;">เวลาออก</strong> <span class="doc-dotted-line" style="min-width:60px;"></span></td>
           </tr>
           <tr>
-            <td colspan="2"><strong>วิธีการแก้ไข</strong> <span style="margin-left:6px;">${esc(data.solution)}</span></td>
+            <td colspan="2"><strong>รายละเอียดการแก้ไข</strong> <span style="margin-left:6px;">${esc(data.solution)}</span></td>
           </tr>
           <tr>
             <td colspan="2"><strong>รายการอะไหล่</strong> <span style="margin-left:6px;">-</span></td>
@@ -308,7 +308,7 @@ function renderRepairOrderHTML(asset, data) {
             </td>
           </tr>
           <tr>
-            <td style="width:50%;"><strong>หมายเลขเครื่อง</strong> <span class="doc-dotted-line" style="min-width:120px;"></span></td>
+            <td style="width:50%;"><strong>หมายเลขซีเรียล (S/N)</strong> <span class="doc-dotted-line" style="min-width:120px;"></span></td>
             <td style="width:50%;"><strong>รุ่น</strong> <span class="doc-dotted-line" style="min-width:120px;"></span></td>
           </tr>
           <tr>
@@ -362,7 +362,7 @@ function render888ClaimHTML(asset, data) {
             <div style="font-size:11px; font-weight:700; color:#1e40af; margin-top:1px;">${esc(vendor.department)}</div>
             <div style="font-size:10px; color:#374151;">${esc(vendor.address)}</div>
             <div style="font-size:10px; color:#374151;">
-              <strong>เบอร์โทรติดต่อ</strong> ${esc(vendor.phone)} &nbsp;&nbsp;
+              <strong>หมายเลขโทรศัพท์</strong> ${esc(vendor.phone)} &nbsp;&nbsp;
               <strong>Email :</strong> <span style="color:#2563eb; text-decoration:underline;">${esc(vendor.email)}</span>
             </div>
           </td>
@@ -507,7 +507,7 @@ function render888WarrantyHTML(asset, data) {
             <div style="font-size:14.5px; font-weight:800; color:#000;">${esc(vendor.name)} (${esc(vendor.branch)})</div>
             <div style="font-size:10px; color:#374151; margin-top:2px;">${esc(vendor.address)}</div>
             <div style="font-size:10px; color:#374151;">
-              <strong>เบอร์โทรติดต่อ</strong> ${esc(vendor.phone)} &nbsp;&nbsp;
+              <strong>หมายเลขโทรศัพท์</strong> ${esc(vendor.phone)} &nbsp;&nbsp;
               <strong>Email :</strong> <span style="color:#2563eb; text-decoration:underline;">${esc(vendor.email)}</span>
             </div>
           </td>
@@ -591,7 +591,7 @@ function render888WarrantyHTML(asset, data) {
       </div>
       <div style="border:1px solid #000; border-top:none; padding:5px 8px; font-size:9.5px; line-height:1.4; margin-bottom:8px;">
         <p>• เอกสารฉบับนี้เป็นเอกสารแสดงว่าทาง <strong>${esc(vendor.name)}</strong> ได้ส่งมอบสินค้าพร้อมกับการรับประกันสินค้าตามรายการข้างต้น</p>
-        <p>• เพื่อป้องกันความเสียหาย ลูกค้ากรุณาตรวจเช็คสินค้าก่อนส่งมอบสินค้า</p>
+        <p>• เพื่อป้องกันความเสียหาย ลูกค้ากรุณาตรวจสอบสินค้าก่อนส่งมอบสินค้า</p>
         <p>• ข้าพเจ้าผู้รับมอบสินค้าได้อ่านและรับทราบเงื่อนไขการส่งมอบสินค้าและการรับประกันสินค้าเป็นที่เรียบร้อยแล้ว</p>
       </div>
 

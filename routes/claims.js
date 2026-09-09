@@ -224,19 +224,19 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
       assets.forEach((item, idx) => {
         doc.font(titleFont).fontSize(9.5).fillColor('#1e293b').text(`[ลำดับ ${idx + 1}] ${item.asset_tag} — ${item.device_name}`);
         doc.font(regularFont).fontSize(9).fillColor('#475569');
-        doc.text(`   หมวดหมู่: ${item.category} | แบรนด์/รุ่น: ${item.brand} ${item.model} | S/N: ${item.serial_no}`);
-        doc.text(`   วันหมดอายุรับประกัน: ${item.warranty_end} | การล้างข้อมูล (PDPA Sanitization): ${item.data_wiped_confirmed ? '✓ ยืนยันแล้ว' : 'ไม่ต้องดำเนินการ'}`);
+        doc.text(`   หมวดหมู่: ${item.category} | ยี่ห้อ/รุ่น: ${item.brand} ${item.model} | S/N: ${item.serial_no}`);
+        doc.text(`   วันสิ้นสุดการรับประกัน: ${item.warranty_end} | การล้างข้อมูล (Data Sanitization): ${item.data_wiped_confirmed ? '✓ ยืนยันแล้ว' : 'ไม่ต้องดำเนินการ'}`);
         doc.moveDown(0.3);
       });
 
       doc.moveDown(0.6);
 
-      // Section 3: PDPA-Aware Security & Audit Note
-      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. มาตรการความปลอดภัยและการตรวจสอบข้อมูล (PDPA Compliance)', { underline: true });
+      // Section 3: Data Sanitization & Security Audit Note
+      doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('3. มาตรการความปลอดภัยและการตรวจสอบข้อมูลก่อนส่งซ่อม (Data Sanitization & Security Audit)', { underline: true });
       doc.moveDown(0.3);
       doc.font(regularFont).fontSize(8.5).fillColor('#475569');
       const hospShort = process.env.HOSPITAL_SHORT_NAME || 'โรงพยาบาล';
-      doc.text('ครุภัณฑ์บันทึกข้อมูลหลักทั้งหมดผ่านการยืนยันการล้างข้อมูล (Sanitization Authorization) ก่อนส่งมอบบุคคลภายนอกตามมาตรฐาน ISO/IEC 27001');
+      doc.text('ครุภัณฑ์บันทึกข้อมูลหลักทั้งหมดผ่านการยืนยันการล้างข้อมูล (Sanitization Authorization) ก่อนส่งมอบบุคคลภายนอกตามนโยบายความปลอดภัยสารสนเทศของโรงพยาบาล');
       doc.text(`เอกสารฉบับนี้ใช้เป็นหลักฐานและใบส่งมอบงานซ่อมเคลมครุภัณฑ์คอมพิวเตอร์อย่างเป็นทางการของ${hospShort}`);
 
       doc.end();

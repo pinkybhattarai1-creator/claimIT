@@ -655,7 +655,7 @@ async function requestStaffPM() {
         floor: 'Staff Area',
         status: 'Pending PM Inspection',
         moved_direction: 'IN',
-        details: `[คำขอตรวจเช็คบำรุงรักษาตามรอบ 6 เดือน] แผนก ${dept} แจ้งขอรับการตรวจสภาพครุภัณฑ์ประจำรอบ 6 เดือน`
+        details: `[คำขอบำรุงรักษาเชิงป้องกันประจำรอบ 6 เดือน] แผนก ${dept} แจ้งขอรับบริการบำรุงรักษาเชิงป้องกันประจำรอบ 6 เดือน`
       })
     });
     const data = await res.json().catch(() => ({}));

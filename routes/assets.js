@@ -562,7 +562,7 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
   const isMatchAssetTag = (cleanCode === asset_tag.trim().toUpperCase());
   if (!validCodes.includes(cleanCode) && !isMatchAssetTag) {
     return res.status(400).json({ 
-      error: 'รหัสยืนยันความปลอดภัยไม่ถูกต้อง! กรุณาระบุรหัสยืนยัน (พิมพ์ "ยืนยัน" หรือ "WIPED") เพื่อความปลอดภัยตามมาตรฐาน PDPA' 
+      error: 'รหัสยืนยันการล้างข้อมูลไม่ถูกต้อง! กรุณาระบุรหัสยืนยัน (พิมพ์ "ยืนยัน" หรือ "WIPED") ตามนโยบายความปลอดภัยสารสนเทศของโรงพยาบาล' 
     });
   }
 
@@ -604,16 +604,16 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
           status: 'Sanitized',
           moved_direction: 'IN',
           action_by_username: actionUser,
-          details: `PDPA Sanitization: ${note}`
+          details: `Data Sanitization: ${note}`
         });
 
-        res.json({ message: 'การลบข้อมูล (PDPA Sanitization) เสร็จสิ้นและบันทึกประวัติสำเร็จ', data_wiped_by: actionUser, data_wiped_at: now, log_code: logCode });
+        res.json({ message: 'การล้างข้อมูล (Data Sanitization) เสร็จสิ้นและบันทึกประวัติสำเร็จ', data_wiped_by: actionUser, data_wiped_at: now, log_code: logCode });
       });
     });
   });
 });
 
-// Initiate RMA / Warranty Claim (Staff/Admin with STRICT PDPA GATE)
+// Initiate RMA / Warranty Claim (Staff/Admin with Data Sanitization Gate)
 router.post('/claim', verifyToken, staffOnly, (req, res) => {
   const { asset_tag, vendor_name, vendor_rma_number, expected_return_date, data_wiped_confirmed, sanitization_note, action_by_username } = req.body;
   if (!asset_tag || !vendor_name || !vendor_rma_number) return res.status(400).json({ error: 'กรุณากรอกข้อมูลการเคลมให้ครบถ้วน' });
@@ -622,7 +622,7 @@ router.post('/claim', verifyToken, staffOnly, (req, res) => {
   const claimDate = new Date().toISOString().split('T')[0];
 
   db.serialize(() => {
-    // 1. Verify if asset requires sanitization and enforce PDPA Gate
+    // 1. Verify if asset requires sanitization and enforce Sanitization Gate
     db.get("SELECT * FROM mains WHERE asset_tag = ? AND is_deleted = 0", [asset_tag], (err, asset) => {
       if (err || !asset) return res.status(404).json({ error: 'Asset not found' });
 
@@ -631,7 +631,7 @@ router.post('/claim', verifyToken, staffOnly, (req, res) => {
 
         if (asset.sanitization_required === 1 && !isWiped) {
           return res.status(400).json({ 
-            error: 'PDPA Security Gate Block: อุปกรณ์นี้เป็นอุปกรณ์บันทึกข้อมูลหลัก ต้องทำการล้างข้อมูล (Confirm Data Wiped) ก่อนจึงจะส่งศูนย์บริการได้' 
+            error: 'Security Gate Block: อุปกรณ์นี้เป็นอุปกรณ์บันทึกข้อมูลหลัก ต้องทำการล้างข้อมูล (Confirm Data Wiped) ก่อนจึงจะส่งศูนย์บริการได้' 
           });
         }
 
@@ -783,22 +783,22 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
     doc.font(regularFont).fontSize(9.5).fillColor('#334155');
     doc.text(`รหัสครุภัณฑ์ (Asset Tag): ${asset.asset_tag}`);
     doc.text(`ชื่ออุปกรณ์ (Device Name): ${asset.device_name}`);
-    doc.text(`หมวดหมู่ / แบรนด์ / รุ่น: ${asset.category} | ${asset.brand} ${asset.model}`);
+    doc.text(`หมวดหมู่ / ยี่ห้อ / รุ่น: ${asset.category} | ${asset.brand} ${asset.model}`);
     doc.text(`หมายเลขซีเรียล (S/N): ${asset.serial_no}`);
     doc.text(`จุดติดตั้ง (Location): ${asset.location}`);
     doc.text(`มูลค่าจัดซื้อ (Purchase Price): ฿${(asset.purchase_price || 0).toLocaleString()}`);
-    doc.text(`ระยะเวลารับประกัน (Warranty): ${asset.warranty_start} ถึง ${asset.warranty_end}`);
+    doc.text(`ระยะเวลาการรับประกัน: ${asset.warranty_start} ถึง ${asset.warranty_end}`);
     doc.text(`สถานะปัจจุบัน (Status): ${asset.status} (Salvage: ${asset.salvage_status || 'None'})`);
     doc.moveDown(1);
 
-    // Section 2: PDPA-Aware Data Sanitization Audit Log
-    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('2. บันทึกความปลอดภัยข้อมูลผู้ป่วย (PDPA Storage Security Audit)', { underline: true });
+    // Section 2: Data Sanitization Audit Log
+    doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('2. บันทึกความปลอดภัยข้อมูล (Data Sanitization & Storage Security Audit)', { underline: true });
     doc.moveDown(0.3);
     doc.font(regularFont).fontSize(9.5).fillColor('#334155');
-    doc.text(`ต้องทำความสะอาดข้อมูลก่อนส่ง (Sanitization Required): ${asset.sanitization_required ? 'ใช่ (YES)' : 'ไม่ใช่ (NO)'}`);
+    doc.text(`ต้องล้างข้อมูลก่อนส่ง (Sanitization Required): ${asset.sanitization_required ? 'ใช่ (YES)' : 'ไม่ใช่ (NO)'}`);
     doc.text(`ยืนยันการล้างข้อมูลเรียบร้อย (Data Wiped Confirmed): ${asset.data_wiped_confirmed ? '✓ ยืนยันแล้ว (CONFIRMED)' : 'ยังไม่ดำเนินการ'}`);
     if (asset.data_wiped_by) doc.text(`ผู้ดำเนินการล้างข้อมูล (Technician): ${asset.data_wiped_by}`);
-    if (asset.data_wiped_at) doc.text(`วัน-เวลาที่ดำเนินการ: ${asset.data_wiped_at}`);
+    if (asset.data_wiped_at) doc.text(`วันที่และเวลาที่ดำเนินการ: ${asset.data_wiped_at}`);
     if (asset.sanitization_note) doc.text(`บันทึกเพิ่มเติม: ${asset.sanitization_note}`);
     doc.moveDown(1);
 
