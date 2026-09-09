@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
-const dotenv = require('dotenv');
-dotenv.config();
+const os = require('os');
 
 const { PORT, NODE_ENV, HOST, SECRET_PORTAL_PATH } = require('./utils/envValidator');
 const { db } = require('./db');
@@ -53,6 +52,15 @@ app.get(['/index', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Interactive User Manual & Word Document Download Routes
+app.get(['/manual', '/manual.html', '/guide'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'คู่มือการใช้งาน_ClaimIT.html'));
+});
+
+app.get(['/manual.doc', '/manual/doc', '/download-manual'], (req, res) => {
+  res.download(path.join(__dirname, 'คู่มือการใช้งาน_ClaimIT.doc'), 'คู่มือการใช้งาน_ClaimIT.doc');
+});
+
 // Favicon handler
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
@@ -85,7 +93,6 @@ app.get('/health', (req, res) => {
 
 // Network & Mobile Connection Info Endpoint
 app.get('/api/network-info', (req, res) => {
-  const os = require('os');
   const nets = os.networkInterfaces();
   let hospitalIp = null;
   let primaryIp = null;
@@ -168,7 +175,6 @@ if (require.main === module) {
     const hostLabel = (HOST === '0.0.0.0' || HOST === '127.0.0.1') ? 'localhost' : HOST;
     console.log(`[ClaimIT Server] Running securely on http://${hostLabel}:${PORT} (${NODE_ENV})`);
     try {
-      const os = require('os');
       const nets = os.networkInterfaces();
       const hospitalIps = [];
       const otherIps = [];
@@ -229,4 +235,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server };
+module.exports = { app, server: server || null };

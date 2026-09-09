@@ -124,18 +124,29 @@ function setupSmartScanner(inputId, isScannerOnlyId) {
     }, debounceMs);
   });
 
+  const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 768);
+
   if (scannerOnlyChk) {
     scannerOnlyChk.addEventListener('change', () => {
       if (scannerOnlyChk.checked) {
-        input.focus();
+        if (isTouchDevice) {
+          // Suppress virtual on-screen keyboard from opening and covering mobile view
+          input.setAttribute('inputmode', 'none');
+          input.focus();
+        } else {
+          input.removeAttribute('inputmode');
+          input.focus();
+        }
+      } else {
+        input.removeAttribute('inputmode');
       }
     });
 
-    // When scanner-only is checked, re-focus if blur occurs when no modal is open
+    // When scanner-only is checked, re-focus if blur occurs ONLY on desktop (do not trap mobile users)
     input.addEventListener('blur', () => {
-      if (scannerOnlyChk.checked) {
+      if (scannerOnlyChk.checked && !isTouchDevice) {
         setTimeout(() => {
-          const activeModals = document.querySelectorAll('.modal.is-active, [id$="-modal"]');
+          const activeModals = document.querySelectorAll('.modal.is-active, [id$="-modal"], .modal-backdrop');
           const isModalOpen = Array.from(activeModals).some(m => m.style.display && m.style.display !== 'none' && m.offsetParent !== null);
           if (!isModalOpen && scannerOnlyChk.checked) {
             input.focus();
@@ -195,7 +206,7 @@ async function openCameraBarcodeScanner(prefix = 'ward') {
     modal.id = 'camera-barcode-modal';
     modal.className = 'modal-backdrop';
     modal.innerHTML = `
-      <div class="modal-dialog" style="max-width: 460px; width: 95%;">
+      <div class="modal-dialog" style="max-width: 440px; width: 92%; margin: 16px auto;">
         <div class="modal-header">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 20px;">📷</span>
@@ -204,19 +215,47 @@ async function openCameraBarcodeScanner(prefix = 'ward') {
           <button type="button" class="modal-close-btn" onclick="closeCameraBarcodeScanner()">✕</button>
         </div>
         <div class="modal-body" style="padding: 16px; text-align: center;">
-          <div class="camera-scanner-viewfinder">
-            <video id="barcode-scanner-video" playsinline autoplay muted></video>
-            <div class="camera-scanner-target"></div>
+          <!-- Pre-flight Authorization Prompt -->
+          <div id="camera-preflight-zone" style="padding: 12px 6px;">
+            <div style="font-size: 40px; margin-bottom: 10px;">🛡️📷</div>
+            <h4 style="font-size: 15px; margin: 0 0 6px 0; color: var(--text-primary);">ขออนุญาตเข้าถึงกล้องถ่ายภาพ</h4>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px 0; line-height: 1.45;">
+              ระบบต้องการสิทธิ์เข้าถึงกล้อง เพื่อใช้สแกนบาร์โค้ดและ QR Code ครุภัณฑ์ของโรงพยาบาล
+            </p>
+            <div id="camera-insecure-warning" style="display: none; margin-bottom: 14px; padding: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 12px; color: #b45309; text-align: left;">
+              ⚠️ <strong>ข้อจำกัดเครือข่าย:</strong> เบราว์เซอร์บนมือถือต้องการการเชื่อมต่อแบบ HTTPS เพื่อเปิดกล้องสด (ขณะนี้เปิดผ่าน HTTP วงแลน) คุณสามารถใช้ปุ่ม <strong>"ถ่ายรูปบาร์โค้ด"</strong> แทนได้ทันที
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button type="button" class="btn btn-primary" id="btn-request-camera" onclick="startLiveCameraStream()" style="min-height: 42px; font-weight: 600;">
+                🟢 อนุญาตและเปิดกล้องสด
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('camera-barcode-file-input').click()" style="min-height: 42px;">
+                📷 ถ่ายรูปบาร์โค้ด / อัปโหลดภาพ
+              </button>
+            </div>
           </div>
-          <div id="camera-scanner-status" style="margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
-            กำลังเปิดกล้อง...
+
+          <!-- Live Camera Viewfinder (Shown after authorization) -->
+          <div id="camera-live-zone" style="display: none;">
+            <div class="camera-scanner-viewfinder">
+              <video id="barcode-scanner-video" playsinline autoplay muted></video>
+              <div class="camera-scanner-target"></div>
+            </div>
+            <div id="camera-scanner-status" style="margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text-secondary);">
+              กำลังเปิดกล้อง...
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+              นำกล้องจ่อที่บาร์โค้ดหรือ QR Code ของครุภัณฑ์
+            </div>
           </div>
-          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-            นำกล้องจ่อที่บาร์โค้ดหรือ QR Code ของครุภัณฑ์
-          </div>
+
+          <!-- Photo Fallback Zone -->
           <div id="camera-fallback-zone" style="display: none; margin-top: 12px; padding: 10px; background: var(--surface-subtle); border-radius: var(--radius-md);">
-            <p style="font-size: 12px; color: var(--warning-text); margin: 0 0 8px 0;">กล้องไลฟ์สแกนไม่รองรับในเบราว์เซอร์นี้ คุณสามารถถ่ายภาพแทนได้:</p>
-            <input type="file" id="camera-barcode-file-input" accept="image/*" capture="environment" onchange="handleBarcodePhotoUpload(event)">
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 0;">หากกล้องสดไม่ทำงาน สามารถถ่ายภาพบาร์โค้ดแทนได้:</p>
+            <input type="file" id="camera-barcode-file-input" accept="image/*" capture="environment" style="display: none;" onchange="handleBarcodePhotoUpload(event)">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('camera-barcode-file-input').click()">
+              📸 แตะเพื่อถ่ายรูปบาร์โค้ด
+            </button>
           </div>
         </div>
         <div class="modal-footer" style="justify-content: space-between;">
@@ -229,12 +268,45 @@ async function openCameraBarcodeScanner(prefix = 'ward') {
   }
 
   modal.style.display = 'flex';
+  const preflightZone = document.getElementById('camera-preflight-zone');
+  const liveZone = document.getElementById('camera-live-zone');
+  const fallbackZone = document.getElementById('camera-fallback-zone');
+  const insecureWarning = document.getElementById('camera-insecure-warning');
+  const btnRequestCamera = document.getElementById('btn-request-camera');
+
+  if (preflightZone) preflightZone.style.display = 'block';
+  if (liveZone) liveZone.style.display = 'none';
+  if (fallbackZone) fallbackZone.style.display = 'none';
+
+  // Check Secure Context for Mobile LAN HTTP
+  const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const isSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (!isSecure && !hasMediaDevices) {
+    if (insecureWarning) insecureWarning.style.display = 'block';
+    if (btnRequestCamera) btnRequestCamera.style.display = 'none';
+  } else {
+    if (insecureWarning) insecureWarning.style.display = 'none';
+    if (btnRequestCamera) btnRequestCamera.style.display = 'block';
+  }
+}
+window.openCameraBarcodeScanner = openCameraBarcodeScanner;
+
+async function startLiveCameraStream() {
+  const preflightZone = document.getElementById('camera-preflight-zone');
+  const liveZone = document.getElementById('camera-live-zone');
   const video = document.getElementById('barcode-scanner-video');
   const statusEl = document.getElementById('camera-scanner-status');
   const fallbackZone = document.getElementById('camera-fallback-zone');
-  if (fallbackZone) fallbackZone.style.display = 'none';
+
+  if (preflightZone) preflightZone.style.display = 'none';
+  if (liveZone) liveZone.style.display = 'block';
 
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('เบราว์เซอร์นี้ไม่รองรับ getUserMedia หรือต้องการ HTTPS');
+    }
+
     const hasDetector = await initBarcodeDetector();
     const constraints = {
       video: {
@@ -261,19 +333,19 @@ async function openCameraBarcodeScanner(prefix = 'ward') {
         isDetectingBarcode = true;
         startContinuousBarcodeDetection(video);
       } else {
-        if (statusEl) statusEl.textContent = 'ℹ️ ไม่พบ Live BarcodeDetector สามารถถ่ายรูปบาร์โค้ดเพื่อตรวจจับได้';
+        if (statusEl) statusEl.textContent = 'ℹ️ กำลังแสดงภาพสด สามารถถ่ายภาพบาร์โค้ดเพื่อค้นหาได้';
         if (fallbackZone) fallbackZone.style.display = 'block';
       }
     }
   } catch (err) {
     console.error('Camera access error:', err);
     if (statusEl) {
-      statusEl.innerHTML = `<span style="color:var(--danger)">❌ ไม่สามารถเปิดกล้องได้: ${err.message || 'กรุณาอนุญาตให้เข้าถึงกล้อง'}</span>`;
+      statusEl.innerHTML = `<span style="color:var(--danger)">❌ ไม่สามารถเปิดกล้องสดได้: ${err.message || 'กรุณาอนุญาตให้เข้าถึงกล้อง'}</span>`;
     }
     if (fallbackZone) fallbackZone.style.display = 'block';
   }
 }
-window.openCameraBarcodeScanner = openCameraBarcodeScanner;
+window.startLiveCameraStream = startLiveCameraStream;
 
 function closeCameraBarcodeScanner() {
   isDetectingBarcode = false;
@@ -346,14 +418,40 @@ async function handleBarcodePhotoUpload(event) {
     await img.decode();
 
     if ('BarcodeDetector' in window) {
-      const detector = new window.BarcodeDetector();
-      const barcodes = await detector.detect(img);
-      if (barcodes && barcodes.length > 0) {
-        handleBarcodeDetected(barcodes[0].rawValue);
-        return;
+      try {
+        const detector = new window.BarcodeDetector();
+        const barcodes = await detector.detect(img);
+        if (barcodes && barcodes.length > 0) {
+          handleBarcodeDetected(barcodes[0].rawValue);
+          return;
+        }
+      } catch (detErr) {
+        console.warn('Barcode detection attempt warning:', detErr);
       }
     }
-    if (statusEl) statusEl.textContent = '❌ ไม่พบบาร์โค้ดในภาพ กรุณาลองพิมพ์รหัสแทน';
+
+    // Graceful Photo Evidence Attachment & Tag Prompt (iOS Safari / Non-detector browsers)
+    if (activeScanTargetPrefix === 'ward') {
+      state.wardCapturedPhotoFile = file;
+      const statusTag = document.getElementById('ward-camera-status-tag');
+      if (statusTag) statusTag.style.display = 'flex';
+      const previewBox = document.getElementById('ward-photo-preview-box');
+      const imgEl = document.getElementById('ward-photo-img');
+      if (previewBox && imgEl) {
+        imgEl.src = img.src;
+        previewBox.style.display = 'flex';
+      }
+    }
+
+    closeCameraBarcodeScanner();
+    if (typeof showToast === 'function') {
+      showToast('📷 แนบภาพถ่ายเรียบร้อยแล้ว กรุณาระบุหรือยืนยันรหัสครุภัณฑ์เพื่อค้นหา', 'info', 4500);
+    }
+    const inputId = `${activeScanTargetPrefix}-search-input`;
+    const input = document.getElementById(inputId);
+    if (input) {
+      input.focus();
+    }
   } catch (err) {
     console.error('Barcode photo error:', err);
     if (statusEl) statusEl.textContent = '❌ ไม่สามารถอ่านภาพได้';

@@ -122,6 +122,10 @@ function logout() {
     appSidebar.style.display = 'none';
     appSidebar.classList.remove('open');
   }
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
+  if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
+
   if (userBadge) userBadge.style.display = 'none';
   const breadcrumbBar = document.getElementById('breadcrumb-bar');
   if (breadcrumbBar) breadcrumbBar.style.display = 'none';

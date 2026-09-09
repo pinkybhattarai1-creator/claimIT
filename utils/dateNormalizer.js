@@ -74,13 +74,13 @@ function normalizeDate(input) {
     let year = parseInt(slashMatch[3], 10);
 
     if (year >= 2400) {
-      // 4-digit Thai BE (e.g. 2566 -> 2023, 2567 -> 2024)
+      // 4-digit Thai Buddhist Era (e.g. 2566 -> 2023, 2567 -> 2024)
       year = year - 543;
     } else if (year >= 50 && year < 100) {
-      // 2-digit Thai BE (e.g. 66 -> 2566 -> 2023, 67 -> 2567 -> 2024)
+      // 2-digit Thai Buddhist Era window [50..99] -> 2550..2599 (e.g. 66 -> 2566 -> 2023 CE, 69 -> 2569 -> 2026 CE)
       year = (2500 + year) - 543;
     } else if (year < 50) {
-      // 2-digit CE (e.g. 23 -> 2023)
+      // 2-digit Gregorian CE window [00..49] -> 2000..2049 (e.g. 24 -> 2024 CE, 26 -> 2026 CE)
       year = 2000 + year;
     }
 

@@ -29,17 +29,48 @@ function securityHeaders(req, res, next) {
   next();
 }
 
-// 2. Strict CORS Allowlist (with Hospital Intranet 10.33.xx.xx Support)
+// 2. Strict CORS Allowlist (Supporting Phyathai, Hospital Intranet, Localhost, and custom domains)
+function isOriginAllowed(origin, allowedList) {
+  if (!origin) return true; // Same-origin or non-browser client (curl, mobile, backend)
+
+  // Phyathai hospital domains (*.phyathai.com, phyathai.com)
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*phyathai\.com(:\d+)?$/i.test(origin)) return true;
+
+  // Localhost & Loopback on any port
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+
+  // Hospital Intranet private subnets (10.x.x.x, 192.168.x.x, 172.16-31.x.x)
+  if (/^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin)) return true;
+
+  // Custom allowed origins from .env
+  if (allowedList === '*') return true;
+  if (Array.isArray(allowedList)) {
+    for (const item of allowedList) {
+      if (!item) continue;
+      if (item === '*' || item === origin) return true;
+      if (item.startsWith('*.')) {
+        const rootDomain = item.slice(2);
+        try {
+          const u = new URL(origin);
+          if (u.hostname === rootDomain || u.hostname.endsWith('.' + rootDomain)) return true;
+        } catch {}
+      }
+    }
+  }
+  return false;
+}
+
 function corsMiddleware(req, res, next) {
   const origin = req.headers.origin;
-  const isHospitalIntranet = origin && (/^https?:\/\/(10\.33\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin));
   const allowed = CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN.split(',').map(o => o.trim());
 
-  if (allowed === '*' || !origin || isHospitalIntranet || allowed.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (isOriginAllowed(origin, allowed)) {
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Vendor-Webhook-Key');
     res.setHeader('Access-Control-Max-Age', '86400');
   } else {
     if (req.method === 'OPTIONS') {

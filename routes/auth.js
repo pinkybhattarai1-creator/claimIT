@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { db, hashPassword, verifyPassword } = require('../db');
+const { db, hashPassword, verifyPassword, recordAuditLog } = require('../db');
 const { JWT_SECRET } = require('../utils/envValidator');
 const { loginLimiter, resetLimiter } = require('../middleware/security');
 const { verifyToken } = require('../middleware/auth');
@@ -185,7 +185,8 @@ router.put('/profile', verifyToken, (req, res) => {
         username: req.user.username,
         role: req.user.role,
         name: cleanName,
-        department: cleanDept
+        department: cleanDept,
+        token_version: req.user.token_version !== undefined ? req.user.token_version : 0
       };
       const token = jwt.sign(updatedUser, JWT_SECRET, { expiresIn: '8h' });
 
@@ -316,15 +317,18 @@ router.post('/reset-password-token', resetLimiter, (req, res) => {
   );
 });
 
-// Helper to record auth audit events safely
+// Helper to record auth audit events safely with standard tracking code
 function logAuthEvent(username, action, details, req) {
-  const ip = req.ip || req.connection.remoteAddress || '127.0.0.1';
-  db.run(
-    `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details)
-     VALUES (?, ?, 'Security', ?, 'AUTH', ?, ?)`,
-    ['SYSTEM_AUTH', `IP: ${ip}`, action, username || 'anonymous', details || ''],
-    () => {} // Non-blocking
-  );
+  const ip = req ? (req.ip || req.connection?.remoteAddress || '127.0.0.1') : '127.0.0.1';
+  recordAuditLog(db, {
+    asset_tag: 'SYSTEM_AUTH',
+    department_name: `IP: ${ip}`,
+    floor: 'Security',
+    status: action,
+    moved_direction: 'AUTH',
+    action_by_username: username || 'anonymous',
+    details: details || ''
+  });
 }
 
 module.exports = router;

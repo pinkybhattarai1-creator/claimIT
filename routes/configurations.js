@@ -4,6 +4,14 @@ const { db } = require('../db');
 const { verifyToken, adminOnly } = require('../middleware/auth');
 const { handleDbError } = require('../utils/safeError');
 
+// GET /api/configurations/public-contact (Public endpoint for login page contact info)
+router.get('/public-contact', (req, res) => {
+  db.all("SELECT type, value, details FROM configurations WHERE type IN ('contact', 'hospital_profile', 'helpdesk') AND is_deleted = 0", [], (err, rows) => {
+    if (err) return handleDbError(res, err);
+    res.json(rows);
+  });
+});
+
 // GET /api/configurations (Authenticated users)
 router.get('/', verifyToken, (req, res) => {
   const { type } = req.query;

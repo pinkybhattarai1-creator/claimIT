@@ -120,9 +120,15 @@ router.post('/vendor-update', verifyWebhookKey, async (req, res) => {
         return res.status(404).json({ error: `ไม่พบใบเคลมที่ตรงกับหมายเลข RMA: ${cleanRma}` });
       }
 
-      const updates = [];
-      const params = [];
-      if (status) { updates.push('status = ?'); params.push(status); }
+      if (status) {
+        const allowedStatuses = ['Pending', 'Sanitized', 'Pending Pickup', 'Out to Vendor', 'VENDOR_RESPONSE', 'Returned', 'Repaired', 'Closed', 'Cancelled', 'Scrapped', 'SUBMITTED', 'REJECTED'];
+        const matched = allowedStatuses.find(s => s.toUpperCase() === String(status).trim().toUpperCase());
+        if (!matched) {
+          return res.status(400).json({ error: `สถานะไม่ถูกต้อง (Invalid status: ${status})` });
+        }
+        updates.push('status = ?');
+        params.push(matched);
+      }
       if (expected_return_date) { updates.push('expected_return_date = ?'); params.push(expected_return_date); }
       if (actual_return_date) { updates.push('resolved_date = ?'); params.push(actual_return_date); }
       if (repair_cost !== undefined) { updates.push('repair_cost = ?'); params.push(parseFloat(repair_cost) || 0); }

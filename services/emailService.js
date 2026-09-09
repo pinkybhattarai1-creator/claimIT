@@ -143,8 +143,11 @@ async function sendNotificationEmail({ templateName, recipient, claimId, data })
       errorMessage = err.message;
       console.error('[EMAIL ERROR]', err);
     }
+  } else if (!recipient) {
+    status = 'NOT_SENT';
+    errorMessage = 'Missing recipient email address';
   } else {
-    status = RESEND_API_KEY ? 'SENT' : 'NOT_SENT';
+    status = 'NOT_SENT';
     console.log(`[EMAIL SIMULATED] To: ${recipient} | Subject: ${subject}`);
   }
 

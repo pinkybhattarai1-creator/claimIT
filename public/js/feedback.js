@@ -26,9 +26,9 @@
 
   function getActivePageName() {
     if (typeof state !== 'undefined' && state.activeView) {
-      if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมเจ้าหน้าที่ (Staff Portal)';
-      if (state.activeView === 'it') return 'ศูนย์จัดการเคลม & IT Hub';
-      if (state.activeView === 'config') return 'ตั้งค่าระบบ (Admin/Config)';
+      if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมประจำแผนก (Staff)';
+      if (state.activeView === 'it') return 'ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)';
+      if (state.activeView === 'config') return 'ตั้งค่าระบบ (Admin)';
       if (state.activeView === 'auth') return 'หน้าจอเข้าสู่ระบบ (Login)';
     }
     return window.location.pathname || 'หน้าหลัก';

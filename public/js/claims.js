@@ -90,7 +90,7 @@ async function confirmSanitization() {
   const codeInput = document.getElementById('sanitize-code-input');
   const wipeCode = codeInput ? codeInput.value.trim() : '';
   if (!wipeCode) {
-    showToast('🔐 กรุณากรอกรหัสยืนยันความปลอดภัย (พิมพ์ "WIPED" หรือรหัสครุภัณฑ์)', 'warning');
+    showToast('🔐 กรุณากรอกรหัสยืนยันความปลอดภัย (พิมพ์ "ยืนยัน" หรือ "WIPED")', 'warning');
     if (codeInput) codeInput.focus();
     return;
   }
@@ -257,21 +257,35 @@ async function confirmAndSendEmail() {
 // ==========================================
 
 const CLAIM_STATUS_BADGES = {
-  DRAFT: '<span class="badge" style="background:#64748b; color:#fff;">DRAFT</span>',
-  VIABLE: '<span class="badge" style="background:#0284c7; color:#fff;">VIABLE</span>',
-  CONFIRMED: '<span class="badge" style="background:#4f46e5; color:#fff;">CONFIRMED</span>',
-  SUBMITTED: '<span class="badge" style="background:#d97706; color:#fff;">SUBMITTED</span>',
-  VENDOR_RESPONSE: '<span class="badge" style="background:#ea580c; color:#fff;">IN REPAIR</span>',
-  RETURNED: '<span class="badge" style="background:#16a34a; color:#fff;">RETURNED</span>',
-  CLOSED: '<span class="badge" style="background:#059669; color:#fff;">CLOSED</span>',
-  CANCELLED: '<span class="badge" style="background:#dc2626; color:#fff;">CANCELLED</span>'
+  DRAFT: '<span class="badge" style="background:#64748b; color:#fff;">ฉบับร่าง</span>',
+  VIABLE: '<span class="badge" style="background:#0284c7; color:#fff;">🟢 คุ้มค่าส่งซ่อม</span>',
+  NOT_VIABLE: '<span class="badge" style="background:#dc2626; color:#fff;">🔴 ไม่คุ้มค่า (เสนอปลด)</span>',
+  CONFIRMED: '<span class="badge" style="background:#4f46e5; color:#fff;">ยืนยันส่งซ่อม</span>',
+  SUBMITTED: '<span class="badge" style="background:#d97706; color:#fff;">ส่งศูนย์บริการแล้ว</span>',
+  VENDOR_RESPONSE: '<span class="badge" style="background:#ea580c; color:#fff;">ศูนย์ฯ กำลังซ่อม</span>',
+  RETURNED: '<span class="badge" style="background:#16a34a; color:#fff;">รับเครื่องคืนแล้ว</span>',
+  CLOSED: '<span class="badge" style="background:#059669; color:#fff;">ปิดงานเสร็จสิ้น</span>',
+  CANCELLED: '<span class="badge" style="background:#dc2626; color:#fff;">ยกเลิก</span>'
+};
+
+const STATUS_NAMES_TH = {
+  DRAFT: 'ฉบับร่าง',
+  VIABLE: '🟢 คุ้มค่าส่งซ่อม',
+  NOT_VIABLE: '🔴 ไม่คุ้มค่า (เสนอปลด)',
+  CONFIRMED: 'ยืนยันส่งซ่อม',
+  SUBMITTED: 'ส่งศูนย์บริการแล้ว',
+  VENDOR_RESPONSE: 'ศูนย์ฯ กำลังซ่อม',
+  RETURNED: 'รับเครื่องคืนแล้ว',
+  CLOSED: 'ปิดงานเสร็จสิ้น',
+  CANCELLED: 'ยกเลิก',
+  REJECTED: 'ปฏิเสธ'
 };
 
 const NEXT_STATUS_OPTIONS = {
   DRAFT: ['VIABLE', 'CANCELLED'],
   VIABLE: ['CONFIRMED', 'DRAFT', 'CANCELLED'],
   NOT_VIABLE: ['DRAFT', 'CANCELLED'],
-  CONFIRMED: ['SUBMITTED', 'VIABLE', 'DRAFT', 'CANCELLED'],
+  CONFIRMED: ['SUBMITTED', 'CANCELLED'],
   SUBMITTED: ['VENDOR_RESPONSE', 'RETURNED', 'CANCELLED'],
   VENDOR_RESPONSE: ['RETURNED', 'REJECTED'],
   RETURNED: ['CLOSED'],
@@ -595,13 +609,13 @@ async function openClaimDetailsModal(claimId) {
           btn.className = 'btn btn-secondary';
           btn.style.border = '1.5px dashed #f59e0b';
           btn.style.color = '#f59e0b';
-          btn.textContent = '↩️ ย้อนกลับเป็นร่าง (Revert to Draft)';
+          btn.textContent = '↩️ เปลี่ยนกลับเป็นฉบับร่าง';
         } else if (ns === 'RETURNED' || ns === 'CLOSED') {
           btn.className = 'btn btn-success';
-          btn.textContent = `➡️ ปรับเป็น ${ns}`;
+          btn.textContent = `➡️ ${STATUS_NAMES_TH[ns] || ns}`;
         } else {
           btn.className = 'btn btn-secondary';
-          btn.textContent = `➡️ ปรับเป็น ${ns}`;
+          btn.textContent = `➡️ ${STATUS_NAMES_TH[ns] || ns}`;
         }
 
         btn.onclick = () => handleAdvanceClaimStatus(claimId, ns);

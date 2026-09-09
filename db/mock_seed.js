@@ -12,7 +12,9 @@
 function seedRealisticMockData(db, callback) {
   db.serialize(() => {
     // 1. Ensure test users exist with must_change_password = 0
-    db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff');");
+    db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff');", (err) => {
+      if (err) console.warn('[Mock Seed User Warning]:', err.message);
+    });
 
     // 2. Check if mains is empty or needs mock seeding
     db.get("SELECT COUNT(*) as count FROM mains", (err, row) => {
@@ -34,13 +36,20 @@ function seedRealisticMockData(db, callback) {
 
       console.log('[Mock Seed] Seeding realistic synthetic hospital test data...');
 
-      // Clear existing sparse dummy assets
-      db.run("DELETE FROM mains;");
-      db.run("DELETE FROM claims;");
-      db.run("DELETE FROM claim_assets;");
-      db.run("DELETE FROM move_log;");
+      // Temporarily disable foreign keys during clean & seed to prevent constraint violations
+      db.run("PRAGMA foreign_keys = OFF;", (fkOffErr) => {
+        if (fkOffErr) console.warn('[Mock Seed PRAGMA OFF Warning]:', fkOffErr.message);
+      });
 
-      // Insert 15 realistic synthetic hospital IT assets
+      // Clear existing dummy data in safe child-first order with explicit callbacks
+      db.run("DELETE FROM claim_assets;", (err) => { if (err) console.warn('[Mock Seed Clean claim_assets]:', err.message); });
+      db.run("DELETE FROM evidence;", (err) => { if (err) console.warn('[Mock Seed Clean evidence]:', err.message); });
+      db.run("DELETE FROM rma_claims;", (err) => { if (err) console.warn('[Mock Seed Clean rma_claims]:', err.message); });
+      db.run("DELETE FROM move_log;", (err) => { if (err) console.warn('[Mock Seed Clean move_log]:', err.message); });
+      db.run("DELETE FROM claims;", (err) => { if (err) console.warn('[Mock Seed Clean claims]:', err.message); });
+      db.run("DELETE FROM mains;", (err) => { if (err) console.warn('[Mock Seed Clean mains]:', err.message); });
+
+      // Insert 16 realistic synthetic hospital IT assets
       const mockAssets = [
         // 1. CRITICAL: The "1 almost to the date" asset (Dynamic 15 days ahead)
         {
@@ -311,10 +320,28 @@ function seedRealisticMockData(db, callback) {
           warranty_months: 24,
           expected_lifespan_months: 48,
           salvage_status: 'None'
+        },
+        // 16. Scrapped Monitor (Core baseline asset for scrap/disposal and claim testing)
+        {
+          asset_tag: '031709030031',
+          category: 'Monitor',
+          brand: 'Dell',
+          model: 'E2318H',
+          serial_no: 'MOCK-DL-E2318-CN01',
+          device_name: 'Dell E2318H 23-inch FHD Monitor',
+          location: 'Technical Support & Infrastructure',
+          warranty_start: "date('now', '-1800 days')",
+          warranty_end: "date('now', '-700 days')",
+          sanitization_required: 0,
+          status: 'Scrapped',
+          purchase_price: 4800,
+          warranty_months: 36,
+          expected_lifespan_months: 48,
+          salvage_status: 'Scrapped'
         }
       ];
 
-      // Insert all mock assets in a single atomic statement
+      // Insert all mock assets in a single atomic statement using INSERT OR REPLACE
       const valuesSql = mockAssets.map(a => `(
         '${a.asset_tag}', '${a.category}', '${a.brand}', '${a.model}', '${a.serial_no}', '${a.device_name}', '${a.location}',
         ${a.warranty_start}, ${a.warranty_end}, ${a.sanitization_required}, '${a.status}',
@@ -322,18 +349,31 @@ function seedRealisticMockData(db, callback) {
       )`).join(',\n');
 
       db.run(`
-        INSERT INTO mains (
+        INSERT OR REPLACE INTO mains (
           asset_tag, category, brand, model, serial_no, device_name, location,
           warranty_start, warranty_end, sanitization_required, status,
           purchase_price, warranty_months, expected_lifespan_months, salvage_status
         ) VALUES 
         ${valuesSql}
       `, function(mainsErr) {
-        if (mainsErr) console.error('INSERT mains error:', mainsErr);
+        if (mainsErr) {
+          console.error('[Mock Seed] INSERT mains error:', mainsErr.message);
+        }
+
+        // Insert Initial Audit Move Logs safely
+        db.run(`
+          INSERT OR IGNORE INTO move_log (log_code, asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES
+          ('CHG-2026-MOCK01', 'CIT-2023-AIO-11', 'ห้องปฏิบัติการทางการแพทย์ (Central Lab)', 'Fl 2', 'Working', 'IN', 'admin', 'ตรวจรับและติดตั้ง Workstation ประจำแล็บชันสูตร (รับประกันใกล้ครบกำหนด)'),
+          ('CHG-2026-MOCK02', 'CIT-2024-AIO-02', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 'Fl 1', 'Working', 'IN', 'admin', 'ติดตั้ง All-in-One ประจำโต๊ะตรวจแพทย์ 1'),
+          ('CHG-2026-MOCK03', 'CIT-2022-TAB-03', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 'Fl 3', 'Broken', 'OUT', 'staff', 'ส่งซ่อม: แบตบวมและจอไม่ตอบสนอง เปิดเคสเคลม CLM-2026-001'),
+          ('CHG-2026-MOCK04', 'CIT-2023-PRN-02', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 'Fl 1', 'Pending Pickup', 'OUT', 'staff', 'เตรียมส่งซ่อม: เครื่องพิมพ์สายรัดข้อมือหัวพิมพ์ขาด รอขนส่งรับเครื่อง')
+        `, (moveErr) => {
+          if (moveErr) console.warn('[Mock Seed move_log warning]:', moveErr.message);
+        });
 
         // Insert 3 Mock Claims only after all mains are guaranteed committed
         db.run(`
-          INSERT INTO claims (
+          INSERT OR REPLACE INTO claims (
             claim_number, vendor_name, vendor_rma_number, claim_type, viability_score, viability_status,
             status, claim_date, expected_return_date, notes, created_by, confirmed_by
           ) VALUES 
@@ -350,33 +390,40 @@ function seedRealisticMockData(db, callback) {
             'COMPLETED', date('now', '-30 days'), date('now', '-20 days'), 'เมนบอร์ดชำรุด ช่าง On-site เข้าเปลี่ยนบอร์ดใหม่เรียบร้อย ทดสอบ Diagnostics ผ่าน 100%', 'admin', 'admin'
           )
         `, function(claimsErr) {
-          if (claimsErr) console.error('INSERT claims error:', claimsErr);
+          if (claimsErr) {
+            console.error('[Mock Seed] INSERT claims error:', claimsErr.message);
+          }
 
-          // Link Claim Assets
-          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e, c1) => {
+          // Link Claim Assets & Safely finalize
+          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e1, c1) => {
+            if (e1) console.warn('[Mock Seed Claim 1 Error]:', e1.message);
             if (c1) {
-              db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2022-TAB-03', 'ล้างข้อมูลเรียบร้อย (Factory Reset)', 'Pending Pickup')`, [c1.id]);
+              db.run(
+                `INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2022-TAB-03', 'ล้างข้อมูลเรียบร้อย (Factory Reset)', 'Pending Pickup')`,
+                [c1.id],
+                (caErr1) => { if (caErr1) console.warn('[Mock Seed claim_assets 1]:', caErr1.message); }
+              );
             }
-          });
-          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-002'", (e, c2) => {
-            if (c2) {
-              db.run(`INSERT INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-PRN-02', 'ไม่ต้องล้างข้อมูล (เครื่องพิมพ์)', 'Pending Pickup')`, [c2.id]);
-            }
+            db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-002'", (e2, c2) => {
+              if (e2) console.warn('[Mock Seed Claim 2 Error]:', e2.message);
+              if (c2) {
+                db.run(
+                  `INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-PRN-02', 'ไม่ต้องล้างข้อมูล (เครื่องพิมพ์)', 'Pending Pickup')`,
+                  [c2.id],
+                  (caErr2) => { if (caErr2) console.warn('[Mock Seed claim_assets 2]:', caErr2.message); }
+                );
+              }
+
+              // Re-enable foreign keys after all tables and relationships are securely loaded
+              db.run("PRAGMA foreign_keys = ON;", (fkOnErr) => {
+                if (fkOnErr) console.warn('[Mock Seed PRAGMA ON Warning]:', fkOnErr.message);
+                console.log(`[Mock Seed] Successfully seeded ${mockAssets.length} synthetic mock hospital assets, 3 mock claims, and audit logs.`);
+                if (callback) callback(null, { seeded: true, count: mockAssets.length });
+              });
+            });
           });
         });
       });
-
-      // Insert Initial Audit Move Logs
-      db.run(`
-        INSERT INTO move_log (log_code, asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES
-        ('CHG-2026-MOCK01', 'CIT-2023-AIO-11', 'ห้องปฏิบัติการทางการแพทย์ (Central Lab)', 'Fl 2', 'Working', 'IN', 'admin', 'ตรวจรับและติดตั้ง Workstation ประจำแล็บชันสูตร (รับประกันใกล้ครบกำหนด)'),
-        ('CHG-2026-MOCK02', 'CIT-2024-AIO-02', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 'Fl 1', 'Working', 'IN', 'admin', 'ติดตั้ง All-in-One ประจำโต๊ะตรวจแพทย์ 1'),
-        ('CHG-2026-MOCK03', 'CIT-2022-TAB-03', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 'Fl 3', 'Broken', 'OUT', 'staff', 'ส่งซ่อม: แบตบวมและจอไม่ตอบสนอง เปิดเคสเคลม CLM-2026-001'),
-        ('CHG-2026-MOCK04', 'CIT-2023-PRN-02', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 'Fl 1', 'Pending Pickup', 'OUT', 'staff', 'เตรียมส่งซ่อม: เครื่องพิมพ์สายรัดข้อมือหัวพิมพ์ขาด รอขนส่งรับเครื่อง')
-      `);
-
-      console.log('[Mock Seed] Successfully seeded 15 synthetic mock hospital assets, 3 mock claims, and audit logs.');
-      if (callback) callback(null, { seeded: true, count: mockAssets.length });
     });
   });
 }

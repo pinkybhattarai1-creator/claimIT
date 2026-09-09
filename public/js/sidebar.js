@@ -137,8 +137,7 @@ function switchDashboardSection(viewName, tabId) {
   }
   const sidebar = document.getElementById('quick-sidebar');
   if (sidebar) sidebar.classList.remove('open');
-  const appSidebar = document.getElementById('app-sidebar');
-  if (appSidebar && window.innerWidth <= 900) appSidebar.classList.remove('open');
+  closeMobileSidebar();
   if (typeof switchView === 'function') switchView(viewName);
   if (viewName === 'it' && tabId && typeof switchItTab === 'function') {
     switchItTab(tabId);
@@ -148,23 +147,43 @@ function switchDashboardSection(viewName, tabId) {
 }
 window.switchDashboardSection = switchDashboardSection;
 
+// Centralized Mobile Drawer & Backdrop Controller
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('active');
+}
+window.closeMobileSidebar = closeMobileSidebar;
+
 // Mobile Navigation Drawer Toggle
 function toggleMobileSidebar() {
   const sidebar = document.getElementById('app-sidebar');
-  if (sidebar) {
-    sidebar.classList.toggle('open');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (!sidebar) return;
+  const willOpen = !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', willOpen);
+  if (backdrop) {
+    backdrop.classList.toggle('active', willOpen);
   }
 }
 window.toggleMobileSidebar = toggleMobileSidebar;
 
-// Close mobile sidebar on outside click or nav item click
+// Close mobile sidebar on outside click, backdrop click, or nav item click
 document.addEventListener('click', (e) => {
   const sidebar = document.getElementById('app-sidebar');
   const toggleBtn = e.target.closest('.mobile-menu-btn');
   if (sidebar && sidebar.classList.contains('open') && !toggleBtn) {
-    if (!sidebar.contains(e.target) || e.target.closest('.sidebar-item')) {
-      sidebar.classList.remove('open');
+    if (!sidebar.contains(e.target) || e.target.closest('.sidebar-item') || e.target.id === 'sidebar-backdrop') {
+      closeMobileSidebar();
     }
+  }
+});
+
+// Close drawer on ESC key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeMobileSidebar();
   }
 });
 

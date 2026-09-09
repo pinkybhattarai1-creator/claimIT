@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS evidence (
 -- 8. Move & Security Audit Log Table (Immutable audit trail)
 CREATE TABLE IF NOT EXISTS move_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  log_code TEXT UNIQUE,
   asset_tag TEXT NOT NULL,
   department_name TEXT NOT NULL,
   floor TEXT NOT NULL,

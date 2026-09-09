@@ -1298,20 +1298,41 @@ tbody td strong {
   .sidebar {
     position: fixed;
     top: 0;
-    left: -280px;
-    width: 280px;
+    bottom: 0;
+    left: -320px;
+    width: min(300px, 85vw);
     height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     z-index: 1200;
     box-shadow: var(--shadow-xl);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   .sidebar.open {
-    transform: translateX(280px);
+    transform: translateX(320px);
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-footer {
+    flex-shrink: 0;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
   
   .mobile-menu-btn {
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 20px;
   }
   
   .content-viewport {
@@ -1325,14 +1346,22 @@ tbody td strong {
 
 @media (max-width: 768px) {
   .topbar {
-    padding: 0 12px;
+    height: 56px;
+    padding: 0 10px;
+    gap: 8px;
   }
 
   .breadcrumb-nav {
     font-size: 12px;
-    max-width: 160px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #warranty-expiring-badge {
+    padding: 3px 6px !important;
+    font-size: 10.5px !important;
     white-space: nowrap;
   }
 
@@ -1355,6 +1384,44 @@ tbody td strong {
   .modal-dialog {
     max-width: 95%;
     margin: 10px auto;
+  }
+
+  /* Responsive Scanner Input: Full-width search bar on top, neatly wrapped action buttons below */
+  .scanner-card {
+    padding: 14px 12px;
+  }
+
+  .scanner-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .scanner-input-group .scanner-input-field {
+    width: 100%;
+    flex: 1 1 100%;
+    padding: 9px 12px;
+    font-size: 15px;
+  }
+
+  .scanner-input-group .scanner-input-field::placeholder {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .scanner-input-group .btn {
+    flex: 1 1 calc(33.333% - 6px);
+    min-width: 75px;
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .camera-scanner-viewfinder {
+    height: 220px;
   }
 }
 
@@ -1380,20 +1447,18 @@ tbody td strong {
   }
 
   .topbar-right {
-    padding: 2px 6px;
-    font-size: 11.5px;
+    padding: 2px 4px;
+    font-size: 11px;
+    gap: 6px;
   }
 
   #user-role {
     display: none;
   }
 
-  .scanner-input-group {
-    flex-direction: column;
-  }
-  
   .scanner-input-group .btn {
-    width: 100%;
+    flex: 1 1 auto;
+    font-size: 11.5px;
   }
 
   .preset-chips-row {
@@ -1436,6 +1501,53 @@ tbody td strong {
     padding: 8mm;
     font-size: 9px;
   }
+}
+
+/* ─── ULTRA-COMPACT & UNUSUAL SCREENS (e.g., 406x458 px Cover Screens / Industrial Handheld Scanners) ─── */
+@media screen and (max-width: 420px), screen and (max-height: 500px) {
+  .topbar {
+    height: 48px;
+    padding: 0 6px;
+  }
+  .content-viewport {
+    padding: 8px 6px;
+  }
+  .card {
+    padding: 10px 8px;
+    margin-bottom: 10px;
+  }
+  .modal-dialog {
+    max-height: 90vh;
+    max-height: 90dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 60vh;
+    padding: 10px;
+  }
+  .scanner-mode-switch {
+    font-size: 11px;
+  }
+}
+
+.brand-logo-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+.brand-logo-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 360px) {
@@ -1496,22 +1608,25 @@ tbody td strong {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Mobile Drawer Backdrop */
-  .sidebar-backdrop {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(2px);
-    z-index: 1150;
-  }
+}
 
-  .sidebar-backdrop.active {
-    display: block;
-  }
+/* Drawer Backdrop: available whenever slide drawer is active (<= 900px) */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1150;
+  touch-action: none;
+}
+
+.sidebar-backdrop.active {
+  display: block;
 }
 
 /* ==========================================================================

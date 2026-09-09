@@ -84,6 +84,9 @@ function switchView(viewName, pushHistory = true) {
       appSidebar.style.display = 'none';
       appSidebar.classList.remove('open');
     }
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+    if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
     const topbarLogout = document.getElementById('btn-topbar-logout');
     if (topbarLogout) topbarLogout.style.display = 'none';
     updateBreadcrumb('', '');
@@ -96,7 +99,7 @@ function switchView(viewName, pushHistory = true) {
     userBadge.style.display = 'flex';
     btnWard?.classList.add('active');
     btnTopWard?.classList.add('active');
-    updateBreadcrumb('Staff Portal', 'สแกน & แจ้งซ่อมภาคสนาม');
+    updateBreadcrumb('ระบบแจ้งซ่อมประจำแผนก', 'สแกนและแจ้งซ่อม');
     refreshData();
     setTimeout(() => document.getElementById('ward-search-input')?.focus(), 100);
   } else if (viewName === 'it') {
@@ -122,6 +125,17 @@ function switchView(viewName, pushHistory = true) {
 }
 window.switchView = switchView;
 
+// Global Return to Home Handler
+window.returnToHome = function() {
+  if (!state.user) {
+    switchView('auth');
+  } else if (state.user.role === 'admin') {
+    switchView('it');
+  } else {
+    switchView('ward');
+  }
+};
+
 // Switch IT sub-navigation tab (Eliminates infinite scrolling)
 function switchItTab(tabId) {
   document.querySelectorAll('.it-tab-btn').forEach(btn => {
@@ -131,7 +145,7 @@ function switchItTab(tabId) {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
   const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${tabId}"]`);
-  updateBreadcrumb('IT Portal', activeBtn ? activeBtn.textContent.trim() : '');
+  updateBreadcrumb('ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchItTab = switchItTab;
 
@@ -144,7 +158,7 @@ function switchConfigTab(tabId) {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
   const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${tabId}"]`);
-  updateBreadcrumb('System Admin', activeBtn ? activeBtn.textContent.trim() : '');
+  updateBreadcrumb('ตั้งค่าระบบ (Admin)', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchConfigTab = switchConfigTab;
 

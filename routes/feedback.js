@@ -6,6 +6,7 @@ const path = require('path');
 const { db } = require('../db');
 const { JWT_SECRET } = require('../utils/envValidator');
 const { handleDbError } = require('../utils/safeError');
+const { verifyToken, adminOnly, staffOnly } = require('../middleware/auth');
 
 // Optional auth helper (works whether logged in or guest tester)
 function optionalAuth(req, res, next) {
@@ -20,8 +21,19 @@ function optionalAuth(req, res, next) {
   next();
 }
 
-// Automatically syncs all feedback entries into a clean single-file Markdown Checklist
-function syncFeedbackLogFile() {
+// Automatically syncs all feedback entries into a clean single-file Markdown Checklist (Debounced)
+let syncTimer = null;
+function syncFeedbackLogFile(immediate = false) {
+  if (syncTimer) clearTimeout(syncTimer);
+  if (immediate) {
+    performSync();
+  } else {
+    syncTimer = setTimeout(performSync, 2000);
+  }
+}
+
+function performSync() {
+  syncTimer = null;
   db.all('SELECT * FROM user_feedback ORDER BY created_at DESC', [], (err, rows) => {
     if (err || !rows) return;
 
@@ -234,8 +246,8 @@ router.get('/public', (req, res) => {
   );
 });
 
-// GET /api/feedback/export/csv - Export CSV with UTF-8 BOM for Microsoft Excel
-router.get('/export/csv', optionalAuth, (req, res) => {
+// GET /api/feedback/export/csv - Export CSV with UTF-8 BOM for Microsoft Excel (Staff/Admin)
+router.get('/export/csv', verifyToken, staffOnly, (req, res) => {
   db.all('SELECT * FROM user_feedback ORDER BY created_at DESC', [], (err, rows) => {
     if (err) return handleDbError(res, err);
 
@@ -263,17 +275,17 @@ router.get('/export/csv', optionalAuth, (req, res) => {
   });
 });
 
-// GET /api/feedback/export/markdown - Download FEEDBACK_LOG.md
-router.get('/export/markdown', optionalAuth, (req, res) => {
-  syncFeedbackLogFile();
+// GET /api/feedback/export/markdown - Download FEEDBACK_LOG.md (Staff/Admin)
+router.get('/export/markdown', verifyToken, staffOnly, (req, res) => {
+  syncFeedbackLogFile(true);
   const filePath = path.join(__dirname, '..', 'FEEDBACK_LOG.md');
   setTimeout(() => {
     res.download(filePath, 'FEEDBACK_LOG.md');
   }, 50);
 });
 
-// GET /api/feedback - List all feedback entries
-router.get('/', optionalAuth, (req, res) => {
+// GET /api/feedback - List all feedback entries (Staff/Admin)
+router.get('/', verifyToken, staffOnly, (req, res) => {
   const { status, category } = req.query;
   let sql = 'SELECT * FROM user_feedback WHERE 1=1';
   const params = [];
@@ -295,8 +307,8 @@ router.get('/', optionalAuth, (req, res) => {
   });
 });
 
-// PATCH /api/feedback/:id - Update status and/or admin_note
-router.patch('/:id', optionalAuth, (req, res) => {
+// PATCH /api/feedback/:id - Update status and/or admin_note (Admin-only)
+router.patch('/:id', verifyToken, adminOnly, (req, res) => {
   const { status, admin_note } = req.body;
   const updates = [];
   const params = [];
@@ -325,17 +337,17 @@ router.patch('/:id', optionalAuth, (req, res) => {
   db.run(sql, params, function(err) {
     if (err) return handleDbError(res, err);
     if (this.changes === 0) return res.status(404).json({ error: 'ไม่พบรายการข้อเสนอแนะ' });
-    syncFeedbackLogFile();
+    syncFeedbackLogFile(true);
     res.json({ success: true, message: 'บันทึกการอัปเดตเรียบร้อยแล้ว' });
   });
 });
 
-// DELETE /api/feedback/:id - Delete feedback
-router.delete('/:id', optionalAuth, (req, res) => {
+// DELETE /api/feedback/:id - Delete feedback (Admin-only)
+router.delete('/:id', verifyToken, adminOnly, (req, res) => {
   db.run('DELETE FROM user_feedback WHERE id = ?', [req.params.id], function(err) {
     if (err) return handleDbError(res, err);
     if (this.changes === 0) return res.status(404).json({ error: 'ไม่พบรายการข้อเสนอแนะ' });
-    syncFeedbackLogFile();
+    syncFeedbackLogFile(true);
     res.json({ success: true, message: 'ลบรายการข้อเสนอแนะเรียบร้อยแล้ว' });
   });
 });

@@ -177,7 +177,7 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
 
       const doc = new PDFDocument({ margin: 36, size: 'A4' });
       const filename = `claim_${claim.claim_number}.pdf`;
-      res.setHeader('Content-disposition', 'attachment; filename=' + filename);
+      res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
       res.setHeader('Content-type', 'application/pdf');
 
       // Register Thai font if available (cross-platform bundled or OS)

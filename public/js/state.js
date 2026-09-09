@@ -48,12 +48,11 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
-// Page Titles
 const PAGE_TITLES = {
   auth: 'ClaimIT — เข้าสู่ระบบ',
-  ward: 'ClaimIT — Staff Portal (ช่างไอทีภาคสนาม)',
-  it:   'ClaimIT — IT Portal (ศูนย์เคลม & ครุภัณฑ์)',
-  config: 'ClaimIT — System Configuration (ตั้งค่า & จัดการระบบ)'
+  ward: 'ClaimIT — ระบบแจ้งซ่อมประจำแผนก (Staff)',
+  it:   'ClaimIT — ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)',
+  config: 'ClaimIT — ตั้งค่าระบบ (Admin)'
 };
 
 // Core DOM Elements

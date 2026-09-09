@@ -65,15 +65,17 @@ async function verifyAll() {
       resolve(res.statusCode === 200);
     });
     testReq.on('error', () => resolve(false));
-    testReq.setTimeout(500, () => {
+    testReq.setTimeout(1500, () => {
       testReq.destroy();
       resolve(false);
     });
   });
 
   if (!isRunning) {
-    localServerInstance = app.listen(PORT, '127.0.0.1');
-    await new Promise(resolve => localServerInstance.on('listening', resolve));
+    await new Promise(resolve => {
+      localServerInstance = app.listen(PORT, '127.0.0.1', () => resolve());
+      localServerInstance.on('error', () => resolve());
+    });
   }
 
   // Allow DB initialization to settle

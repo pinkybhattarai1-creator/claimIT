@@ -323,20 +323,27 @@ function initializeDatabase() {
         `INSERT INTO users (username, password, role, name, department, is_active, must_change_password)
          SELECT ?, ?, ?, ?, ?, 1, 0
          WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)`,
-        [u[0], u[1], u[2], u[3], u[4], u[0]]
+        [u[0], u[1], u[2], u[3], u[4], u[0]],
+        (userErr) => {
+          if (userErr) console.warn('[DB Init User Warning]:', userErr.message);
+        }
       );
     });
 
     // Ensure default test accounts never force password change
-    db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff');");
+    db.run("UPDATE users SET must_change_password = 0 WHERE username IN ('admin', 'staff');", (pwdErr) => {
+      if (pwdErr) console.warn('[DB Init Password Warning]:', pwdErr.message);
+    });
 
     // Eliminate excess default demo accounts if any remain
-    db.run("DELETE FROM users WHERE username IN ('admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4') AND token_version = 0;");
+    db.run("DELETE FROM users WHERE username IN ('admin2', 'admin3', 'admin4', 'staff2', 'staff3', 'staff4') AND token_version = 0;", (delErr) => {
+      if (delErr) console.warn('[DB Init Clean Demo Warning]:', delErr.message);
+    });
 
     db.get("SELECT COUNT(*) as count FROM departments", (err, row) => {
       if (row && row.count === 0) {
         db.run(
-          `INSERT INTO departments (building_name, floor, name, is_technical_area) VALUES 
+          `INSERT OR IGNORE INTO departments (building_name, floor, name, is_technical_area) VALUES 
           ('Building 1', '1', 'ฉุกเฉิน (Emergency Room / ER)', 0),
           ('Building 1', '1', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', 0),
           ('Building 1', '1', 'ห้องจ่ายยากลาง (Central Pharmacy)', 0),
@@ -349,24 +356,33 @@ function initializeDatabase() {
           ('Building 1', '4', 'เวชระเบียนและสถิติ (Medical Records)', 0),
           ('Building 1', '4', 'Technical Support & Infrastructure', 1),
           ('Building 1', '5', 'สำนักงานผู้อำนวยการ (Executive Administration)', 0),
-          ('Building 2', '2', 'ศูนย์รับเรื่องคอลเซ็นเตอร์ (Call Center Workspace)', 0)`
+          ('Building 2', '2', 'ศูนย์รับเรื่องคอลเซ็นเตอร์ (Call Center Workspace)', 0)`,
+          (depErr) => {
+            if (depErr) console.warn('[DB Init Departments Warning]:', depErr.message);
+          }
         );
 
         db.run(
-          `INSERT INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status) VALUES 
+          `INSERT OR IGNORE INTO mains (asset_tag, category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status) VALUES 
           ('032186040006', 'Webcam', 'Logitech', 'C930E', 'LGT-C930-9988', 'Logitech C930E Telemed HD', 'Technical Support & Infrastructure', '2023-01-15', '2026-01-15', 0, 'Working', 4500, 36, 60, 'None'),
           ('031709030031', 'Monitor', 'Dell', 'E2318H', 'CN-00J-E2318', 'Dell E2318H 23-inch FHD Monitor', 'Technical Support & Infrastructure', '2019-05-10', '2022-05-10', 0, 'Scrapped', 4800, 36, 48, 'Scrapped'),
           ('CIT-2023-SCN-01', 'Scanner', 'Zebra', 'DS2208', 'ZB2208-W20-881', 'Barcode Scanner 2D (เคาน์เตอร์พยาบาล)', 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', '2023-01-15', '2026-01-15', 0, 'Working', 6500, 36, 60, 'None'),
           ('CIT-2024-AIO-02', 'Computer', 'HP', 'ProOne 440 G9', 'HP440-2024-G901', 'HP ProOne 440 G9 (โต๊ะตรวจ 1)', 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)', '2024-01-01', '2027-01-01', 1, 'Working', 24500, 36, 60, 'None'),
           ('CIT-2022-TAB-03', 'Tablet', 'Apple', 'iPad Air 5', 'IPAD-AIR-99', 'iPad Air 5 (รถเข็น ICU Cart 1)', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', '2022-03-10', '2025-03-10', 1, 'Broken', 22000, 36, 60, 'None'),
-          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090 Micro', 'DELL-OPT-21', 'Dell OptiPlex 7090 Micro (ฉุกเฉิน เดิม)', 'ฉุกเฉิน (Emergency Room / ER)', '2018-06-01', '2021-06-01', 1, 'Pending Donation', 18500, 36, 48, 'Pending Donation')`
+          ('CIT-2021-AIO-01', 'Computer', 'Dell', 'OptiPlex 7090 Micro', 'DELL-OPT-21', 'Dell OptiPlex 7090 Micro (ฉุกเฉิน เดิม)', 'ฉุกเฉิน (Emergency Room / ER)', '2018-06-01', '2021-06-01', 1, 'Pending Donation', 18500, 36, 48, 'Pending Donation')`,
+          (mainsInitErr) => {
+            if (mainsInitErr) console.warn('[DB Init Mains Warning]:', mainsInitErr.message);
+          }
         );
 
         db.run(
-          `INSERT INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES 
+          `INSERT OR IGNORE INTO move_log (asset_tag, department_name, floor, status, moved_direction, action_by_username, details) VALUES 
           ('032186040006', 'Technical Support & Infrastructure', 'Fl 4', 'Working', 'IN', 'system', 'ลงทะเบียนครุภัณฑ์ Webcam ประจำศูนย์เทคโนโลยี'),
           ('CIT-2023-SCN-01', 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)', 'Fl 2', 'Working', 'IN', 'system', 'ตรวจรับเครื่องสแกนเนอร์บาร์โค้ดประจำเคาน์เตอร์พยาบาล วอร์ด 20'),
-          ('CIT-2022-TAB-03', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 'Fl 3', 'Broken', 'OUT', 'staff2', 'แจ้งชำรุด: จอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม')`
+          ('CIT-2022-TAB-03', 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)', 'Fl 3', 'Broken', 'OUT', 'staff2', 'แจ้งชำรุด: จอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม')`,
+          (moveInitErr) => {
+            if (moveInitErr) console.warn('[DB Init MoveLog Warning]:', moveInitErr.message);
+          }
         );
 
         console.log('ClaimIT database initialized with core tables and realistic hospital presets.');
@@ -374,7 +390,11 @@ function initializeDatabase() {
 
       // Auto-populate synthetic mock hospital test assets if needed
       const { seedRealisticMockData } = require('./mock_seed');
-      seedRealisticMockData(db);
+      seedRealisticMockData(db, (mockErr, res) => {
+        if (mockErr) {
+          console.error('[Mock Seed Error]:', mockErr.message);
+        }
+      });
     });
   });
 }

@@ -20,13 +20,13 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-sell">💰 ขายทอดตลาดแล้ว</span>`;
   }
   if (salvageStatus === 'Pending Donation') {
-    return `<span class="badge badge-donation">🎁 รอดำเนินการบริจาค</span>`;
+    return `<span class="badge badge-donation">🎁 รอส่งมอบบริจาค</span>`;
   }
   if (salvageStatus === 'Donated') {
-    return `<span class="badge badge-donation">🎁 บริจาคเรียบร้อย</span>`;
+    return `<span class="badge badge-donation">🎁 ส่งมอบบริจาคแล้ว</span>`;
   }
   if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
-    return `<span class="badge badge-scrapped">🗑️ แทงจำหน่าย</span>`;
+    return `<span class="badge badge-scrapped">🗑️ ตัดจำหน่ายเป็นซาก</span>`;
   }
   if (status === 'Broken') {
     return `<span class="badge badge-broken">🔴 ชำรุด/แจ้งซ่อม</span>`;
@@ -785,11 +785,16 @@ window.restoreFormDraft = restoreFormDraft;
 window.clearFormDraft = clearFormDraft;
 window.setupFormDraftAutosave = setupFormDraftAutosave;
 
-// Global EOL Salvage Action Handler
 window.handleSalvageAction = async function(salvageStatus) {
   if (!state.selectedAsset) return;
   const tag = state.selectedAsset.asset_tag;
-  if (!confirm(`คุณยืนยันที่จะเปลี่ยนสถานะอุปกรณ์ ${tag} เป็น [${salvageStatus}] ใช่หรือไม่?`)) return;
+  const salvageLabels = {
+    'Pending Sell': 'รอขายทอดตลาด',
+    'Pending Donation': 'รอส่งมอบบริจาค',
+    'Scrapped': 'ตัดจำหน่ายเป็นซาก'
+  };
+  const thLabel = salvageLabels[salvageStatus] || salvageStatus;
+  if (!confirm(`คุณยืนยันที่จะเปลี่ยนสถานะอุปกรณ์ ${tag} เป็น [${thLabel}] ใช่หรือไม่?`)) return;
 
   try {
     const res = await fetch('/api/assets/salvage', {
@@ -803,7 +808,7 @@ window.handleSalvageAction = async function(salvageStatus) {
     });
 
     if (res.ok) {
-      showToast(`อัปเดตสถานะการจำหน่ายเป็น [${salvageStatus}] เรียบร้อยแล้ว`, 'success');
+      showToast(`อัปเดตสถานะเป็น [${thLabel}] เรียบร้อยแล้ว`, 'success');
       lookupAsset(tag);
       refreshData();
     } else {
