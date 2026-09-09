@@ -1503,6 +1503,41 @@ tbody td strong {
   }
 }
 
+
+/* ─── 430px Flagship Phone Optimization (e.g. iPhone 14/15/16 Pro Max, Pixel 8/9 Pro, Galaxy S24+) ─── */
+@media screen and (max-width: 440px) {
+  .topbar {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+  .content-viewport {
+    padding: 10px 8px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .scanner-input-group .btn {
+    font-size: 11.5px;
+    padding: 6px 4px;
+    letter-spacing: -0.2px;
+  }
+  .preset-chip {
+    font-size: 11.5px;
+    padding: 6px 10px;
+  }
+  .modal-dialog {
+    width: 96%;
+    max-height: 90vh;
+    max-height: 90dvh;
+  }
+  .modal-body {
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  #claimit-feedback-btn {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: 14px;
+  }
+}
+
 /* ─── ULTRA-COMPACT & UNUSUAL SCREENS (e.g., 406x458 px Cover Screens / Industrial Handheld Scanners) ─── */
 @media screen and (max-width: 420px), screen and (max-height: 500px) {
   .topbar {
