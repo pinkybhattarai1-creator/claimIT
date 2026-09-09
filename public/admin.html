@@ -622,11 +622,11 @@
 
                   <!-- EOL Salvage Management -->
                   <div id="salvage-panel" style="display: none; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
-                    <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">🔄 จัดการอุปกรณ์เลิกใช้งาน / ซ่อมไม่คุ้ม</h4>
+                    <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">🔄 จัดการอุปกรณ์เลิกใช้งาน / ไม่คุ้มค่าต่อการซ่อม</h4>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                       <button type="button" class="btn btn-secondary btn-sm" onclick="handleSalvageAction('Pending Sell')">💰 รอขายทอดตลาด</button>
-                      <button type="button" class="btn btn-secondary btn-sm" onclick="handleSalvageAction('Pending Donation')">🎁 รอส่งมอบบริจาค</button>
-                      <button type="button" class="btn btn-secondary btn-sm" onclick="handleSalvageAction('Scrapped')">🗑️ ตัดจำหน่ายเป็นซาก</button>
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="handleSalvageAction('Pending Donation')">🎁 รอส่งมอบเพื่อบริจาค</button>
+                      <button type="button" class="btn btn-secondary btn-sm" onclick="handleSalvageAction('Scrapped')">🗑️ รออนุมัติจำหน่าย</button>
                     </div>
                   </div>
 
@@ -651,7 +651,7 @@
 
                   <!-- Return to Stock Button -->
                   <div style="margin-top: 14px;">
-                    <button class="btn btn-success" id="btn-resolve" style="width: 100%; display: none;">✅ รับเครื่องคืนและนำกลับมาพร้อมใช้งาน</button>
+                    <button class="btn btn-success" id="btn-resolve" style="width: 100%; display: none;">✅ รับเครื่องคืนและนำกลับมาใช้งาน</button>
                   </div>
                 </div>
               </div>
@@ -692,7 +692,7 @@
                       <th>ศูนย์บริการ (Vendor)</th>
                       <th>จำนวนครุภัณฑ์</th>
                       <th>วันที่ทำรายการ</th>
-                      <th>คะแนนความคุ้มค่า</th>
+                      <th>คะแนนความคุ้มค่าการซ่อม</th>
                       <th>สถานะ (Status)</th>
                       <th>ผู้สร้าง</th>
                       <th>การจัดการ</th>
@@ -734,8 +734,8 @@
                     <option value="expiring_6m">⚠️ ใกล้หมดประกันใน 6 เดือน</option>
                     <option value="expired">หมดประกันแล้ว (Expired)</option>
                     <option value="Pending Sell">รอขายทอดตลาด</option>
-                    <option value="Pending Donation">ขอบริจาค (Pending Donation)</option>
-                    <option value="Scrapped">ตัดจำหน่ายเป็นซาก (Scrapped)</option>
+                    <option value="Pending Donation">รอส่งมอบเพื่อบริจาค (Pending Donation)</option>
+                    <option value="Scrapped">รออนุมัติจำหน่าย (Scrapped)</option>
                   </select>
                   <button class="btn btn-secondary btn-sm" id="btn-export-excel-main">📊 ส่งออก Excel</button>
                   <button class="btn btn-secondary btn-sm" id="btn-copy-data">📋 คัดลอกตาราง (TSV)</button>
@@ -896,7 +896,7 @@
               <div class="card-header">
                 <div>
                   <h3 class="card-title">👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
-                  <div class="card-subtitle">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งานงาน (RBAC: Admin & Staff)</div>
+                  <div class="card-subtitle">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</div>
                 </div>
                 <button class="btn btn-sm" id="btn-open-add-user-modal">➕ เพิ่มผู้ใช้งานใหม่</button>
               </div>
@@ -908,7 +908,7 @@
                       <th>ID</th>
                       <th>Username</th>
                       <th>ชื่อ-นามสกุล</th>
-                      <th>แผนก (Department)</th>
+                      <th>แผนก / หน่วยงาน (Department)</th>
                       <th>สิทธิ์ (Role)</th>
                       <th>การจัดการ</th>
                     </tr>
@@ -1083,8 +1083,8 @@
             ⚠️ ตรวจพบข้อมูลซ้ำ: <span id="add-asset-dup-msg"></span>
           </div>
           <div id="add-asset-bme-warning" style="display: none; padding: 8px 12px; background: #fff1f2; border: 1.5px solid #e11d48; border-radius: 6px; font-size: 12px; color: #9f1239; margin-bottom: 8px; line-height: 1.4;">
-            <strong>⛔ ตรวจพบเครื่องมือแพทย์ (อยู่นอกเหนือระบบไอที)</strong><br>
-            <span id="add-asset-bme-msg">อุปกรณ์นี้เป็นเครื่องมือแพทย์ซึ่งอยู่ในความดูแลของฝ่ายเครื่องมือแพทย์ (BME) ไม่อนุญาตให้ลงทะเบียนในระบบไอที กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (BME)</span>
+            <strong>⛔ ตรวจพบเครื่องมือแพทย์ (อยู่นอกขอบเขตของระบบ IT)</strong><br>
+            <span id="add-asset-bme-msg">อุปกรณ์นี้เป็นเครื่องมือแพทย์และอยู่ในความดูแลของฝ่ายเครื่องมือแพทย์ (BME) จึงไม่สามารถลงทะเบียนในระบบ IT นี้ได้ กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (BME)</span>
           </div>
 
           <!-- 2-Column Form Layout strictly optimized for 1366x768 screens -->
@@ -1120,7 +1120,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 8px;">
               <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก *</label>
-              <input type="text" id="new-location" class="form-control" placeholder="เช่น Staff Room, IT Server Room, จุดบริการ Staff" required style="padding: 5px 8px; font-size: 12.5px;">
+              <input type="text" id="new-location" class="form-control" placeholder="เช่น ห้องพักเจ้าหน้าที่, ห้องเซิร์ฟเวอร์ IT, จุดบริการ" required style="padding: 5px 8px; font-size: 12.5px;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -1234,7 +1234,7 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 11px; margin-bottom: 2px;">ระยะเวลาประกัน</label>
+              <label style="font-size: 11px; margin-bottom: 2px;">ระยะเวลารับประกัน</label>
               <select id="batch-warranty-months" class="form-control" style="padding: 4px 6px; font-size: 11.5px;">
                 <option value="12">1 ปี (12 ด.)</option>
                 <option value="24">2 ปี (24 ด.)</option>
@@ -1254,7 +1254,7 @@
 
           <div class="form-group" style="margin-bottom: 8px;">
             <label style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 3px;">
-              <span><strong>📡 สแกนบาร์โค้ด หรือ วางรายการ (บรรทัดละ 1 รายการ: AssetTag, SerialNo) *</strong></span>
+              <span><strong>📡 สแกนบาร์โค้ดหรือวางรายการข้อมูล (บรรทัดละ 1 รายการ: AssetTag, SerialNo) *</strong></span>
               <span style="color: var(--text-muted); font-size: 11px;">เช่น CIT-PC-01, SN1001</span>
             </label>
             <textarea id="batch-scanner-textarea" class="form-control" rows="4" placeholder="ยิงบาร์โค้ด หรือ วางข้อมูล:&#10;CIT-PC-01, SN001&#10;CIT-PC-02, SN002&#10;CIT-PC-03, SN003" required style="font-family: monospace; font-size: 12px; padding: 6px; resize: vertical;"></textarea>
@@ -1286,7 +1286,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label>ชื่อผู้ใช้ (Username) *</label>
-            <input type="text" id="new-username" class="form-control" placeholder="ระบุ username" required>
+            <input type="text" id="new-username" class="form-control" placeholder="ระบุชื่อผู้ใช้" required>
           </div>
           <div class="form-group">
             <label>รหัสผ่าน (Password) *</label>
@@ -1301,7 +1301,7 @@
             <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น Staff, IT Support" required>
           </div>
           <div class="form-group">
-            <label>สิทธิ์การใช้งาน (Role) *</label>
+            <label>ระดับสิทธิ์การใช้งาน (Role) *</label>
             <select id="new-user-role" class="form-control" required>
               <option value="staff">Staff (ช่างเทคนิค / เจ้าหน้าที่)</option>
               <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
@@ -1335,11 +1335,11 @@
             <input type="text" id="edit-user-fullname" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>แผนก / ฝ่าย (Department) *</label>
+            <label>แผนก / หน่วยงาน (Department) *</label>
             <input type="text" id="edit-user-department" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>สิทธิ์การใช้งาน (Role) *</label>
+            <label>ระดับสิทธิ์การใช้งาน (Role) *</label>
             <select id="edit-user-role" class="form-control" required>
               <option value="staff">Staff (ช่างเทคนิค / เจ้าหน้าที่)</option>
               <option value="admin">Admin (ผู้ดูแลระบบสารสนเทศ)</option>
@@ -1373,7 +1373,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>ค่าที่กำหนด (Value) *</label>
+            <label>ค่า (Value) *</label>
             <input type="text" id="config-value" class="form-control" placeholder="เช่น Dell, Monitor, Staff Room" required>
           </div>
           <div class="form-group">
@@ -1446,7 +1446,7 @@
           <div><strong>หมายเลขใบเคลม:</strong> <span id="cd-claim-no">-</span></div>
           <div><strong>ศูนย์บริการ:</strong> <span id="cd-vendor">-</span></div>
           <div><strong>สถานะการเคลม:</strong> <span id="cd-status" class="badge">-</span></div>
-          <div><strong>ความคุ้มค่า:</strong> <span id="cd-viability">-</span></div>
+          <div><strong>คะแนนความคุ้มค่าการซ่อม:</strong> <span id="cd-viability">-</span></div>
           <div><strong>วันที่ทำรายการ:</strong> <span id="cd-date">-</span></div>
           <div><strong>ผู้สร้างรายการ:</strong> <span id="cd-created-by">-</span></div>
         </div>
@@ -1600,7 +1600,7 @@
             <select id="resolve-type" class="form-control" required>
               <option value="Repaired">ซ่อมเรียบร้อย / เปลี่ยนอะไหล่ (Repaired)</option>
               <option value="Replaced">เปลี่ยนเครื่องใหม่ทดแทน (Replaced)</option>
-              <option value="Scrapped">ซ่อมไม่ได้ / ตัดจำหน่ายเป็นซาก (Scrapped)</option>
+              <option value="Scrapped">ซ่อมไม่ได้ / รออนุมัติจำหน่าย (Scrapped)</option>
             </select>
           </div>
           <div class="form-group">

@@ -26,7 +26,7 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-donation">🎁 ส่งมอบบริจาคแล้ว</span>`;
   }
   if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
-    return `<span class="badge badge-scrapped">🗑️ ตัดจำหน่ายเป็นซาก</span>`;
+    return `<span class="badge badge-scrapped">🗑️ รออนุมัติจำหน่าย</span>`;
   }
   if (status === 'Broken') {
     return `<span class="badge badge-broken">🔴 ชำรุด/แจ้งซ่อม</span>`;
@@ -790,8 +790,8 @@ window.handleSalvageAction = async function(salvageStatus) {
   const tag = state.selectedAsset.asset_tag;
   const salvageLabels = {
     'Pending Sell': 'รอขายทอดตลาด',
-    'Pending Donation': 'รอส่งมอบบริจาค',
-    'Scrapped': 'ตัดจำหน่ายเป็นซาก'
+    'Pending Donation': 'รอส่งมอบเพื่อบริจาค',
+    'Scrapped': 'รออนุมัติจำหน่าย'
   };
   const thLabel = salvageLabels[salvageStatus] || salvageStatus;
   if (!confirm(`คุณยืนยันที่จะเปลี่ยนสถานะอุปกรณ์ ${tag} เป็น [${thLabel}] ใช่หรือไม่?`)) return;
