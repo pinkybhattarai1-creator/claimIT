@@ -573,7 +573,8 @@ router.post('/sanitize', verifyToken, staffOnly, (req, res) => {
   const methodLabels = {
     'PHYSICAL_STORAGE_REMOVED': 'ถอดสื่อบันทึกข้อมูลออกแล้ว (Storage Media Physically Removed)',
     'STANDARD_OVERWRITE': 'ล้างข้อมูลระดับมาตรฐาน (Standard Secure Format/Wipe)',
-    'NIST_800_88': 'ล้างข้อมูลระดับความมั่นคงสูง (NIST 800-88 / Cryptographic Erase)',
+    'SECURE_ERASE': 'ล้างข้อมูลความปลอดภัยสูง / ฟอร์แมตความปลอดภัย (Secure Format / Wipe)',
+    'NIST_800_88': 'ล้างข้อมูลความปลอดภัยสูง / ฟอร์แมตความปลอดภัย (Secure Format / Wipe)',
     'NO_STORAGE_MEDIA': 'อุปกรณ์ไม่มีสื่อบันทึกข้อมูล (No Storage Device)'
   };
   const methodLabel = methodLabels[method] || method;

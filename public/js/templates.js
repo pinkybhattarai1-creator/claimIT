@@ -733,7 +733,7 @@ function renderClaimITComplianceHTML(asset, data) {
       </div>
 
       <!-- Section 2: PDPA Sanitization -->
-      <div style="font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:4px; text-decoration:underline;">2. การตรวจสอบความปลอดภัยข้อมูลผู้ป่วย (PDPA Security & Sanitization Audit)</div>
+      <div style="font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:4px; text-decoration:underline;">2. การตรวจสอบความปลอดภัยของข้อมูลก่อนส่งซ่อม (Data Sanitization & Security Audit)</div>
       <div style="border:1px solid #cbd5e1; padding:8px; margin-bottom:10px; font-size:11px; line-height:1.5; background:${isWiped ? '#f0fdf4' : '#fff'};">
         <table style="width:100%; border-collapse:collapse;">
           <tr><td style="width:40%;"><strong>อุปกรณ์บันทึกข้อมูลหลัก (Storage):</strong></td><td>${asset.sanitization_required ? 'ใช่ (ต้องทำการ Sanitization)' : 'ไม่ใช่ (Non-Storage Device)'}</td></tr>

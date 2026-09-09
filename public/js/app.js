@@ -145,7 +145,7 @@ function switchItTab(tabId) {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
   const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${tabId}"]`);
-  updateBreadcrumb('ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)', activeBtn ? activeBtn.textContent.trim() : '');
+  updateBreadcrumb('ศูนย์ซ่อมและเคลมประกัน', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchItTab = switchItTab;
 
@@ -158,7 +158,7 @@ function switchConfigTab(tabId) {
     pane.style.display = pane.id === tabId ? 'block' : 'none';
   });
   const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${tabId}"]`);
-  updateBreadcrumb('ตั้งค่าระบบ (Admin)', activeBtn ? activeBtn.textContent.trim() : '');
+  updateBreadcrumb('ตั้งค่าระบบและจัดการผู้ใช้งาน', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchConfigTab = switchConfigTab;
 

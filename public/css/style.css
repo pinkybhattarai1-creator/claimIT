@@ -319,6 +319,9 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .mobile-menu-btn {
@@ -329,6 +332,7 @@ a:hover {
   padding: 6px 10px;
   cursor: pointer;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .breadcrumb-nav {
@@ -337,22 +341,36 @@ a:hover {
   gap: 6px;
   font-size: 13px;
   color: var(--text-muted);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.brand-logo-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .breadcrumb-sep {
   color: var(--text-dim);
   font-size: 11px;
+  flex-shrink: 0;
 }
 
+#breadcrumb-section,
+#breadcrumb-tab,
 .breadcrumb-current {
-  color: var(--text-primary);
-  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .content-viewport {
@@ -1034,7 +1052,7 @@ tbody td strong {
 
 /* ─── TOP NAVIGATION TABS ────────────────────────────────────────────── */
 .nav-tabs {
-  display: flex;
+  display: none !important;
   gap: 4px;
   align-items: center;
 }

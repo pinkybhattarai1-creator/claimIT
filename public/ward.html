@@ -33,7 +33,7 @@
             </div>
             <div class="sidebar-item" id="btn-to-it" onclick="switchView('it')">
               <span class="sidebar-icon">💻</span>
-              <span>ศูนย์ซ่อมและเคลมประกัน (ฝ่ายไอที)</span>
+              <span>ศูนย์ซ่อมและเคลมประกัน</span>
             </div>
             <div class="sidebar-item" id="btn-to-config" onclick="switchView('config')">
               <span class="sidebar-icon">⚙️</span>
@@ -44,11 +44,11 @@
 
         <!-- Group 2: Quick Links / Operations (Admin Only) -->
         <div id="sidebar-group-operations" style="display: none;">
-          <div class="sidebar-group-title">งานประจำวัน (IT Operations)</div>
+          <div class="sidebar-group-title">งานปฏิบัติการด้าน IT (IT Operations)</div>
           <nav class="sidebar-nav">
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-scanner')">
               <span class="sidebar-icon">🔍</span>
-              <span>สแกนเนอร์ & รับเคลม</span>
+              <span>สแกนและรับเรื่องเคลม</span>
             </div>
             <div class="sidebar-item" onclick="switchDashboardSection('it', 'tab-it-claims')">
               <span class="sidebar-icon">📦</span>
@@ -71,7 +71,7 @@
           <nav class="sidebar-nav">
             <div class="sidebar-item" id="btn-sidebar-export-excel">
               <span class="sidebar-icon">📊</span>
-              <span>ส่งออกเป็น Microsoft Excel (.xls)</span>
+              <span>ส่งออก Excel (.xls)</span>
             </div>
             <div class="sidebar-item" id="btn-sidebar-export-csv">
               <span class="sidebar-icon">📄</span>
@@ -91,7 +91,7 @@
           </div>
         </div>
         <button class="btn btn-secondary btn-sm" id="logout-btn" title="ออกจากระบบ" style="padding: 4px 8px; font-size: 11px;">
-          🚪 ออก
+          🚪 ออกจากระบบ
         </button>
       </div>
     </aside>
@@ -215,7 +215,7 @@
                 <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                   <span>🔍</span> ตรวจสอบประกันและแจ้งซ่อมอุปกรณ์
                 </h3>
-                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">สแกนบาร์โค้ด หรือพิมพ์รหัสครุภัณฑ์เพื่อตรวจสอบประกัน ถ่ายภาพหลักฐาน และส่งเรื่องแจ้งซ่อม</p>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">สแกนบาร์โค้ดหรือระบุรหัสครุภัณฑ์เพื่อตรวจสอบการรับประกัน แนบรูปภาพหลักฐาน และส่งคำขอซ่อมไปยังส่วนกลาง</p>
               </div>
               
               <label class="scanner-mode-switch" title="โหมดเครื่องยิงบาร์โค้ด: ซ่อนแป้นพิมพ์บนจอเพื่อรับค่าจากหัวอ่าน">
@@ -228,7 +228,7 @@
               <input type="text" id="ward-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ดหรือระบุรหัส เช่น CIT-2024-AIO-02">
               <button class="btn" id="ward-search-btn">🔍 ค้นหา</button>
               <button type="button" class="btn btn-primary" onclick="openCameraBarcodeScanner('ward')" title="สแกนบาร์โค้ดด้วยกล้องมือถือ/แท็บเล็ต">
-                📷 สแกนผ่านกล้อง
+                📷 สแกนด้วยกล้อง
               </button>
               
               <input type="file" id="ward-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="handleWardPhotoCapture(event)">
@@ -489,10 +489,10 @@
                 </div>
 
                 <div class="scanner-input-group">
-                  <input type="text" id="it-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ด หรือพิมพ์รหัส เช่น CIT-2022-TAB-03">
+                  <input type="text" id="it-search-input" class="scanner-input-field" placeholder="สแกนบาร์โค้ดหรือระบุรหัส เช่น CIT-2022-TAB-03">
                   <button class="btn" id="it-search-btn">🔍 ค้นหา</button>
                   <button type="button" class="btn btn-primary" onclick="openCameraBarcodeScanner('it')" title="สแกนบาร์โค้ดด้วยกล้องมือถือ/แท็บเล็ต">
-                    📷 สแกนผ่านกล้อง
+                    📷 สแกนด้วยกล้อง
                   </button>
                 </div>
                 <div id="it-scanner-status" style="font-size: 11.5px; color: var(--primary); margin-top: 6px;">
@@ -521,7 +521,7 @@
                     <span class="preset-chip" onclick="selectPreset('CIT-2022-TAB-03')">📱 iPad Air 5 (Staff จุดบริการ ชำรุด)</span>
                     <span class="preset-chip" onclick="selectPreset('CIT-2023-AIO-11')">⚠️ Dell OptiPlex (Staff IT ใกล้หมดประกัน)</span>
                     <span class="preset-chip" onclick="selectPreset('CIT-2023-SCN-01')">🏷️ Zebra Scanner (Staff จุดสแกน)</span>
-                    <span class="preset-chip" onclick="selectPreset('041309040002')">📦 Acer Notebook (รอจำหน่าย EOL)</span>
+                    <span class="preset-chip" onclick="selectPreset('041309040002')">📦 Acer Notebook (รออนุมัติจำหน่าย)</span>
                   </div>
                 </div>
               </div>

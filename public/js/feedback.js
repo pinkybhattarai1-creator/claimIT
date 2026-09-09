@@ -27,8 +27,8 @@
   function getActivePageName() {
     if (typeof state !== 'undefined' && state.activeView) {
       if (state.activeView === 'ward') return 'ระบบแจ้งซ่อมประจำแผนก (Staff)';
-      if (state.activeView === 'it') return 'ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)';
-      if (state.activeView === 'config') return 'ตั้งค่าระบบ (Admin)';
+      if (state.activeView === 'it') return 'ศูนย์ซ่อมและเคลมประกัน';
+      if (state.activeView === 'config') return 'ตั้งค่าระบบและจัดการผู้ใช้งาน';
       if (state.activeView === 'auth') return 'หน้าจอเข้าสู่ระบบ (Login)';
     }
     return window.location.pathname || 'หน้าหลัก';
@@ -43,7 +43,7 @@
     fab.innerHTML = `
       <button type="button" class="feedback-fab-btn" onclick="openFeedbackModal()" title="ส่งความคิดเห็น / แจ้งปัญหาการใช้งาน">
         <span class="feedback-fab-icon">💬</span>
-        <span class="feedback-fab-text">ติชม / แจ้งปัญหา</span>
+        <span class="feedback-fab-text">ข้อเสนอแนะ / แจ้งปัญหา</span>
       </button>
     `;
     document.body.appendChild(fab);
