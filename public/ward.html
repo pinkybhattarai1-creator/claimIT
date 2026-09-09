@@ -123,8 +123,8 @@
           <!-- Top Navigation Tabs -->
           <div class="nav-tabs" id="nav-tabs" style="display: none;">
             <button class="nav-btn active" id="btn-top-ward" onclick="switchView('ward')">🛠️ แจ้งซ่อม (แผนก)</button>
-            <button class="nav-btn" id="btn-top-it" onclick="switchView('it')">💻 ศูนย์ซ่อมและเคลมประกัน (ฝ่ายไอที)</button>
-            <button class="nav-btn" id="btn-top-config" onclick="switchView('config')">⚙️ ตั้งค่าระบบ (Admin)</button>
+            <button class="nav-btn" id="btn-top-it" onclick="switchView('it')">💻 ศูนย์ซ่อมและเคลมประกัน</button>
+            <button class="nav-btn" id="btn-top-config" onclick="switchView('config')">⚙️ ตั้งค่าระบบและจัดการผู้ใช้งาน</button>
           </div>
 
           <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-profile" onclick="openProfileModal()">
@@ -1296,7 +1296,7 @@
             <input type="text" id="new-fullname" class="form-control" placeholder="ระบุชื่อ-นามสกุล" required>
           </div>
           <div class="form-group">
-            <label>แผนก / ฝ่าย *</label>
+            <label>แผนก / หน่วยงาน *</label>
             <input type="text" id="new-user-dept" class="form-control" placeholder="เช่น Staff, IT Support" required>
           </div>
           <div class="form-group">
@@ -1679,7 +1679,7 @@
             <input type="text" id="profile-name" class="form-control" required placeholder="ระบุชื่อ-นามสกุลของคุณ">
           </div>
           <div class="form-group">
-            <label>แผนก / สังกัด *</label>
+            <label>แผนก / หน่วยงาน *</label>
             <input type="text" id="profile-department" class="form-control" required placeholder="เช่น ICU, ห้องฉุกเฉิน (ER), IT">
           </div>
         </div>

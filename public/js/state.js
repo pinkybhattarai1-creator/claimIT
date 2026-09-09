@@ -51,8 +51,8 @@ window.escapeHtml = escapeHtml;
 const PAGE_TITLES = {
   auth: 'ClaimIT — เข้าสู่ระบบ',
   ward: 'ClaimIT — ระบบแจ้งซ่อมประจำแผนก (Staff)',
-  it:   'ClaimIT — ศูนย์จัดการส่งซ่อม (ฝ่ายไอที)',
-  config: 'ClaimIT — ตั้งค่าระบบ (Admin)'
+  it:   'ClaimIT — ศูนย์ซ่อมและเคลมประกัน',
+  config: 'ClaimIT — ตั้งค่าระบบและจัดการผู้ใช้งาน'
 };
 
 // Core DOM Elements

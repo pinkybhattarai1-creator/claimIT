@@ -20,10 +20,10 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-sell">💰 ขายทอดตลาดแล้ว</span>`;
   }
   if (salvageStatus === 'Pending Donation') {
-    return `<span class="badge badge-donation">🎁 รอส่งมอบบริจาค</span>`;
+    return `<span class="badge badge-donation">🎁 รอส่งมอบเพื่อบริจาค</span>`;
   }
   if (salvageStatus === 'Donated') {
-    return `<span class="badge badge-donation">🎁 ส่งมอบบริจาคแล้ว</span>`;
+    return `<span class="badge badge-donation">🎁 ส่งมอบเพื่อบริจาคแล้ว</span>`;
   }
   if (salvageStatus === 'Scrapped' || status === 'Scrapped') {
     return `<span class="badge badge-scrapped">🗑️ รออนุมัติจำหน่าย</span>`;
@@ -32,7 +32,7 @@ function getStatusBadgeHTML(asset) {
     return `<span class="badge badge-broken">🔴 ชำรุด/แจ้งซ่อม</span>`;
   }
   if (status === 'Pending Pickup') {
-    return `<span class="badge badge-vendor">🟡 รอศูนย์บริการเข้ารับ</span>`;
+    return `<span class="badge badge-vendor">🟡 รอศูนย์บริการเข้ารับเครื่อง</span>`;
   }
   if (isExpired) {
     return `<span class="badge" style="background:#64748b; color:#fff;">⚪ หมดประกันแล้ว</span>`;
@@ -394,7 +394,7 @@ function setupAddAssetSafeguards() {
       if (bmeWarningBox) {
         bmeWarningBox.style.display = 'block';
         if (bmeWarningMsg) {
-          bmeWarningMsg.innerHTML = 'อุปกรณ์นี้จัดเป็นเครื่องมือแพทย์ควบคุม (Regulated Medical Device) ภายใต้การกำกับดูแลของศูนย์เครื่องมือแพทย์ (BME) <strong>ไม่อนุญาตให้ลงทะเบียนในระบบ IT</strong> กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (Biomedical Engineering Department)';
+          bmeWarningMsg.innerHTML = 'อุปกรณ์นี้เป็นเครื่องมือแพทย์และอยู่ในความดูแลของฝ่ายเครื่องมือแพทย์ (BME) จึง<strong>ไม่สามารถลงทะเบียนในระบบ IT นี้ได้</strong> กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (BME)';
         }
       }
     } else {

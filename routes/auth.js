@@ -91,7 +91,7 @@ router.post('/login', loginLimiter, (req, res) => {
 router.post('/change-password', verifyToken, loginLimiter, (req, res) => {
   const { username, current_password, new_password } = req.body;
   if (!username || !current_password || !new_password) {
-    return res.status(400).json({ error: 'กรุณาระบุ username, current_password และ new_password ให้ครบถ้วน' });
+    return res.status(400).json({ error: 'กรุณาระบุชื่อผู้ใช้, รหัสผ่านปัจจุบัน และรหัสผ่านใหม่ให้ครบถ้วน' });
   }
 
   if (String(new_password).length < 6) {
@@ -269,7 +269,7 @@ router.post('/request-reset', resetLimiter, (req, res) => {
 router.post('/reset-password-token', resetLimiter, (req, res) => {
   const { username, otp, new_password } = req.body;
   if (!username || !otp || !new_password) {
-    return res.status(400).json({ error: 'กรุณาระบุ Username, รหัสยืนยัน OTP และรหัสผ่านใหม่' });
+    return res.status(400).json({ error: 'กรุณาระบุชื่อผู้ใช้, รหัสยืนยัน OTP และรหัสผ่านใหม่' });
   }
 
   if (String(new_password).length < 6) {

@@ -52,7 +52,7 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
 router.put('/:id', verifyToken, adminOnly, (req, res) => {
   const { role, name, department } = req.body;
   if (!role || !name || !department) {
-    return res.status(400).json({ error: 'กรุณาระบุ role, name, และ department ให้ครบถ้วน' });
+    return res.status(400).json({ error: 'กรุณาระบุระดับสิทธิ์การใช้งาน, ชื่อ-นามสกุล และแผนก/หน่วยงานให้ครบถ้วน' });
   }
 
   db.run("UPDATE users SET role = ?, name = ?, department = ? WHERE id = ?", 
@@ -99,7 +99,7 @@ router.post('/:id/reactivate', verifyToken, adminOnly, (req, res) => {
 router.post('/:id/reset-password', verifyToken, adminOnly, (req, res) => {
   const { new_password } = req.body;
   if (!new_password || String(new_password).length < 6) {
-    return res.status(400).json({ error: 'กรุณาระบุ new_password ความยาวอย่างน้อย 6 ตัวอักษร' });
+    return res.status(400).json({ error: 'กรุณาระบุรหัสผ่านใหม่ โดยมีความยาวอย่างน้อย 6 ตัวอักษร' });
   }
 
   const hashedPassword = hashPassword(new_password);
