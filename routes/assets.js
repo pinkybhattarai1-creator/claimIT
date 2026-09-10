@@ -11,7 +11,7 @@ const { handleDbError } = require('../utils/safeError');
 router.get('/check-tag/:tag', verifyToken, staffOnly, (req, res) => {
   const query = req.params.tag.trim();
   db.get(
-    "SELECT id, asset_tag, serial_no, device_name, location, status FROM mains WHERE (UPPER(asset_tag) = UPPER(?) OR UPPER(serial_no) = UPPER(?)) AND is_deleted = 0",
+    "SELECT id, asset_tag, serial_no, device_name, location, status FROM mains WHERE (UPPER(asset_tag) = UPPER(?) OR UPPER(serial_no) = UPPER(?)) AND (is_deleted = 0 OR is_deleted IS NULL)",
     [query, query],
     (err, row) => {
       if (err) return handleDbError(res, err);
@@ -31,7 +31,7 @@ router.get('/', verifyToken, staffOnly, (req, res) => {
   const statusFilter = req.query.status;
   const categoryFilter = req.query.category;
   
-  let whereClause = "WHERE is_deleted = 0";
+  let whereClause = "WHERE (is_deleted = 0 OR is_deleted IS NULL)";
   let params = [];
 
   if (statusFilter === 'expiring_60d') {
@@ -424,7 +424,7 @@ router.post('/batch', verifyToken, adminOnly, (req, res) => {
 
 // Evaluate Claim Worthiness Endpoint (Staff/Admin)
 router.get('/:tag/evaluate', verifyToken, staffOnly, (req, res) => {
-  db.get("SELECT * FROM mains WHERE asset_tag = ? AND is_deleted = 0", [req.params.tag], (err, row) => {
+  db.get("SELECT * FROM mains WHERE (UPPER(asset_tag) = UPPER(?) OR UPPER(serial_no) = UPPER(?)) AND (is_deleted = 0 OR is_deleted IS NULL)", [req.params.tag, req.params.tag], (err, row) => {
     if (err || !row) return res.status(404).json({ error: 'Asset not found' });
     
     const evaluationPayload = {
@@ -445,7 +445,7 @@ router.get('/:tag/evaluate', verifyToken, staffOnly, (req, res) => {
 // Lookup Asset by Tag/Serial with Fuzzy Matching Fallback (Staff/Admin)
 router.get('/:tag', verifyToken, staffOnly, (req, res) => {
   const tag = req.params.tag.toUpperCase();
-  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND r.is_deleted = 0 WHERE (m.asset_tag = ? OR m.serial_no = ?) AND m.is_deleted = 0", [tag, tag], (err, row) => {
+  db.get("SELECT m.*, r.vendor_name, r.vendor_rma_number, r.claim_date, r.expected_return_date, r.data_wiped_confirmed as rma_data_wiped_confirmed, r.data_wiped_by, r.data_wiped_at, r.sanitization_note, r.resolved_date, r.resolution_type, r.replacement_serial_no, r.repair_cost, r.status as rma_status FROM mains m LEFT JOIN rma_claims r ON m.asset_tag = r.asset_tag AND (r.is_deleted = 0 OR r.is_deleted IS NULL) WHERE (UPPER(m.asset_tag) = UPPER(?) OR UPPER(m.serial_no) = UPPER(?)) AND (m.is_deleted = 0 OR m.is_deleted IS NULL)", [tag, tag], (err, row) => {
     if (err) return handleDbError(res, err);
     if (row) {
       return res.json(row);

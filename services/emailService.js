@@ -22,7 +22,7 @@ const TEMPLATES = {
         <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
           <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>สถานะความคุ้มค่า:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0; color: ${data.viability_status === 'VIABLE' ? '#16a34a' : '#dc2626'}; font-weight: bold;">${data.viability_status}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>คะแนนความคุ้มค่า (Viability Score):</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.viability_score} / 10.0 (เกณฑ์คุ้มค่า &le; 5.0)</td></tr>
-          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>จำนวนครุภัณฑ์:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.asset_count || 1} รายการ</td></tr>
+          <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0;"><strong>จำนวนครุภัณฑ์:</strong></td><td style="padding: 8px; border: 1px solid #e2e8f0;">${data.asset_count ?? 0} รายการ</td></tr>
         </table>
         <p style="color: #64748b; font-size: 13px;">ระบบสร้างข้อความนี้โดยอัตโนมัติ กรุณาเข้าสู่ระบบ IT Admin Portal เพื่อดำเนินการต่อ</p>
       </div>

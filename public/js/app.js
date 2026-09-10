@@ -712,12 +712,25 @@ async function loadStaffTracker() {
     const data = await res.json();
     const assets = data.assets || [];
     
+    // Filter repair/claim in-flight assets
+    const activeRepairStatuses = ['Broken', 'Pending Pickup', 'In Repair', 'Claiming', 'In Progress'];
+    const allRepairs = assets.filter(a => activeRepairStatuses.includes(a.status));
+
     const dept = (state.user?.department || '').toLowerCase();
-    const deptItems = assets.filter(a => {
-      const loc = (a.location || '').toLowerCase();
-      const isDept = dept && (loc.includes(dept) || dept.includes(loc));
-      return isDept || a.status === 'Broken' || a.status === 'Pending Pickup';
-    });
+    const isTechOrAdmin = !dept || dept.includes('technical') || dept.includes('infrastructure') || dept.includes('it') || (state.user?.role === 'admin');
+
+    let deptItems = [];
+    if (isTechOrAdmin) {
+      deptItems = allRepairs.length > 0 ? allRepairs : assets.filter(a => a.status !== 'Working');
+    } else {
+      // For ward staff, first look for repairs in their department
+      const wardRepairs = allRepairs.filter(a => {
+        const loc = (a.location || '').toLowerCase();
+        return loc.includes(dept) || dept.includes(loc);
+      });
+      // If ward has active repairs, show them; otherwise show all active hospital repairs so staff sees system activity
+      deptItems = wardRepairs.length > 0 ? wardRepairs : allRepairs;
+    }
 
     const countEl = document.getElementById('staff-tracker-count');
     if (countEl) countEl.textContent = deptItems.length;
@@ -755,12 +768,12 @@ async function loadStaffTracker() {
 window.loadStaffTracker = loadStaffTracker;
 
 // ─── Mobile Connection & Hospital IP Manager ────────────────────────────────
-let currentMobileUrl = '';
+let currentMobileUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
 async function fetchNetworkInfo() {
   try {
     const res = await fetch('/api/network-info');
-    if (!res.ok) return;
+    if (!res.ok) throw new Error('Network info failed');
     const data = await res.json();
     
     const savedCustomIp = localStorage.getItem('claimit_custom_ip');
@@ -781,7 +794,9 @@ async function fetchNetworkInfo() {
     }
   } catch (e) {
     console.warn('Network info fetch error:', e);
-    currentMobileUrl = window.location.origin;
+    currentMobileUrl = currentMobileUrl || window.location.origin;
+    const modalInput = document.getElementById('modal-mobile-url-input');
+    if (modalInput && !modalInput.value) modalInput.value = currentMobileUrl;
     if (typeof renderQRCode === 'function') {
       renderQRCode('modal-qr-container', currentMobileUrl, 170);
     }
@@ -797,9 +812,19 @@ function copyMobileUrl() {
 window.copyMobileUrl = copyMobileUrl;
 
 function openMobileIpModal() {
-  fetchNetworkInfo();
   const modal = document.getElementById('mobile-ip-modal');
   if (modal) modal.style.display = 'flex';
+
+  const initialUrl = currentMobileUrl || window.location.origin;
+  const modalInput = document.getElementById('modal-mobile-url-input');
+  if (modalInput && (!modalInput.value || modalInput.value === '')) {
+    modalInput.value = initialUrl;
+  }
+  if (typeof renderQRCode === 'function') {
+    renderQRCode('modal-qr-container', initialUrl, 170);
+  }
+
+  fetchNetworkInfo();
 }
 window.openMobileIpModal = openMobileIpModal;
 

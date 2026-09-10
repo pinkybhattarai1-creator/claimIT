@@ -58,10 +58,13 @@ function calculateServerViability(assets) {
     } else {
       itemScore = 8.5;
     }
+    // Strict mathematical clamp: itemScore must be strictly within 0.0 - 10.0
+    itemScore = Math.min(10.0, Math.max(0.0, itemScore));
     totalScore += itemScore;
   }
 
-  const averageScore = Math.round((totalScore / assets.length) * 100) / 100;
+  // Strict mathematical clamp: averageScore can never exceed 10.0 or drop below 0.0
+  const averageScore = Math.min(10.0, Math.max(0.0, Math.round((totalScore / assets.length) * 100) / 100));
   const isViable = averageScore <= 5.0;
   const viabilityStatus = isViable ? 'VIABLE' : 'NOT_VIABLE';
 
@@ -183,12 +186,13 @@ function createClaim({ claim_number, vendor_name, vendor_rma_number, asset_tags,
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
 
+          const safeViabilityScore = Math.min(10.0, Math.max(0.0, Number(viability.score) || 0));
           db.run(insertClaimSql, [
             claimNum,
             vendor_name || 'Generic Vendor',
             vendor_rma_number || '',
             claim_type || 'WARRANTY',
-            viability.score,
+            safeViabilityScore,
             viability.viabilityStatus,
             'DRAFT',
             claimDate,

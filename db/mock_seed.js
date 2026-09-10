@@ -23,31 +23,81 @@ function seedRealisticMockData(db, callback) {
         return;
       }
 
-      // If we already have more than 8 assets, just ensure the near-expiry one is dynamic
-      if (row && row.count >= 8) {
+      // If we already have 16 or more assets, ensure dynamic 15-day expiry, legacy score migration, and baseline claims
+      if (row && row.count >= 16) {
         db.run(
           "UPDATE mains SET warranty_end = date('now', '+15 days'), status = 'Working' WHERE asset_tag = 'CIT-2023-AIO-11';",
-          (e) => {
-            if (callback) callback(null, { seeded: false, count: row.count });
+          () => {
+            db.run(
+              "UPDATE claims SET viability_score = ROUND(viability_score / 10.0, 1) WHERE viability_score > 10.0;",
+              () => {
+                db.run(
+                  "UPDATE claims SET viability_score = 10.0 WHERE viability_score > 10.0;",
+                  () => {
+                    // Ensure baseline mock claims exist
+                    db.run(`
+                      INSERT OR IGNORE INTO claims (
+                        claim_number, vendor_name, vendor_rma_number, claim_type, viability_score, viability_status,
+                        status, claim_date, expected_return_date, notes, created_by, confirmed_by
+                      ) VALUES 
+                      (
+                        'CLM-2026-001', 'Apple Authorized Service Provider', 'RMA-APL-88214', 'REPAIR', 4.0, 'VIABLE',
+                        'IN_PROGRESS', date('now', '-5 days'), date('now', '+9 days'), 'หน้าจอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม ส่งศูนย์ตรวจเช็กเปลี่ยนหน้าจอและแบตเตอรี่', 'staff', 'admin'
+                      ),
+                      (
+                        'CLM-2026-002', 'TSC Thailand Service Center', 'RMA-TSC-3091', 'WARRANTY', 1.0, 'VIABLE',
+                        'PENDING', date('now', '-1 days'), date('now', '+14 days'), 'หัวพิมพ์สึกหรอบาร์โค้ดขาดตอน อยู่ในระยะรับประกัน รอรถขนส่งเข้ารับอุปกรณ์', 'staff', 'admin'
+                      ),
+                      (
+                        'CLM-2026-003', 'Dell ProSupport Thailand', 'RMA-DELL-99412', 'WARRANTY', 1.0, 'VIABLE',
+                        'COMPLETED', date('now', '-30 days'), date('now', '-20 days'), 'เมนบอร์ดชำรุด ช่าง On-site เข้าเปลี่ยนบอร์ดใหม่เรียบร้อย ทดสอบ Diagnostics ผ่าน 100%', 'admin', 'admin'
+                      )
+                    `, () => {
+                      db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e1, c1) => {
+                        if (c1) {
+                          db.run(
+                            "INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2022-TAB-03', 'ล้างข้อมูลเรียบร้อย (Factory Reset)', 'Pending Pickup')",
+                            [c1.id]
+                          );
+                        }
+                        db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-002'", (e2, c2) => {
+                          if (c2) {
+                            db.run(
+                              "INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-PRN-02', 'ไม่ต้องล้างข้อมูล (เครื่องพิมพ์)', 'Pending Pickup')",
+                              [c2.id]
+                            );
+                          }
+                          db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-003'", (e3, c3) => {
+                            if (c3) {
+                              db.run(
+                                "INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-AIO-11', 'ล้างข้อมูลเรียบร้อย (Data Sanitized)', 'Returned')",
+                                [c3.id],
+                                () => {
+                                  if (callback) callback(null, { seeded: false, count: row.count });
+                                }
+                              );
+                            } else {
+                              if (callback) callback(null, { seeded: false, count: row.count });
+                            }
+                          });
+                        });
+                      });
+                    });
+                  }
+                );
+              }
+            );
           }
         );
         return;
       }
 
-      console.log('[Mock Seed] Seeding realistic synthetic hospital test data...');
+      console.log('[Mock Seed] Seeding realistic synthetic hospital test data non-destructively...');
 
-      // Temporarily disable foreign keys during clean & seed to prevent constraint violations
+      // Temporarily disable foreign keys during seed to prevent constraint violations
       db.run("PRAGMA foreign_keys = OFF;", (fkOffErr) => {
         if (fkOffErr) console.warn('[Mock Seed PRAGMA OFF Warning]:', fkOffErr.message);
       });
-
-      // Clear existing dummy data in safe child-first order with explicit callbacks
-      db.run("DELETE FROM claim_assets;", (err) => { if (err) console.warn('[Mock Seed Clean claim_assets]:', err.message); });
-      db.run("DELETE FROM evidence;", (err) => { if (err) console.warn('[Mock Seed Clean evidence]:', err.message); });
-      db.run("DELETE FROM rma_claims;", (err) => { if (err) console.warn('[Mock Seed Clean rma_claims]:', err.message); });
-      db.run("DELETE FROM move_log;", (err) => { if (err) console.warn('[Mock Seed Clean move_log]:', err.message); });
-      db.run("DELETE FROM claims;", (err) => { if (err) console.warn('[Mock Seed Clean claims]:', err.message); });
-      db.run("DELETE FROM mains;", (err) => { if (err) console.warn('[Mock Seed Clean mains]:', err.message); });
 
       // Insert 16 realistic synthetic hospital IT assets
       const mockAssets = [
@@ -75,7 +125,7 @@ function seedRealisticMockData(db, callback) {
           category: 'Computer',
           brand: 'HP',
           model: 'ProOne 440 G9',
-          serial_no: 'MOCK-HP-440G9-OPD1',
+          serial_no: 'HP440-2024-G901',
           device_name: 'HP ProOne 440 G9 (โต๊ะตรวจ 1)',
           location: 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)',
           warranty_start: "date('now', '-90 days')",
@@ -105,15 +155,15 @@ function seedRealisticMockData(db, callback) {
           expected_lifespan_months: 48,
           salvage_status: 'None'
         },
-        // 4. OR Barcode Scanner
+        // 4. Ward Barcode Scanner
         {
           asset_tag: 'CIT-2023-SCN-01',
           category: 'Scanner',
           brand: 'Zebra',
-          model: 'DS8108',
-          serial_no: 'MOCK-ZB-8108-OR1',
-          device_name: 'Zebra DS8108 Healthcare Barcode Scanner',
-          location: 'ห้องผ่าตัดใหญ่ (Operating Theatre / OR)',
+          model: 'DS2208',
+          serial_no: 'ZB2208-W20-881',
+          device_name: 'Barcode Scanner 2D (เคาน์เตอร์พยาบาล)',
+          location: 'หอผู้ป่วยอายุรกรรม (Inpatient Ward 20)',
           warranty_start: "date('now', '-200 days')",
           warranty_end: "date('now', '+530 days')",
           sanitization_required: 0,
@@ -129,7 +179,7 @@ function seedRealisticMockData(db, callback) {
           category: 'Tablet',
           brand: 'Apple',
           model: 'iPad Air 5',
-          serial_no: 'MOCK-APL-AIR5-ICU1',
+          serial_no: 'IPAD-AIR-99',
           device_name: 'iPad Air 5 (รถเข็น ICU Cart 1)',
           location: 'หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)',
           warranty_start: "date('now', '-500 days')",
@@ -237,7 +287,7 @@ function seedRealisticMockData(db, callback) {
           category: 'Computer',
           brand: 'Dell',
           model: 'OptiPlex 7090 Micro',
-          serial_no: 'MOCK-DL-OPT7090-DON1',
+          serial_no: 'DELL-OPT-21',
           device_name: 'Dell OptiPlex 7090 Micro (เครื่องปลดประจำการ)',
           location: 'Technical Support & Infrastructure',
           warranty_start: "'2018-06-01'",
@@ -309,7 +359,7 @@ function seedRealisticMockData(db, callback) {
           category: 'Webcam',
           brand: 'Logitech',
           model: 'C930E',
-          serial_no: 'MOCK-LGT-C930-01',
+          serial_no: 'LGT-C930-9988',
           device_name: 'Logitech C930E Telemed HD',
           location: 'ห้องตรวจผู้ป่วยนอก (OPD Clinic)',
           warranty_start: "date('now', '-150 days')",
@@ -327,7 +377,7 @@ function seedRealisticMockData(db, callback) {
           category: 'Monitor',
           brand: 'Dell',
           model: 'E2318H',
-          serial_no: 'MOCK-DL-E2318-CN01',
+          serial_no: 'CN-00J-E2318',
           device_name: 'Dell E2318H 23-inch FHD Monitor',
           location: 'Technical Support & Infrastructure',
           warranty_start: "date('now', '-1800 days')",
@@ -371,28 +421,33 @@ function seedRealisticMockData(db, callback) {
           if (moveErr) console.warn('[Mock Seed move_log warning]:', moveErr.message);
         });
 
-        // Insert 3 Mock Claims only after all mains are guaranteed committed
+        // Insert 3 Mock Claims only after all mains are guaranteed committed (scores on 0-10 scale)
         db.run(`
           INSERT OR REPLACE INTO claims (
             claim_number, vendor_name, vendor_rma_number, claim_type, viability_score, viability_status,
             status, claim_date, expected_return_date, notes, created_by, confirmed_by
           ) VALUES 
           (
-            'CLM-2026-001', 'Apple Authorized Service Provider', 'RMA-APL-88214', 'REPAIR', 68.5, 'VIABLE',
+            'CLM-2026-001', 'Apple Authorized Service Provider', 'RMA-APL-88214', 'REPAIR', 4.0, 'VIABLE',
             'IN_PROGRESS', date('now', '-5 days'), date('now', '+9 days'), 'หน้าจอสัมผัสไม่ตอบสนอง และแบตเตอรี่เริ่มบวม ส่งศูนย์ตรวจเช็กเปลี่ยนหน้าจอและแบตเตอรี่', 'staff', 'admin'
           ),
           (
-            'CLM-2026-002', 'TSC Thailand Service Center', 'RMA-TSC-3091', 'WARRANTY', 85.0, 'VIABLE',
+            'CLM-2026-002', 'TSC Thailand Service Center', 'RMA-TSC-3091', 'WARRANTY', 1.0, 'VIABLE',
             'PENDING', date('now', '-1 days'), date('now', '+14 days'), 'หัวพิมพ์สึกหรอบาร์โค้ดขาดตอน อยู่ในระยะรับประกัน รอรถขนส่งเข้ารับอุปกรณ์', 'staff', 'admin'
           ),
           (
-            'CLM-2026-003', 'Dell ProSupport Thailand', 'RMA-DELL-99412', 'WARRANTY', 92.0, 'VIABLE',
+            'CLM-2026-003', 'Dell ProSupport Thailand', 'RMA-DELL-99412', 'WARRANTY', 1.0, 'VIABLE',
             'COMPLETED', date('now', '-30 days'), date('now', '-20 days'), 'เมนบอร์ดชำรุด ช่าง On-site เข้าเปลี่ยนบอร์ดใหม่เรียบร้อย ทดสอบ Diagnostics ผ่าน 100%', 'admin', 'admin'
           )
         `, function(claimsErr) {
           if (claimsErr) {
             console.error('[Mock Seed] INSERT claims error:', claimsErr.message);
           }
+
+          // Migrate any legacy scores that exceed 10.0
+          db.run("UPDATE claims SET viability_score = ROUND(viability_score / 10.0, 1) WHERE viability_score > 10.0;", () => {
+            db.run("UPDATE claims SET viability_score = 10.0 WHERE viability_score > 10.0;");
+          });
 
           // Link Claim Assets & Safely finalize
           db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-001'", (e1, c1) => {
@@ -414,11 +469,22 @@ function seedRealisticMockData(db, callback) {
                 );
               }
 
-              // Re-enable foreign keys after all tables and relationships are securely loaded
-              db.run("PRAGMA foreign_keys = ON;", (fkOnErr) => {
-                if (fkOnErr) console.warn('[Mock Seed PRAGMA ON Warning]:', fkOnErr.message);
-                console.log(`[Mock Seed] Successfully seeded ${mockAssets.length} synthetic mock hospital assets, 3 mock claims, and audit logs.`);
-                if (callback) callback(null, { seeded: true, count: mockAssets.length });
+              db.get("SELECT id FROM claims WHERE claim_number = 'CLM-2026-003'", (e3, c3) => {
+                if (e3) console.warn('[Mock Seed Claim 3 Error]:', e3.message);
+                if (c3) {
+                  db.run(
+                    `INSERT OR IGNORE INTO claim_assets (claim_id, asset_tag, sanitization_note, item_status) VALUES (?, 'CIT-2023-AIO-11', 'ล้างข้อมูลเรียบร้อย (Data Sanitized)', 'Returned')`,
+                    [c3.id],
+                    (caErr3) => { if (caErr3) console.warn('[Mock Seed claim_assets 3]:', caErr3.message); }
+                  );
+                }
+
+                // Re-enable foreign keys after all tables and relationships are securely loaded
+                db.run("PRAGMA foreign_keys = ON;", (fkOnErr) => {
+                  if (fkOnErr) console.warn('[Mock Seed PRAGMA ON Warning]:', fkOnErr.message);
+                  console.log(`[Mock Seed] Successfully seeded ${mockAssets.length} synthetic mock hospital assets, 3 mock claims, and audit logs.`);
+                  if (callback) callback(null, { seeded: true, count: mockAssets.length });
+                });
               });
             });
           });

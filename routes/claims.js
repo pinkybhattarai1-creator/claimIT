@@ -62,7 +62,7 @@ router.get('/', verifyToken, staffOnly, (req, res, next) => {
   const offset = (page - 1) * limit;
   const status = req.query.status;
 
-  let whereClause = "WHERE c.is_deleted = 0";
+  let whereClause = "WHERE (c.is_deleted = 0 OR c.is_deleted IS NULL)";
   let params = [];
 
   if (status) {
@@ -87,11 +87,17 @@ router.get('/', verifyToken, staffOnly, (req, res, next) => {
 
     db.all(query, [...params, limit, offset], (err, rows) => {
       if (err) return next(err);
+      const safeClaims = (rows || []).map(r => ({
+        ...r,
+        viability_score: r.viability_score !== null 
+          ? Math.min(10.0, Math.max(0.0, Number(r.viability_score) > 10 ? Number(r.viability_score) / 10 : Number(r.viability_score))) 
+          : null
+      }));
       res.json({
         total: cntRow ? cntRow.total : 0,
         page,
         limit,
-        claims: rows
+        claims: safeClaims
       });
     });
   });
@@ -101,7 +107,7 @@ router.get('/', verifyToken, staffOnly, (req, res, next) => {
 router.get('/:id', verifyToken, staffOnly, (req, res, next) => {
   const claimId = req.params.id;
 
-  db.get("SELECT * FROM claims WHERE id = ? AND is_deleted = 0", [claimId], (err, claim) => {
+  db.get("SELECT * FROM claims WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)", [claimId], (err, claim) => {
     if (err) return next(err);
     if (!claim) return res.status(404).json({ error: 'ไม่พบใบเคลมที่ระบุ' });
 
@@ -115,11 +121,18 @@ router.get('/:id', verifyToken, staffOnly, (req, res, next) => {
       if (assetErr) return next(assetErr);
 
       // Fetch attached evidence
-      db.all("SELECT id, original_filename, mime_type, file_size, created_at FROM evidence WHERE claim_id = ? AND is_deleted = 0", [claimId], (evErr, evidence) => {
+      db.all("SELECT id, original_filename, mime_type, file_size, created_at FROM evidence WHERE claim_id = ? AND (is_deleted = 0 OR is_deleted IS NULL)", [claimId], (evErr, evidence) => {
         if (evErr) return next(evErr);
 
-        res.json({
+        const safeClaim = {
           ...claim,
+          viability_score: claim.viability_score !== null 
+            ? Math.min(10.0, Math.max(0.0, Number(claim.viability_score) > 10 ? Number(claim.viability_score) / 10 : Number(claim.viability_score))) 
+            : null
+        };
+
+        res.json({
+          ...safeClaim,
           assets,
           evidence
         });
@@ -163,7 +176,7 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
   const claimId = req.params.id;
   const fs = require('fs');
 
-  db.get("SELECT * FROM claims WHERE id = ? AND is_deleted = 0", [claimId], (err, claim) => {
+  db.get("SELECT * FROM claims WHERE id = ? AND (is_deleted = 0 OR is_deleted IS NULL)", [claimId], (err, claim) => {
     if (err) return next(err);
     if (!claim) return res.status(404).json({ error: 'ไม่พบใบเคลม' });
 
@@ -207,13 +220,16 @@ router.get('/:id/pdf', verifyToken, staffOnly, (req, res, next) => {
       doc.moveDown(1);
 
       // Section 1: Claim Header Information
+      const safeScore = claim.viability_score !== null 
+        ? Math.min(10.0, Math.max(0.0, Number(claim.viability_score) > 10 ? Number(claim.viability_score) / 10 : Number(claim.viability_score))) 
+        : '-';
       doc.font(titleFont).fontSize(11).fillColor('#0f172a').text('1. ข้อมูลภาพรวมใบส่งเคลม (Claim Overview)', { underline: true });
       doc.moveDown(0.3);
       doc.font(regularFont).fontSize(9.5).fillColor('#334155');
       doc.text(`หมายเลขใบเคลม (Claim Number): ${claim.claim_number}`);
       doc.text(`ศูนย์บริการ / ผู้จัดจำหน่าย (Vendor): ${claim.vendor_name} (RMA No: ${claim.vendor_rma_number || 'N/A'})`);
       doc.text(`วันที่ทำรายการ (Claim Date): ${claim.claim_date || 'N/A'} | สถานะ (Status): ${claim.status}`);
-      doc.text(`คะแนนความคุ้มค่า (Viability Score): ${claim.viability_score} / 10.0 (${claim.viability_status})`);
+      doc.text(`คะแนนความคุ้มค่า (Viability Score): ${safeScore} / 10.0 (${claim.viability_status})`);
       doc.text(`ผู้สร้างรายการ (Created By): ${claim.created_by} | ผู้ยืนยัน (Confirmed By): ${claim.confirmed_by || 'Pending'}`);
       doc.moveDown(1);
 

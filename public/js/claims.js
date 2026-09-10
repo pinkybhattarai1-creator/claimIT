@@ -342,14 +342,17 @@ function renderClaimsTable(claims) {
   list.forEach(c => {
     const tr = document.createElement('tr');
     const badge = CLAIM_STATUS_BADGES[c.status] || `<span class="badge">${escapeHtml(c.status || '')}</span>`;
-    const scoreColor = (c.viability_score !== null && c.viability_score <= 5) ? 'var(--success)' : 'var(--danger)';
-    const scoreText = c.viability_score !== null ? `<span style="color:${scoreColor}; font-weight:700;">${escapeHtml(String(c.viability_score))}</span>` : '-';
+    const rawScore = c.viability_score !== null 
+      ? Math.min(10, Math.max(0, Number(c.viability_score) > 10 ? Number(c.viability_score) / 10 : Number(c.viability_score))) 
+      : null;
+    const scoreColor = (rawScore !== null && rawScore <= 5) ? 'var(--success)' : 'var(--danger)';
+    const scoreText = rawScore !== null ? `<span style="color:${scoreColor}; font-weight:700;">${escapeHtml(String(rawScore))}</span>` : '-';
     const dateText = formatDualDate(c.claim_date || (c.created_at ? c.created_at.slice(0,10) : ''));
 
     tr.innerHTML = `
       <td><strong>${escapeHtml(c.claim_number || '')}</strong></td>
       <td>${escapeHtml(c.vendor_name || '')}</td>
-      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${escapeHtml(String(c.asset_count || 1))} รายการ</span></td>
+      <td><span class="badge" style="background:rgba(255,255,255,0.1);">${escapeHtml(String(c.asset_count ?? 0))} รายการ</span></td>
       <td>${dateText}</td>
       <td>${scoreText}</td>
       <td>${badge}</td>
@@ -572,7 +575,10 @@ async function openClaimDetailsModal(claimId) {
     document.getElementById('cd-claim-no').textContent = claim.claim_number;
     document.getElementById('cd-vendor').textContent = claim.vendor_name;
     document.getElementById('cd-status').innerHTML = CLAIM_STATUS_BADGES[claim.status] || `<span class="badge">${escapeHtml(claim.status || '')}</span>`;
-    document.getElementById('cd-viability').textContent = claim.viability_score !== null ? `${escapeHtml(String(claim.viability_score))} / 10` : '-';
+    const displayScore = claim.viability_score !== null 
+      ? Math.min(10, Math.max(0, Number(claim.viability_score) > 10 ? Number(claim.viability_score) / 10 : Number(claim.viability_score))) 
+      : null;
+    document.getElementById('cd-viability').textContent = displayScore !== null ? `${escapeHtml(String(displayScore))} / 10` : '-';
     document.getElementById('cd-date').textContent = formatDualDate(claim.claim_date || claim.created_at?.slice(0,10) || '', true);
     document.getElementById('cd-created-by').textContent = claim.created_by || '-';
 
@@ -582,11 +588,14 @@ async function openClaimDetailsModal(claimId) {
     (claim.assets || []).forEach(a => {
       const tr = document.createElement('tr');
       const itemStatusLabel = a.item_status === 'Pending Pickup' ? 'รอศูนย์บริการเข้ารับ' : (a.item_status === 'Returned' ? 'รับเครื่องคืนแล้ว' : (a.item_status || 'รอส่งเคลม'));
+      const assetScore = a.viability_score !== null 
+        ? Math.min(10, Math.max(0, Number(a.viability_score) > 10 ? Number(a.viability_score) / 10 : Number(a.viability_score))) 
+        : null;
       tr.innerHTML = `
         <td><strong>${escapeHtml(a.asset_tag || '')}</strong></td>
         <td>${escapeHtml(a.device_name || '-')} (${escapeHtml(a.brand || '-')} ${escapeHtml(a.model || '')})</td>
         <td><span class="badge">${escapeHtml(itemStatusLabel)}</span></td>
-        <td>${a.viability_score !== null ? escapeHtml(String(a.viability_score)) : '-'}</td>
+        <td>${assetScore !== null ? escapeHtml(String(assetScore)) : '-'}</td>
       `;
       assetsTbody.appendChild(tr);
     });
