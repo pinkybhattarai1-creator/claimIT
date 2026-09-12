@@ -140,14 +140,42 @@ function updateAuditPaginationUI() {
     pageDisplay.textContent = `หน้า ${state.auditFilter.page}`;
   }
 
+  const maxPage = Math.ceil(state.auditFilter.total / state.auditFilter.limit) || 1;
+
+  // Direct Page-Jump Slot Selector
+  const jumpSelect = document.getElementById('audit-page-jump-select');
+  if (jumpSelect) {
+    let options = '';
+    for (let p = 1; p <= maxPage; p++) {
+      options += `<option value="${p}" ${p === state.auditFilter.page ? 'selected' : ''}>หน้า ${p} จาก ${maxPage}</option>`;
+    }
+    jumpSelect.innerHTML = options;
+  }
+
+  // Page Size Selector sync
+  const limitSelect = document.getElementById('audit-pagination-limit');
+  if (limitSelect && limitSelect.value !== String(state.auditFilter.limit)) {
+    limitSelect.value = String(state.auditFilter.limit);
+  }
+
   const btnPrev = document.getElementById('audit-btn-prev-page');
   const btnNext = document.getElementById('audit-btn-next-page');
   if (btnPrev && btnNext) {
-    const maxPage = Math.ceil(state.auditFilter.total / state.auditFilter.limit);
     btnPrev.style.display = state.auditFilter.page <= 1 ? 'none' : 'inline-block';
     btnNext.style.display = (state.auditFilter.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
   }
 }
+
+window.changeAuditLimit = function(newLimit) {
+  state.auditFilter.limit = parseInt(newLimit, 10) || 15;
+  state.auditFilter.page = 1;
+  fetchAuditLogs();
+};
+
+window.jumpToAuditPage = function(page) {
+  state.auditFilter.page = parseInt(page, 10) || 1;
+  fetchAuditLogs();
+};
 
 window.auditChangePage = function(delta) {
   const maxPage = Math.ceil(state.auditFilter.total / state.auditFilter.limit) || 1;

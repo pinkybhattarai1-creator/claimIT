@@ -28,7 +28,7 @@ ClaimIT is a single-page application (SPA) designed for hospital IT equipment wa
 |---|---|---|
 | **01_getting_started** | Login & Navigation | Persona-based one-click demo login, responsive topbar, sidebar drawer. |
 | **02_staff_portal** | Field Technician Portal | Barcode search input, camera capture button, preset chip shortcuts, quick action buttons (Report Broken, 6M PM, Emergency Loaner). |
-| **03_it_portal_dashboard** | IT Operations Hub | 4 Sub-tabs: Scanner/Lookup, Vendor Claims, Asset Inventory, Audit Trail. Stat summary cards. |
+| **03_it_portal_dashboard** | IT Operations Hub | 4 Sub-tabs: Scanner/Lookup, Vendor Claims, Asset Inventory, Audit Trail. Stat summary cards with **Interactive Warranty Expiration Filter** (คลิกป้าย/ข้อความใกล้หมดประกันพุ่งตรงไปยังตารางครุภัณฑ์ที่ใกล้หมดประกันทันที). |
 | **04_asset_scanning_and_lookup** | Scanner & Search | Hardware scanner burst listener, anti-typo mode, fuzzy search suggestions, asset detail cards. |
 | **05_pdpa_data_sanitization** | PDPA Wipe Gate | Data sanitization badge, wipe confirmation code input (`WIPED` / `WIPED-<TAG>`), audit logging. |
 | **06_rma_claim_creation** | Multi-Asset RMA Claims | 1 to 5 asset picker, live viability score calculator, vendor selection, RMA voucher dispatch. |
@@ -36,11 +36,11 @@ ClaimIT is a single-page application (SPA) designed for hospital IT equipment wa
 | **08_claim_status_lifecycle** | Claim State Machine | Strict sequential status advancement: DRAFT → CONFIRMED → SUBMITTED → VENDOR_RESPONSE → RETURNED → CLOSED. |
 | **09_evidence_upload** | Evidence Attachments | Multi-file uploader (JPEG, PNG, WebP, PDF), instant thumbnail preview, IDOR-protected download/stream. |
 | **10_pdf_and_print_center** | PDF & Print Center | Dual-language PDF generation (Thai Tahoma font / Helvetica fallback), Gate Pass, RMA Voucher, Repair Request. |
-| **11_asset_management** | Asset Inventory Management | Asset table, add asset modal, edit master data, delete confirmation, status badge indicators. |
+| **11_asset_management** | Asset Inventory Management | Asset table, **Single-Brand Guardrail** (ระบบตรวจสอบยี่ห้อเดี่ยว), **Category Navigation Tabs** (แท็บแยกหมวดหมู่ครุภัณฑ์ฝั่งหน้าเว็บ), **Pagination Slot Buttons** (ปุ่มสล็อตสลับหน้า 1, 2, 3...), **Hospital Layout Picker** (ปุ่ม 🏥 เลือกจากผังอาคาร). |
 | **12_eol_salvage** | EOL & Salvage Disposal | End-of-Life tracking, disposal actions: Pending Sell, Sold, Pending Donation, Donated, Scrapped. |
 | **13_audit_trail** | Audit & Tracking Trail | Real-time immutable event log with unique tracking codes (`CHG-YYYYMMDD-XXXXXX`), time-span filters (Today, 7D, 30D). |
-| **14_user_management** | RBAC & User Administration | Admin & Staff user table, password reset modal, deactivate/reactivate user toggles, last-admin deletion safeguard. |
-| **15_system_configurations** | Master Configurations | Brand RMA procedures, equipment categories, hospital locations/wards. |
+| **14_user_management** | RBAC & User Administration | **Separated Staff & Admin Tables** (แยกตารางแสดงผลช่างเทคนิคและแอดมินออกจากกันไม่ซ้อนทับ), **Role Switcher Pills** (ตัวกรองบทบาท ทั้งหมด/แอดมิน/ช่างเทคนิค), Quick Add shortcuts, password reset, deactivate/reactivate user toggles. |
+| **15_system_configurations** | Master Configurations & Hospital Layout | **3 Separated Sub-tabs** (แบรนด์, หมวดหมู่, แผนก/สถานที่ติดตั้ง), **Hospital Layout Directory** (ผังอาคาร 1 ชั้น 21-B,D และอาคาร Call Center), **Zero-DB Dynamic Additions** (เพิ่มแผนก/สถานที่ได้ทันทีโดยไม่ต้องแก้ฐานข้อมูล). |
 | **16_excel_csv_export** | Data Export | Native Microsoft Excel SpreadsheetML (.xls) multi-sheet export, UTF-8 BOM CSV export. |
 | **17_quick_sidebar** | Quick Access Drawer (`ทางลัด`) | Slide-out drawer with Today's activity, recent scan history, vendor hotlines, and quick download links. |
 | **18_email_notifications** | Email Notifications | Automated notifications via Resend for viability reports, RMA dispatch, and resolution. |

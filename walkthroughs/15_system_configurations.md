@@ -1,86 +1,116 @@
-# 15 — ตั้งค่าระบบ (System Configurations)
+# 15 — การตั้งค่าระบบและผังอาคารสถานพยาบาล (System Configurations & Hospital Layout)
 
-กลุ่มผู้ใช้: Admin เท่านั้น
-
----
-
-## ภาพรวม
-
-Admin สามารถจัดการการตั้งค่าแบบ Dynamic ที่ใช้ทั่วระบบ:
-- แบรนด์/Vendor (Brand)
-- หมวดหมู่ครุภัณฑ์ (Category)
-- สถานที่ (Location)
+กลุ่มผู้ใช้: ผู้ดูแลระบบสารสนเทศ (Admin) เท่านั้น
 
 ---
 
-## การเข้าถึงและเมนูระบบ (Dedicated Navigation)
+## ภาพรวมสถาปัตยกรรม (Architecture Overview)
 
-System Configurations ได้รับการแยกเป็น **ส่วนเฉพาะตัว (Dedicated View Section)** บนแถบเมนูด้านบนสุดของ Header:
-- คลิกปุ่มเมนูหลัก **[⚙️ ตั้งค่า & จัดการระบบ (System Admin)]** บนแถบ Header หรือคลิกลิงก์ทางลัดจาก IT Portal
-- หน้าจอแยกประกอบด้วย 3 แท็บย่อย:
-  1. `⚙️ ตั้งค่าระบบ (System Configs)` — Brands, Models, Categories, Locations, Vendor Procedures
-  2. `👥 จัดการบัญชีผู้ใช้ (User Management)` — 4 Admins + 4 Staff CRUD, Activate/Deactivate, Reset Password
-  3. `💾 สำรองข้อมูล & ความปลอดภัย (Database Backup & Maintenance)` — สำรองฐานข้อมูล 1-Click ทันที
+ระบบบริหารจัดการครุภัณฑ์สารสนเทศ ClaimIT แยกหมวดหมู่การตั้งค่าระบบหลักออกจากกันอย่างเป็นสัดส่วน ไม่ซ้อนทับกัน (Non-stacking Sub-tabs) พร้อมเชื่อมโยง **ผังอาคารและจุดบริการสถานพยาบาล (Hospital Layout Directory)** เข้ากับระบบลงทะเบียนครุภัณฑ์ เพื่อให้เจ้าหน้าที่สามารถเลือกสถานที่ติดตั้งและแผนกได้อย่างแม่นยำ เป็นมาตรฐานเดียวกันทั่วทั้งโรงพยาบาล
 
-## ตารางการตั้งค่า
-
-แสดงในหน้า [⚙️ ตั้งค่า & จัดการระบบ]:
-- ID
-- ประเภท (Type): brand / category / location
-- ค่า (Value): เช่น Dell, Computer, Ward 20
-- รายละเอียด / ขั้นตอน (Details)
-- ปุ่มจัดการ (✏️ แก้ไข / 🗑️ ลบ)
+ระบบออกแบบด้วยหลักการ **Zero Database Schema Change (0 การแก้ไขโครงสร้างฐานข้อมูล)** ทำให้การเพิ่มหรือแก้ไขแผนก อาคาร ชั้น แบรนด์ หรือหมวดหมู่ เป็นไปอย่างยืดหยุ่นผ่านตาราง `configurations` โดยไม่ต้องรัน Database Migration ใดๆ
 
 ---
 
-## เพิ่มการตั้งค่าใหม่
+## การจัดหมวดหมู่หน้าจอตั้งค่าระบบ (Separated Navigation Tabs)
 
-กดปุ่ม [เพิ่มการตั้งค่า] → เปิด Modal
+เมื่อเข้าสู่เมนู **[⚙️ ตั้งค่า & จัดการระบบ (System Admin)]** ระบบจะแบ่งหมวดหมู่การตั้งค่าออกเป็น 4 แท็บย่อยอิสระ:
 
-| ฟิลด์ | ตัวเลือก |
-|---|---|
-| ประเภท (Type) | brand / category / location |
-| ค่า (Value) | เช่น Acer, Network, หอผู้ป่วยศัลยกรรม |
-| รายละเอียด / ขั้นตอนการเคลม | รองรับ HTML |
+1. **🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)**
+   - จัดการรายชื่อผู้ผลิต/ตัวแทนจำหน่าย (Vendors): Dell, HP, Lenovo, Apple, Zebra, Acer, Brother ฯลฯ
+   - บันทึกคู่มือและขั้นตอนการส่งเคลมเฉพาะของแต่ละแบรนด์ (RMA Procedures, เบอร์ Call Center, เงื่อนไข Onsite Service)
+   - แสดงขั้นตอนอัตโนมัติใน RMA Workflow เมื่อเลือกแบรนด์นั้นๆ
 
----
+2. **💻 หมวดหมู่อุปกรณ์ (Device Categories)**
+   - จัดการประเภทครุภัณฑ์: Computer, Monitor, Printer, Scanner, Network Switch, Tablet, UPS, Medical Display ฯลฯ
+   - มีปุ่มทางลัด **`+ เพิ่มหมวดหมู่อุปกรณ์`** เพื่อเปิด Modal ที่เลือกประเภท `category` ให้อัตโนมัติ
 
-## Brand Procedure (ขั้นตอนการเคลมของแต่ละแบรนด์)
+3. **🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)**
+   - จัดการแผนก, หอผู้ป่วย, คลินิก และจุดบริการทั่วทั้งสถานพยาบาล
+   - แสดงรายการสถานที่ติดตั้งทั้งหมดพร้อมปุ่ม **`+ เพิ่มสถานที่/แผนก`**
+   - มีการ์ดแสดง **ผังอาคารสถานพยาบาลแบบโครงสร้างต้นไม้ (Hospital Layout Structure Directory)**
+   - สามารถคลิกที่ป้ายชื่อแผนก (Department Badges) เพื่อกรองหรือคัดลอกชื่อแผนกมาตรฐานได้ทันที
 
-ฟิลด์ "รายละเอียด" ของ config type = brand
-ใช้เก็บขั้นตอนการเคลมเฉพาะของแต่ละ Vendor
+4. **👥 จัดการผู้ใช้งานระบบ (User Management)**
+   - แยกตารางแสดงผลระหว่าง **👨‍💻 ช่างเทคนิคสารสนเทศ (IT Staff)** และ **🛡️ ผู้ดูแลระบบ (Admins)** ออกจากกันเป็นสัดส่วน พร้อมตัวกรองบทบาท (Role Switcher Pills)
 
-เมื่อเลือก Vendor ใน RMA Form ขั้นตอนจะแสดงอัตโนมัติ
-ใน "Brand Procedure Panel" เพื่อเตือน IT Staff ว่าต้องทำอะไรบ้าง
-
-ตัวอย่าง (Dell):
-- โทร 02-670-7250 ขอ RMA Number ก่อน
-- ถ่ายรูปเครื่อง Serial No. และ Error Code
-- แพ็คใส่กล่องพร้อม Packing List
-
----
-
-## การตั้งค่าเริ่มต้น (Seed Data)
-
-เมื่อติดตั้งระบบใหม่ รัน:
-  node seed_configs.js
-
-จะสร้างข้อมูล:
-- Brands: Dell, HP, Lenovo, Apple, Zebra, Acer, IDA, TSC, Generic
-- Categories: Computer, Monitor, Tablet, Scanner, Printer, Network, Webcam
-- Locations: Ward 1–30, ICU, ER, OPD, Technical Support ฯลฯ
+5. **💾 สำรองข้อมูล & ความปลอดภัย (Database Backup & Maintenance)**
+   - สำรองฐานข้อมูล SQLite (1-Click Hot Backup) และตรวจสอบความสมบูรณ์ของระบบ
 
 ---
 
-## API
+## โครงสร้างผังอาคารสถานพยาบาล (Hospital Layout Directory)
 
-| Method | Endpoint | คำอธิบาย |
+ระบบ ClaimIT มาพร้อมโมดูล `public/js/hospital_layout.js` ที่บรรจุโครงสร้างอาคารและชั้นบริการทางการแพทย์มาตรฐาน:
+
+### อาคาร 1: อาคารบริการทางการแพทย์หลัก (Building 1: Main Hospital Tower)
+| ชั้น (Floor) | โซนบริการหลัก | แผนก / หอผู้ป่วย / จุดบริการ |
 |---|---|---|
-| GET | /api/configurations | ดูทั้งหมด |
-| POST | /api/configurations | เพิ่มใหม่ (Admin) |
-| PUT | /api/configurations/:id | แก้ไข (Admin) |
-| DELETE | /api/configurations/:id | ลบ (Admin) |
+| **Floor 21** | หอสังเกตอาการ | Observation Ward (Observ) |
+| **Floor 20** | หอผู้ป่วยใน (Inpatient Ward) | Ward 20 |
+| **Floor 19** | ศูนย์เฉพาะทาง (Specialty Centers) | ศูนย์หัวใจ (Heart Center), ศูนย์ทางเดินปัสสาวะ (URO), ศูนย์เบาหวานและต่อมไร้ท่อ (Endocrine) |
+| **Floor 18** | หอผู้ป่วยใน (Inpatient Ward) | Ward 18 |
+| **Floor 17** | หอผู้ป่วยใน (Inpatient Ward) | Ward 17 |
+| **Floor 16** | หอผู้ป่วยใน (Inpatient Ward) | Ward 16 |
+| **Floor 15** | หอผู้ป่วยใน (Inpatient Ward) | Ward 15 |
+| **Floor 14** | หอผู้ป่วยเด็กและวัยรุ่น | หอผู้ป่วยเด็ก (Pediatric Ward), หออภิบาลผู้ป่วยวิกฤตเด็ก (PICU) |
+| **Floor 12** | หอผู้ป่วยสูติ-นรีเวชกรรม | หอผู้ป่วยสูติ-นรีเวชกรรม, แผนกห้องคลอด (Labor & Delivery) |
+| **Floor 11** | หอผู้ป่วยศัลยกรรม | หอผู้ป่วยศัลยกรรมทั่วไปและศัลยกรรมเฉพาะทาง |
+| **Floor 10** | หอผู้ป่วยอายุรกรรม | หอผู้ป่วยอายุรกรรมทั่วไปและอายุรกรรมเฉพาะทาง |
+| **Floor 9** | หออภิบาลผู้ป่วยหนัก (ICU) | ICU ศัลยกรรม, ICU อายุรกรรม, CCU (Coronary Care Unit) |
+| **Floor 8** | แผนกห้องผ่าตัด (Operating Suite) | ห้องผ่าตัดใหญ่ (OR Suite 1-12), ห้องพักฟื้น (PACU) |
+| **Floor 7** | เวชศาสตร์ฟื้นฟูและกายภาพบำบัด | คลินิกกายภาพบำบัด, กิจกรรมบำบัด, วารีบำบัด |
+| **Floor 6** | ตรวจสุขภาพและประกันสุขภาพ | ศูนย์ส่งเสริมสุขภาพ (Wellness Check-up Center), สำนักงานประกัน |
+| **Floor 5** | ผู้ป่วยนอกเฉพาะทาง (Specialized OPD) | คลินิกจักษุ, คลินิก หู คอ จมูก (ENT), คลินิกทันตกรรม |
+| **Floor 4** | ผู้ป่วยนอกอายุรกรรมและศัลยกรรม | OPD อายุรกรรม, OPD ศัลยกรรม, คลินิกโรคกระดูกและข้อ |
+| **Floor 3** | ศูนย์รังสีวินิจฉัยและห้องปฏิบัติการ | รังสีวิทยา (X-Ray, CT, MRI), ห้องปฏิบัติการพยาธิวิทยา (LAB) |
+| **Floor 2** | แผนกเวชระเบียนและการเงิน | จุดรับบัตร/ลงทะเบียน, เวชระเบียนกลาง, จุดการเงินและการจ่ายยา OPD |
+| **Floor 1** | แผนกอุบัติเหตุและฉุกเฉิน (ER) | แผนกฉุกเฉิน (Emergency Department - ER), คัดกรองผู้ป่วย (Triage), ห้องปฐมพยาบาล |
+| **Floor B** | แผนกสนับสนุนบริการทางการแพทย์ | งานโภชนาการ, งานซักฟอก, จ่ายกลาง (CSSD), ศูนย์ขนส่งผู้ป่วย |
+| **Floor D** | แผนกบริหารโครงสร้างพื้นฐานและไอที | ฝ่ายสารสนเทศและเทคโนโลยี (IT Operations & Server Room), ฝ่ายวิศวกรรมการแพทย์, ฝ่ายบริหารทั่วไป |
+
+### อาคารศูนย์บริการข้อมูลลูกค้า (Call Center Buildings)
+- **Call Center Building (Old Building)**: ศูนย์บริการข้อมูลลูกค้าอาคารเดิม (ชั้น 1–3)
+- **Call Center Building (New Building)**: ศูนย์บริการข้อมูลลูกค้าอาคารใหม่ (ชั้น 1–4)
 
 ---
 
-ถัดไป: 16_excel_csv_export.md
+## การเชื่อมโยงผังอาคารกับระบบครุภัณฑ์ (Interactive Layout Picker Modal)
+
+1. **ปุ่มเลือกสถานที่ด่วน (🏥 เลือกจากผังอาคาร)**:
+   - ปรากฏเคียงข้างช่องกรอกสถานที่ในฟอร์ม **ลงทะเบียนครุภัณฑ์รายชิ้น** และ **นำเข้าครุภัณฑ์แบบกลุ่ม (Batch Intake)**
+   - เมื่อคลิก จะเปิด Modal หน้าต่างผังอาคารสถานพยาบาล แสดงอาคารและชั้นทั้งหมด
+   - เพียงคลิกที่ป้ายชื่อแผนก (Department Chip) ระบบจะดึงชื่อสถานที่มาตรฐานเข้าสู่ช่องกรอกทันที พร้อมปิด Modal ให้อัตโนมัติ
+
+2. **ระบบช่วยเติมคำอัตโนมัติ (Datalist Autocomplete)**:
+   - รายชื่อแผนกทั้งหมดจากผังอาคารจะถูกโหลดเข้าสู่ `<datalist id="location-suggestions">` อัตโนมัติ
+   - เมื่อพิมพ์ตัวอักษร ระบบจะแนะนำแผนกที่ถูกต้อง ลดความผิดพลาดจากการสะกดชื่อไม่ตรงกัน
+
+3. **ความยืดหยุ่นในการเพิ่ม/ปรับเปลี่ยนในอนาคต (Extensibility without DB Changes)**:
+   - หากโรงพยาบาลมีการปรับเปลี่ยนชั้น หรือเปิดแผนกใหม่ Admin สามารถกดปุ่ม **`+ เพิ่มสถานที่/แผนก`** ได้ทันที
+   - ข้อมูลใหม่จะถูกบันทึกผ่าน API `/api/configurations` (`type='location'`) และผสานเข้ากับระบบ Autocomplete โดยไม่ต้องปรับแก้ฐานข้อมูลแม้แต่ตารางเดียว
+
+---
+
+## ข้อมูลตั้งค่าเริ่มต้น (Seed Configurations)
+
+ระบบติดตั้งมาพร้อมชุดข้อมูลมาตรฐานที่ครอบคลุม:
+- **แบรนด์และ RMA**: Dell, HP, Lenovo, Apple, Zebra, Acer, Brother, TSC, Generic
+- **หมวดหมู่**: Computer, Monitor, Tablet, Scanner, Printer, Network, Medical Display, UPS
+- **สถานที่**: ครอบคลุม Floor 21 ถึง Floor D ของ Main Tower และ Call Center ทั้ง 2 อาคาร
+
+---
+
+## API การตั้งค่าระบบ (Configurations API Reference)
+
+| Method | Endpoint | สิทธิ์เข้าถึง | คำอธิบาย |
+|---|---|---|---|
+| `GET` | `/api/configurations` | ทุกบทบาท (Staff, Admin) | ดึงรายการตั้งค่าทั้งหมด (กรองตาม `?type=brand`, `?type=category`, `?type=location` ได้) |
+| `POST` | `/api/configurations` | Admin เท่านั้น | เพิ่มการตั้งค่าใหม่ (`type`, `value`, `details`) |
+| `PUT` | `/api/configurations/:id` | Admin เท่านั้น | แก้ไขข้อมูลการตั้งค่า |
+| `DELETE` | `/api/configurations/:id` | Admin เท่านั้น | ลบรายการตั้งค่าที่ไม่ใช้งาน |
+
+---
+
+ถัดไป: [16_excel_csv_export.md](file:///d:/claimit/claimIT/walkthroughs/16_excel_csv_export.md)
+

@@ -107,6 +107,50 @@ function checkBmeRegulatedDevice(fields) {
   return { isBme: false };
 }
 
+// Single-Brand Guardrail (Prevents compound/conflicting brands like 'Dell, Acer' or 'Dell / HP')
+function validateSingleBrand(brand) {
+  if (!brand || typeof brand !== 'string') return { isValid: true };
+  const trimmed = brand.trim();
+  if (!trimmed) return { isValid: true };
+
+  const KNOWN_BRANDS = [
+    'dell', 'acer', 'hp', 'lenovo', 'asus', 'apple', 'cisco', 'zebra',
+    'tsc', 'logitech', 'epson', 'canon', 'brother', 'samsung', 'lg',
+    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba'
+  ];
+
+  // 1. Check multiple known brands present
+  const brandMatches = [];
+  for (const b of KNOWN_BRANDS) {
+    const regex = new RegExp(`\\b${b}\\b`, 'i');
+    if (regex.test(trimmed)) {
+      brandMatches.push(b.toUpperCase());
+    }
+  }
+  if (brandMatches.length > 1) {
+    return {
+      isValid: false,
+      detected: brandMatches.join(', '),
+      error: `ไม่อนุญาตให้ระบุหลายยี่ห้อพร้อมกันในอุปกรณ์ชิ้นเดียว (ตรวจพบ: ${brandMatches.join(', ')}) กรุณาระบุเพียง 1 ยี่ห้อ เช่น Dell หรือ HP`
+    };
+  }
+
+  // 2. Check compound delimiters (,, /, &, +, and, or, กับ, และ, หรือ)
+  const delimiterRegex = /[,/&+]|\s+(?:and|or|กับ|และ|หรือ)\s+/i;
+  if (delimiterRegex.test(trimmed)) {
+    const segments = trimmed.split(delimiterRegex).map(s => s.trim()).filter(Boolean);
+    if (segments.length > 1) {
+      return {
+        isValid: false,
+        detected: trimmed,
+        error: `ไม่อนุญาตให้ระบุหลายยี่ห้อพร้อมกันในอุปกรณ์ชิ้นเดียว (ตรวจพบ: ${trimmed}) กรุณาระบุเพียง 1 ยี่ห้อ เช่น Dell หรือ HP`
+      };
+    }
+  }
+
+  return { isValid: true };
+}
+
 function isStorageSensitiveAsset(category, deviceName) {
   const sensitiveRegex = /computer|pc|laptop|desktop|all-in-one|aio|tablet|server|workstation|storage|drive|nas|san|คอมพิวเตอร์|โน้ตบุ๊ก|แท็บเล็ต|เซิร์ฟเวอร์/i;
   const combined = `${category || ''} ${deviceName || ''}`;
@@ -123,6 +167,12 @@ router.post('/', verifyToken, adminOnly, (req, res) => {
 
   if (asset_tag.length > 50 || device_name.length > 255 || brand.length > 100 || model.length > 100 || serial_no.length > 100 || location.length > 100 || category.length > 100) {
     return res.status(400).json({ error: 'ความยาวข้อมูลเกินขีดจำกัดที่กำหนด (Input length exceeds limit)' });
+  }
+
+  // Enforce Single-Brand Guardrail
+  const brandCheck = validateSingleBrand(brand);
+  if (!brandCheck.isValid) {
+    return res.status(400).json({ error: brandCheck.error });
   }
 
   // Enforce BME Medical Device Guardrail
@@ -188,6 +238,14 @@ router.put('/:tag', verifyToken, adminOnly, (req, res) => {
   const { category, brand, model, serial_no, device_name, location, warranty_start, warranty_end, sanitization_required, status, purchase_price, warranty_months, expected_lifespan_months, salvage_status, new_asset_tag } = req.body;
   const tag = req.params.tag;
   const actionUser = req.user ? req.user.username : 'admin';
+
+  // Enforce Single-Brand Guardrail on update
+  if (brand) {
+    const brandCheck = validateSingleBrand(brand);
+    if (!brandCheck.isValid) {
+      return res.status(400).json({ error: brandCheck.error });
+    }
+  }
 
   // Enforce BME Medical Device Guardrail on update
   const bmeCheck = checkBmeRegulatedDevice([device_name, model, brand, category]);
@@ -301,6 +359,12 @@ router.post('/batch', verifyToken, adminOnly, (req, res) => {
 
   if (!category || !brand || !model || !location || !warranty_start || !warranty_end) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลส่วนกลางให้ครบถ้วน' });
+  }
+
+  // Enforce Single-Brand Guardrail on batch common specs
+  const brandCheck = validateSingleBrand(brand);
+  if (!brandCheck.isValid) {
+    return res.status(400).json({ error: brandCheck.error });
   }
 
   // Enforce BME check on common specs
@@ -822,5 +886,6 @@ router.get('/:tag/pdf', verifyToken, staffOnly, (req, res) => {
 
 router.checkBmeRegulatedDevice = checkBmeRegulatedDevice;
 router.BME_REGULATED_REGEX = BME_REGULATED_REGEX;
+router.validateSingleBrand = validateSingleBrand;
 
 module.exports = router;

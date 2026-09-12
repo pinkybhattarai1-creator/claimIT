@@ -608,8 +608,126 @@ async function runTests() {
     assert(fkViolations.length === 0, 'Zero foreign key violations in active database');
     console.log('   ✅ Clinical IT 84-month lifespan, BME guardrails & foreign key cascade verified.');
 
+    // TEST 14: Single-Brand Guardrail & Category Query Separation with Pagination Slots
+    console.log('\n--- TEST 14: Single-Brand Guardrail, Category Separation & Pagination Slots ---');
+
+    // 14.1 Multi-Brand on Asset Creation Blocked (Dell และ Acer) -> 400 Bad Request
+    const multiBrandRes1 = await makeRequest('POST', '/api/assets', {
+      asset_tag: `CIT-MB-01-${Date.now()}`,
+      device_name: 'Workstation Multi-Brand',
+      category: 'Computer',
+      brand: 'Dell และ Acer',
+      model: 'OptiPlex',
+      serial_no: `SN-MB01-${Date.now()}`,
+      location: 'IT Dept',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(multiBrandRes1.status === 400, 'Multi-brand (Dell และ Acer) rejected with HTTP 400');
+    assert(multiBrandRes1.data && multiBrandRes1.data.error && multiBrandRes1.data.error.includes('ไม่อนุญาตให้ระบุหลายยี่ห้อพร้อมกัน'), 'Returns clear Thai error message for multi-brand');
+
+    // 14.2 Multi-Brand with comma delimiter (Dell, HP) -> 400
+    const multiBrandRes2 = await makeRequest('POST', '/api/assets', {
+      asset_tag: `CIT-MB-02-${Date.now()}`,
+      device_name: 'Monitor Multi-Brand',
+      category: 'Monitor',
+      brand: 'Dell, HP',
+      model: 'P2419H',
+      serial_no: `SN-MB02-${Date.now()}`,
+      location: 'Ward 1',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(multiBrandRes2.status === 400, 'Multi-brand with comma (Dell, HP) rejected with HTTP 400');
+
+    // 14.3 Multi-Brand with slash delimiter (HP / Lenovo) -> 400
+    const multiBrandRes3 = await makeRequest('POST', '/api/assets', {
+      asset_tag: `CIT-MB-03-${Date.now()}`,
+      device_name: 'Laptop Multi-Brand',
+      category: 'Computer',
+      brand: 'HP / Lenovo',
+      model: 'ThinkBook',
+      serial_no: `SN-MB03-${Date.now()}`,
+      location: 'Ward 2',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01'
+    }, adminToken);
+    assert(multiBrandRes3.status === 400, 'Multi-brand with slash (HP / Lenovo) rejected with HTTP 400');
+
+    // 14.4 Multi-Brand on PUT /api/assets/:tag Blocked -> 400
+    const multiBrandPut = await makeRequest('PUT', `/api/assets/${cascadedTag}`, {
+      category: 'Clinical IT Display',
+      brand: 'Eizo & Dell',
+      model: 'RX360',
+      serial_no: `SN-${clinicalTag}`,
+      device_name: 'Eizo RadiForce 24-inch PACS Diagnostic Display',
+      location: 'ศูนย์เอกซเรย์และรังสีวิทยา (Radiology & Imaging)',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01',
+      status: 'Working'
+    }, adminToken);
+    assert(multiBrandPut.status === 400, 'Multi-brand update on PUT rejected with HTTP 400');
+
+    // 14.5 Multi-Brand on Batch Intake POST /api/assets/batch Blocked -> 400
+    const multiBrandBatch = await makeRequest('POST', '/api/assets/batch', {
+      category: 'Scanner',
+      brand: 'Zebra or Honeywell',
+      model: 'DS2208',
+      location: 'OPD',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01',
+      items: [
+        { asset_tag: `CIT-BATCH-MB-${Date.now()}-1`, serial_no: `SN-BMB-1` }
+      ]
+    }, adminToken);
+    assert(multiBrandBatch.status === 400, 'Multi-brand in batch intake rejected with HTTP 400');
+
+    // 14.6 Valid Single Brand on POST /api/assets Accepted -> 200
+    const singleBrandTag = `CIT-SB-${Date.now()}`;
+    const singleBrandRes = await makeRequest('POST', '/api/assets', {
+      asset_tag: singleBrandTag,
+      device_name: 'Dell OptiPlex 7000 MFF',
+      category: 'Computer',
+      brand: 'Dell',
+      model: 'OptiPlex 7000',
+      serial_no: `SN-SB-${Date.now()}`,
+      location: 'แผนกไอที',
+      warranty_start: '2024-01-01',
+      warranty_end: '2027-01-01',
+      purchase_price: 24000
+    }, adminToken);
+    assert(singleBrandRes.status === 200, 'Valid single brand (Dell) accepted with HTTP 200');
+
+    // 14.7 Direct Unit Test of validateSingleBrand helper
+    const assetsRouteModule = require('./routes/assets');
+    assert(typeof assetsRouteModule.validateSingleBrand === 'function', 'validateSingleBrand helper is exported');
+    assert(assetsRouteModule.validateSingleBrand('Dell').isValid === true, 'Single brand "Dell" is valid');
+    assert(assetsRouteModule.validateSingleBrand('Hewlett Packard').isValid === true, 'Single multi-word brand is valid');
+    assert(assetsRouteModule.validateSingleBrand('Dell and Acer').isValid === false, 'Compound "Dell and Acer" is invalid');
+    assert(assetsRouteModule.validateSingleBrand('Dell, HP').isValid === false, 'Compound "Dell, HP" is invalid');
+
+    // 14.8 Category Filtering on GET /api/assets
+    const catCompRes = await makeRequest('GET', '/api/assets?category=Computer&limit=15', null, staffToken);
+    assert(catCompRes.status === 200, 'Category query GET /api/assets?category=Computer returns 200');
+    assert(catCompRes.data && Array.isArray(catCompRes.data.assets), 'Returns assets array');
+    assert(catCompRes.data.limit === 15, 'Assets endpoint respects limit=15 slot');
+    for (const a of catCompRes.data.assets) {
+      assert(a.category === 'Computer', `Filtered asset category matches Computer (got ${a.category})`);
+    }
+
+    // 14.9 Pagination Slots for Assets, Claims and Audit
+    const assetsPage25 = await makeRequest('GET', '/api/assets?page=1&limit=25', null, staffToken);
+    assert(assetsPage25.status === 200 && assetsPage25.data.limit === 25, 'Assets pagination accepts limit=25');
+
+    const claimsPage15 = await makeRequest('GET', '/api/claims?page=1&limit=15', null, staffToken);
+    assert(claimsPage15.status === 200 && claimsPage15.data.limit === 15, 'Claims pagination accepts limit=15 slot');
+
+    const auditPage15 = await makeRequest('GET', '/api/audit-logs?page=1&limit=15', null, staffToken);
+    assert(auditPage15.status === 200 && auditPage15.data.limit === 15, 'Audit pagination accepts limit=15 slot');
+    console.log('   ✅ Single-Brand guardrail (HTTP 400), category filtering & pagination slots verified.');
+
     console.log('\n===============================================================');
-    console.log('🎉 ALL 13 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
+    console.log('🎉 ALL 14 COMPREHENSIVE AUTOMATED TEST STAGES PASSED (100%)!');
     console.log('===============================================================\n');
 
   } finally {

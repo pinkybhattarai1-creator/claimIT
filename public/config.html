@@ -117,8 +117,8 @@
 
         <div class="topbar-right" id="user-badge" style="display: none;">
           <div id="network-status-badge" class="network-badge" style="display: none;"></div>
-          <div id="warranty-expiring-badge" style="display: none; cursor: pointer; padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); align-items: center; gap: 4px;" title="คลิกเพื่อดูรายการที่ใกล้หมดประกัน (ภายใน 6 เดือน)">
-            <span id="warranty-expiring-text">⚠️ 0 ใกล้หมดประกัน</span>
+          <div id="warranty-expiring-badge" onclick="goToExpiringWarrantyAssets()" style="display: none; cursor: pointer; padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); align-items: center; gap: 4px;" title="คลิกเพื่อดูรายการที่ใกล้หมดประกัน (ภายใน 6 เดือน)">
+            <span id="warranty-expiring-text" onclick="goToExpiringWarrantyAssets()">⚠️ 0 ใกล้หมดประกัน</span>
           </div>
           <!-- Top Navigation Tabs -->
           <div class="nav-tabs" id="nav-tabs" style="display: none;">
@@ -705,11 +705,25 @@
               </div>
 
               <!-- Claims Pagination -->
-              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px;">
-                <div id="claims-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
-                <div class="pagination-controls">
+              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div id="claims-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <label style="font-size: 12px; color: var(--text-muted); margin: 0;">แถวต่อหน้า:</label>
+                    <select id="claims-pagination-limit" class="form-control" style="width: auto; padding: 2px 6px; font-size: 12px;" onchange="changeClaimsLimit(this.value)">
+                      <option value="15" selected>15 แถว</option>
+                      <option value="25">25 แถว</option>
+                      <option value="50">50 แถว</option>
+                      <option value="100">100 แถว</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pagination-controls" style="display: flex; align-items: center; gap: 6px;">
                   <button class="btn btn-secondary btn-sm" id="claims-btn-prev-page" onclick="claimsChangePage(-1)" style="display: none;" aria-label="Previous claims page">‹ ย้อนกลับ</button>
-                  <span id="claims-page-num-display" style="font-weight: 600; padding: 0 8px;">หน้า 1</span>
+                  <select id="claims-page-jump-select" class="form-control" style="width: auto; padding: 2px 8px; font-size: 12px;" title="เลือกหน้าโดยตรง" onchange="jumpToClaimsPage(this.value)">
+                    <option value="1">หน้า 1</option>
+                  </select>
+                  <span id="claims-page-num-display" style="display: none;">หน้า 1</span>
                   <button class="btn btn-secondary btn-sm" id="claims-btn-next-page" onclick="claimsChangePage(1)" style="display: none;" aria-label="Next claims page">ถัดไป ›</button>
                 </div>
               </div>
@@ -721,7 +735,7 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)</h3>
+                  <h3 class="card-title" id="inventory-table-title">📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)</h3>
                   <div class="card-subtitle">ระบบค้นหาครุภัณฑ์ ตรวจสอบรอบบำรุงรักษา และส่งออกรายงาน</div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -741,6 +755,20 @@
                   <button class="btn btn-secondary btn-sm" id="btn-copy-data">📋 คัดลอกตาราง (TSV)</button>
                   <button class="btn btn-sm" id="btn-open-add-asset-modal">➕ เพิ่มครุภัณฑ์ใหม่</button>
                 </div>
+              </div>
+
+              <!-- Category Tabs Navigation Bar (Frontend Separation) -->
+              <div class="category-tabs-nav" id="category-tabs-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px 2px; margin-bottom: 8px; -webkit-overflow-scrolling: touch;">
+                <button type="button" class="btn btn-sm category-tab-btn active" data-cat="" onclick="selectCategoryTab('')">🌐 ทั้งหมด</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Computer" onclick="selectCategoryTab('Computer')">💻 Computer</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Clinical Workstation" onclick="selectCategoryTab('Clinical Workstation')">🖥️ Clinical Workstation</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Clinical IT Display" onclick="selectCategoryTab('Clinical IT Display')">📺 Clinical IT Display</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Tablet" onclick="selectCategoryTab('Tablet')">📱 Tablet</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Scanner" onclick="selectCategoryTab('Scanner')">🏷️ Scanner / Barcode</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Printer" onclick="selectCategoryTab('Printer')">🖨️ Printer</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Network" onclick="selectCategoryTab('Network')">🌐 Network</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Mobile Nursing Cart" onclick="selectCategoryTab('Mobile Nursing Cart')">🛒 Mobile Nursing Cart</button>
+                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Others" onclick="selectCategoryTab('Others')">📦 อื่นๆ</button>
               </div>
 
               <div class="table-container">
@@ -763,13 +791,27 @@
                 </table>
               </div>
 
-              <!-- Pagination -->
-              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px;">
-                <div id="pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
-                <div class="pagination-controls">
-                  <button class="btn btn-secondary btn-sm" id="btn-prev-page" disabled>‹ ย้อนกลับ</button>
-                  <span id="page-num-display" style="font-weight: 600; padding: 0 8px;">หน้า 1</span>
-                  <button class="btn btn-secondary btn-sm" id="btn-next-page">ถัดไป ›</button>
+              <!-- Asset Inventory Pagination -->
+              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div id="pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <label style="font-size: 12px; color: var(--text-muted); margin: 0;">แถวต่อหน้า:</label>
+                    <select id="asset-pagination-limit" class="form-control" style="width: auto; padding: 2px 6px; font-size: 12px;" onchange="changeAssetLimit(this.value)">
+                      <option value="15" selected>15 แถว</option>
+                      <option value="25">25 แถว</option>
+                      <option value="50">50 แถว</option>
+                      <option value="100">100 แถว</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pagination-controls" style="display: flex; align-items: center; gap: 6px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-prev-page" disabled onclick="changePage(-1)">‹ ย้อนกลับ</button>
+                  <select id="asset-page-jump-select" class="form-control" style="width: auto; padding: 2px 8px; font-size: 12px;" title="เลือกหน้าโดยตรง" onchange="jumpToAssetPage(this.value)">
+                    <option value="1">หน้า 1</option>
+                  </select>
+                  <span id="page-num-display" style="display: none;">หน้า 1</span>
+                  <button class="btn btn-secondary btn-sm" id="btn-next-page" onclick="changePage(1)">ถัดไป ›</button>
                 </div>
               </div>
             </div>
@@ -836,11 +878,25 @@
               </div>
 
               <!-- Audit Pagination -->
-              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px;">
-                <div id="audit-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
-                <div class="pagination-controls">
+              <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12.5px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div id="audit-pagination-info" style="color: var(--text-muted);">แสดง 0 - 0 จาก 0 รายการ</div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <label style="font-size: 12px; color: var(--text-muted); margin: 0;">แถวต่อหน้า:</label>
+                    <select id="audit-pagination-limit" class="form-control" style="width: auto; padding: 2px 6px; font-size: 12px;" onchange="changeAuditLimit(this.value)">
+                      <option value="15" selected>15 แถว</option>
+                      <option value="25">25 แถว</option>
+                      <option value="50">50 แถว</option>
+                      <option value="100">100 แถว</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="pagination-controls" style="display: flex; align-items: center; gap: 6px;">
                   <button class="btn btn-secondary btn-sm" id="audit-btn-prev-page" onclick="auditChangePage(-1)" style="display: none;" aria-label="Previous audit page">‹ ย้อนกลับ</button>
-                  <span id="audit-page-num-display" style="font-weight: 600; padding: 0 8px;">หน้า 1</span>
+                  <select id="audit-page-jump-select" class="form-control" style="width: auto; padding: 2px 8px; font-size: 12px;" title="เลือกหน้าโดยตรง" onchange="jumpToAuditPage(this.value)">
+                    <option value="1">หน้า 1</option>
+                  </select>
+                  <span id="audit-page-num-display" style="display: none;">หน้า 1</span>
                   <button class="btn btn-secondary btn-sm" id="audit-btn-next-page" onclick="auditChangePage(1)" style="display: none;" aria-label="Next audit page">ถัดไป ›</button>
                 </div>
               </div>
@@ -852,37 +908,38 @@
         <!-- 4. SYSTEM CONFIGURATION VIEW -->
         <!-- ================================================================ -->
         <section id="config-section" class="view-section">
-          <!-- Config Sub-Navigation Tabs Bar -->
+          <!-- Config Sub-Navigation Tabs Bar (Separated Sections) -->
           <div class="card" style="padding: 8px 12px; margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm active config-tab-btn" data-tab="tab-cfg-settings">⚙️ ตั้งค่าระบบ</button>
-            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-users">👥 จัดการบัญชีผู้ใช้งาน</button>
+            <button type="button" class="btn btn-secondary btn-sm active config-tab-btn" data-tab="tab-cfg-brands">🏷️ แบรนด์และคู่มือศูนย์บริการ (<span id="config-brands-count">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-categories">💻 หมวดหมู่อุปกรณ์ (<span id="config-categories-count">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-locations">🏥 แผนกและสถานที่ติดตั้ง (<span id="config-locations-count">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-users">👥 จัดการผู้ใช้งานระบบ (<span id="user-total-count">0</span>)</button>
             <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-backup">💾 สำรองข้อมูลและบำรุงรักษาระบบ</button>
             <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-feedback" onclick="loadAdminFeedback()">💬 ข้อเสนอแนะและแจ้งปัญหา (<span id="feedback-count-badge">0</span>)</button>
           </div>
 
-          <!-- CONFIG TAB 1: SYSTEM CONFIGS -->
-          <div id="tab-cfg-settings" class="config-tab-pane">
+          <!-- CONFIG TAB 1: BRANDS & RMA GUIDES -->
+          <div id="tab-cfg-brands" class="config-tab-pane">
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">⚙️ ตั้งค่าระบบ (System Configurations)</h3>
-                  <div class="card-subtitle">จัดการยี่ห้อ หมวดหมู่ สถานที่ และขั้นตอนการเคลม (Dynamic CRUD)</div>
+                  <h3 class="card-title">🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)</h3>
+                  <div class="card-subtitle">ข้อมูลศูนย์บริการ ขั้นตอนและเงื่อนไขการส่งเคลมเฉพาะแต่ละยี่ห้อ (Brand RMA Procedures)</div>
                 </div>
-                <button class="btn btn-sm" id="btn-open-add-config-modal">➕ เพิ่มการตั้งค่า</button>
+                <button class="btn btn-sm" onclick="openAddConfigModalWithType('brand')">➕ เพิ่มแบรนด์ / ศูนย์บริการ</button>
               </div>
 
               <div class="table-container">
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>ประเภท (Type)</th>
-                      <th>ค่า (Value)</th>
-                      <th>รายละเอียด / ขั้นตอน</th>
-                      <th>การจัดการ</th>
+                      <th style="width: 70px;">ID</th>
+                      <th style="width: 200px;">ยี่ห้อ / ศูนย์บริการ (Brand)</th>
+                      <th>ขั้นตอนและเงื่อนไขการส่งเคลม (RMA Procedures & Contact)</th>
+                      <th style="width: 140px;">การจัดการ</th>
                     </tr>
                   </thead>
-                  <tbody id="config-table-body">
+                  <tbody id="config-brands-table-body">
                     <!-- Populated dynamically -->
                   </tbody>
                 </table>
@@ -890,35 +947,169 @@
             </div>
           </div>
 
-          <!-- CONFIG TAB 2: USER MANAGEMENT -->
-          <div id="tab-cfg-users" class="config-tab-pane" style="display: none;">
+          <!-- CONFIG TAB 2: DEVICE CATEGORIES -->
+          <div id="tab-cfg-categories" class="config-tab-pane" style="display: none;">
             <div class="card">
               <div class="card-header">
                 <div>
-                  <h3 class="card-title">👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
-                  <div class="card-subtitle">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</div>
+                  <h3 class="card-title">💻 หมวดหมู่อุปกรณ์สารสนเทศ (Device Categories)</h3>
+                  <div class="card-subtitle">กำหนดประเภทอุปกรณ์ รหัสครุภัณฑ์ และอายุการใช้งานมาตรฐาน (Lifespan & Classification)</div>
                 </div>
-                <button class="btn btn-sm" id="btn-open-add-user-modal">➕ เพิ่มผู้ใช้งานใหม่</button>
+                <button class="btn btn-sm" onclick="openAddConfigModalWithType('category')">➕ เพิ่มหมวดหมู่อุปกรณ์</button>
               </div>
 
               <div class="table-container">
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Username</th>
-                      <th>ชื่อ-นามสกุล</th>
-                      <th>แผนก / หน่วยงาน (Department)</th>
-                      <th>สิทธิ์ (Role)</th>
-                      <th>การจัดการ</th>
+                      <th style="width: 70px;">ID</th>
+                      <th style="width: 220px;">หมวดหมู่อุปกรณ์ (Category)</th>
+                      <th>คุณลักษณะ / มาตรฐานการใช้งาน (Specification)</th>
+                      <th style="width: 140px;">การจัดการ</th>
                     </tr>
                   </thead>
-                  <tbody id="user-table-body">
+                  <tbody id="config-categories-table-body">
                     <!-- Populated dynamically -->
                   </tbody>
                 </table>
               </div>
             </div>
+          </div>
+
+          <!-- CONFIG TAB 3: LOCATIONS & WARDS -->
+          <div id="tab-cfg-locations" class="config-tab-pane" style="display: none;">
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 class="card-title">🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)</h3>
+                  <div class="card-subtitle">ผังอาคาร ชั้น โซนบริการ และสถานที่ติดตั้งครุภัณฑ์ทั่วทั้งโรงพยาบาล</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-sm" onclick="openAddConfigModalWithType('location')">➕ เพิ่มสถานที่ / แผนกใหม่</button>
+                </div>
+              </div>
+
+              <!-- Interactive Hospital Layout Area rendered by hospital_layout.js -->
+              <div id="hospital-layout-content-area" style="padding: 14px;">
+                <!-- Loaded dynamically by hospital_layout.js -->
+              </div>
+            </div>
+
+            <!-- Custom / Registered Locations Table -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h4 class="card-title" style="font-size: 14px;">📋 รายการสถานที่และแผนกที่ลงทะเบียนในระบบ (Registered Location Records)</h4>
+                  <div class="card-subtitle">จัดการและแก้ไขชื่อแผนกหรือสถานที่ติดตั้งเพิ่มเติม</div>
+                </div>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 70px;">ID</th>
+                      <th style="width: 260px;">ชื่อสถานที่ / แผนก (Location)</th>
+                      <th>รายละเอียด / อาคาร / ชั้น (Details)</th>
+                      <th style="width: 140px;">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="config-locations-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONFIG TAB 4: USER MANAGEMENT (NON-STACKING SEPARATE ROLES) -->
+          <div id="tab-cfg-users" class="config-tab-pane" style="display: none;">
+            <div class="card" style="margin-bottom: 16px;">
+              <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 class="card-title">👥 จัดการผู้ใช้งานระบบ (User Management)</h3>
+                  <div class="card-subtitle">สร้างสิทธิ์และจัดการบัญชีผู้ใช้งาน (RBAC: Admin & Staff)</div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button class="btn btn-sm btn-secondary" onclick="openAddUserModalWithRole('staff')">➕ เพิ่มช่างเทคนิค (Staff)</button>
+                  <button class="btn btn-sm" onclick="openAddUserModalWithRole('admin')">➕ เพิ่มผู้ดูแลระบบ (Admin)</button>
+                </div>
+              </div>
+
+              <!-- Role Filter Switcher Pills (Eliminates downward stacking) -->
+              <div style="display: flex; gap: 8px; padding: 4px 14px 14px 14px; flex-wrap: wrap; border-bottom: 1px solid var(--border-subtle);">
+                <button type="button" class="btn btn-primary btn-sm user-role-pill-btn active" data-role="all" onclick="filterUserRole('all')">
+                  🌐 ทั้งหมด (<span id="user-pill-all-count">0</span>)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm user-role-pill-btn" data-role="admin" onclick="filterUserRole('admin')">
+                  🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators: <span id="user-admin-count">0</span>)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm user-role-pill-btn" data-role="staff" onclick="filterUserRole('staff')">
+                  👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists: <span id="user-staff-count">0</span>)
+                </button>
+              </div>
+            </div>
+
+            <!-- SECTION A: IT SUPPORT ADMINISTRATORS (ADMIN) -->
+            <div class="card" id="user-admin-section-card" style="margin-bottom: 16px;">
+              <div class="card-header" style="background: rgba(37,99,235,0.04); padding: 10px 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #1d4ed8;">🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)</h4>
+                  <div style="font-size: 12px; color: var(--text-muted);">ผู้มีสิทธิ์บริหารจัดการระบบ ตั้งค่าพารามิเตอร์ และตรวจสอบประวัติอย่างสมบูรณ์</div>
+                </div>
+                <button class="btn btn-sm" style="padding: 4px 10px; font-size: 12px;" onclick="openAddUserModalWithRole('admin')">➕ เพิ่มผู้ดูแลระบบ</button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">ID</th>
+                      <th style="width: 160px;">Username</th>
+                      <th>ชื่อ-นามสกุล</th>
+                      <th style="width: 200px;">แผนก / หน่วยงาน (Department)</th>
+                      <th style="width: 100px;">สิทธิ์ (Role)</th>
+                      <th style="width: 170px;">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-table-admin-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- SECTION B: IT SUPPORT SPECIALISTS (STAFF) -->
+            <div class="card" id="user-staff-section-card">
+              <div class="card-header" style="background: rgba(16,185,129,0.04); padding: 10px 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #047857;">👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)</h4>
+                  <div style="font-size: 12px; color: var(--text-muted);">เจ้าหน้าที่และช่างเทคนิคสารสนเทศประจำจุดบริการและแผนกต่าง ๆ</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 12px;" onclick="openAddUserModalWithRole('staff')">➕ เพิ่มช่างเทคนิค</button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 60px;">ID</th>
+                      <th style="width: 160px;">Username</th>
+                      <th>ชื่อ-นามสกุล</th>
+                      <th style="width: 200px;">แผนก / หน่วยงาน (Department)</th>
+                      <th style="width: 100px;">สิทธิ์ (Role)</th>
+                      <th style="width: 170px;">การจัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="user-table-staff-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Hidden tables for 100% backward compatibility with legacy scripts/tests -->
+            <table style="display: none;">
+              <tbody id="user-table-body"></tbody>
+              <tbody id="config-table-body"></tbody>
+            </table>
           </div>
 
           <!-- CONFIG TAB 3: BACKUP & MAINTENANCE -->
@@ -1086,6 +1277,10 @@
             <strong>⛔ ตรวจพบเครื่องมือแพทย์ (อยู่นอกขอบเขตของระบบ IT)</strong><br>
             <span id="add-asset-bme-msg">อุปกรณ์นี้เป็นเครื่องมือแพทย์และอยู่ในความดูแลของฝ่ายเครื่องมือแพทย์ (BME) จึงไม่สามารถลงทะเบียนในระบบ IT นี้ได้ กรุณาติดต่อฝ่ายเครื่องมือแพทย์ (BME)</span>
           </div>
+          <div id="add-asset-brand-warning" style="display: none; padding: 8px 12px; background: #fff1f2; border: 1.5px solid #e11d48; border-radius: 6px; font-size: 12px; color: #9f1239; margin-bottom: 8px; line-height: 1.4;">
+            <strong>⛔ รูปแบบยี่ห้อไม่ถูกต้อง</strong><br>
+            <span id="add-asset-brand-msg">กรุณาระบุยี่ห้อเพียงยี่ห้อเดียวต่อหนึ่งรายการครุภัณฑ์ (ห้ามระบุหลายยี่ห้อ เช่น Dell และ Acer)</span>
+          </div>
 
           <!-- 2-Column Form Layout strictly optimized for 1366x768 screens -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
@@ -1102,31 +1297,34 @@
               <label style="font-size: 11.5px; margin-bottom: 2px;">หมวดหมู่อุปกรณ์ (Category) *</label>
               <select id="new-category" class="form-control" required style="padding: 5px 8px; font-size: 12px;">
                 <optgroup label="Clinical IT (7-Year Lifespan)">
-                  <option value="Clinical IT Display">Clinical IT Display (PACS / DICOM / Ward Board)</option>
-                  <option value="Clinical Workstation">คอมพิวเตอร์รถเข็นพยาบาล (Clinical Workstation / COW)</option>
-                  <option value="Healthcare Scanner">Healthcare Scanner (Wristband / Medication)</option>
-                  <option value="Mobile Nursing Cart">Mobile Nursing Cart (Battery / Powered Cart)</option>
+                  <option value="Clinical IT Display">Clinical IT Display (จอภาพรังสี/แพทย์)</option>
+                  <option value="Clinical Workstation">Clinical Workstation (สถานีพยาบาล/แพทย์)</option>
+                  <option value="Healthcare Scanner">Healthcare Scanner (เครื่องสแกนบาร์โค้ดสายแพทย์)</option>
+                  <option value="Mobile Nursing Cart">Mobile Nursing Cart (รถเข็นจ่ายยา/หัตถการ)</option>
                 </optgroup>
-                <optgroup label="General IT (3-5 Year Lifespan)">
-                  <option value="Computer">Computer (PC / AIO)</option>
-                  <option value="Monitor">Monitor</option>
-                  <option value="Tablet">Tablet</option>
-                  <option value="Scanner">Barcode Scanner</option>
-                  <option value="Printer">Printer</option>
-                  <option value="Webcam">Webcam / Audio</option>
-                  <option value="Network">Network Device</option>
+                <optgroup label="General IT (5-Year Lifespan)">
+                  <option value="Computer" selected>Computer (เครื่องคอมพิวเตอร์สำนักงาน)</option>
+                  <option value="Monitor">Monitor (จอภาพทั่วไป)</option>
+                  <option value="Tablet">Tablet (แท็บเล็ตประจำหน่วยงาน)</option>
+                  <option value="Scanner">Barcode Scanner (เครื่องยิงบาร์โค้ดทั่วไป)</option>
+                  <option value="Printer">Printer (เครื่องพิมพ์ทั่วไป)</option>
+                  <option value="Network">Network Device (อุปกรณ์ระบบเครือข่าย)</option>
+                  <option value="Others">อื่นๆ (อุปกรณ์ IT อื่นๆ)</option>
                 </optgroup>
               </select>
             </div>
             <div class="form-group" style="margin-bottom: 8px;">
-              <label style="font-size: 11.5px; margin-bottom: 2px;">สถานที่ติดตั้ง / แผนก *</label>
-              <input type="text" id="new-location" class="form-control" placeholder="เช่น ห้องพักเจ้าหน้าที่, ห้องเซิร์ฟเวอร์ IT, จุดบริการ" required style="padding: 5px 8px; font-size: 12.5px;">
+              <label style="font-size: 11.5px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;">
+                <span>สถานที่ติดตั้ง / แผนก *</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openHospitalLayoutModal('new-location')" style="padding: 1px 6px; font-size: 11px; height: auto;">🏥 เลือกจากผังอาคาร</button>
+              </label>
+              <input type="text" id="new-location" class="form-control" list="hospital-locations-datalist" placeholder="เช่น Building 1, Floor 4 — IT หรือระบุเอง" required style="padding: 5px 8px; font-size: 12.5px;">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-size: 11.5px; margin-bottom: 2px;">ยี่ห้อ (Brand) *</label>
-                <input type="text" id="new-brand" class="form-control" placeholder="Dell, HP" required style="padding: 5px 8px; font-size: 12.5px;">
+                <input type="text" id="new-brand" class="form-control" placeholder="เช่น Dell หรือ HP (ระบุ 1 ยี่ห้อ)" required style="padding: 5px 8px; font-size: 12.5px;">
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label style="font-size: 11.5px; margin-bottom: 2px;">รุ่น (Model) *</label>
@@ -1189,6 +1387,10 @@
           <div style="margin-bottom: 8px; font-size: 12px; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.2);">
             ⚡ ลงทะเบียนอุปกรณ์จำนวนมากพร้อมกัน (สูงสุด 50 รายการต่อครั้ง) โดยใช้เครื่องสแกนบาร์โค้ดต่อเนื่อง
           </div>
+          <div id="batch-asset-brand-warning" style="display: none; padding: 8px 12px; background: #fff1f2; border: 1.5px solid #e11d48; border-radius: 6px; font-size: 12px; color: #9f1239; margin-bottom: 8px; line-height: 1.4;">
+            <strong>⛔ รูปแบบยี่ห้อไม่ถูกต้อง</strong><br>
+            <span id="batch-asset-brand-msg">กรุณาระบุยี่ห้อเพียงยี่ห้อเดียวต่อหนึ่งรายการครุภัณฑ์ (ห้ามระบุหลายยี่ห้อ เช่น Dell และ Acer)</span>
+          </div>
 
           <!-- Common metadata row -->
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -1209,7 +1411,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label style="font-size: 11px; margin-bottom: 2px;">ยี่ห้อ (Brand) *</label>
-              <input type="text" id="batch-brand" class="form-control" placeholder="เช่น Dell" required style="padding: 4px 6px; font-size: 11.5px;">
+              <input type="text" id="batch-brand" class="form-control" placeholder="เช่น Dell หรือ HP (ระบุ 1 ยี่ห้อ)" required style="padding: 4px 6px; font-size: 11.5px;">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label style="font-size: 11px; margin-bottom: 2px;">รุ่น (Model) *</label>
@@ -1219,8 +1421,11 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 11px; margin-bottom: 2px;">สถานที่ติดตั้งร่วม (สำหรับทุกเครื่อง) *</label>
-              <input type="text" id="batch-location" class="form-control" placeholder="เช่น IT Warehouse / Ward 10" required style="padding: 4px 6px; font-size: 11.5px;">
+              <label style="font-size: 11px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;">
+                <span>สถานที่ติดตั้งร่วม (สำหรับทุกเครื่อง) *</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openHospitalLayoutModal('batch-location')" style="padding: 1px 5px; font-size: 10px; height: auto;">🏥 ผังอาคาร</button>
+              </label>
+              <input type="text" id="batch-location" class="form-control" list="hospital-locations-datalist" placeholder="เช่น Building 1, Floor 4 — IT" required style="padding: 4px 6px; font-size: 11.5px;">
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label style="font-size: 11px; margin-bottom: 2px;">วันเริ่มการรับประกัน *</label>
@@ -1803,6 +2008,26 @@
     </div>
   </div>
 
+
+  <!-- MODAL: HOSPITAL LAYOUT PICKER -->
+  <div id="hospital-layout-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 920px; width: 95%;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 8px; font-size: 16px;">
+          <span>🏥</span> ผังอาคารและจุดบริการโรงพยาบาล (Hospital Layout Directory)
+        </h3>
+        <button class="modal-close-btn" aria-label="ปิด" onclick="closeHospitalLayoutModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px; max-height: 75vh; overflow-y: auto;">
+        <div id="hospital-modal-layout-content"></div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <span style="font-size: 12px; color: var(--text-muted);">💡 คลิกที่ป้ายชื่อแผนกเพื่อเลือกและใส่ลงในช่องสถานที่ติดตั้งอัตโนมัติ</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeHospitalLayoutModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mobile Drawer Backdrop -->
   <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
 
@@ -1817,6 +2042,7 @@
   <script src="js/assets.js?v=2.0.0"></script>
   <script src="js/claims.js?v=2.0.0"></script>
   <script src="js/audit.js?v=2.0.0"></script>
+  <script src="js/hospital_layout.js?v=2.0.0"></script>
   <script src="js/admin.js?v=2.0.0"></script>
   <script src="js/auth.js?v=2.0.0"></script>
   <script src="js/app.js?v=2.0.0"></script>

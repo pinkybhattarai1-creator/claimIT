@@ -2,24 +2,42 @@
 
 ## Summary of Accomplishments
 
-All previous modifications were fully reversed, and a disciplined, non-breaking pass was executed focusing strictly on **UX/UI polish, presentation hygiene, and system consistency**:
+All requirements and architectural enhancements were executed focusing strictly on **UX/UI polish, medical-grade Thai terminology, non-stacking layout hygiene, and system consistency with ZERO database schema changes**:
 
 1. **Comprehensive Master Documentation**:
-   - Master reference created at `d:/claimit/claimIT/WALKTHROUGHS_MASTER.md` capturing all 21 walkthrough guides, architectural roles, and workflows.
+   - Master reference maintained at `d:/claimit/claimIT/WALKTHROUGHS_MASTER.md` capturing all 21 walkthrough guides, architectural roles, and workflows.
+   - Updated detailed walkthrough guides:
+     - `03_it_portal_dashboard.md`: Interactive warranty badge click-to-filter, category tabs, and pagination slots.
+     - `11_asset_management.md`: Single-brand guardrail, category separation, pagination slots, and hospital layout picker modal.
+     - `14_user_management.md`: Separated non-stacking Admin and Staff tables, role switcher pills (`ทั้งหมด`, `แอดมิน`, `ช่างเทคนิค`), and quick-add shortcuts.
+     - `15_system_configurations.md`: 3 separated non-stacking sub-tabs (Brands & RMA Guides, Categories, Locations & Wards), interactive Hospital Layout Directory (Building 1 Floors 21-B,D + Call Center buildings), and zero-DB dynamic additions.
 
-2. **Scanner & Tag Parser Presentation**:
-   - Replaced developer debug HUD (`[OFFLINE TAG PARSER DETECTED]`) with clean, deterministic parsing for `STANDARD_CIT` (`CIT-YYYY-TYPE-NN`), `LOANER` (`LNR-TYPE-NN`), `LEGACY_NUMERIC` (10–14 digits), and `SERIAL_NUMBER`.
-   - Maintained audible hospital barcode beep, auto-focus overwrite, and clean feedback when an asset is not found.
+2. **Interactive Warranty Expiration Direct Navigation**:
+   - Made `#warranty-expiring-badge` and `#warranty-expiring-text` clickable with direct routing to ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry) and instantaneous filtering to expiring assets (`warranty=expiring`).
 
-3. **Quick Access Terminology & Drawer**:
-   - Aligned topbar trigger and slide-out drawer title to **`📌 ทางลัด (Quick Access)`** across `public/index.html` and companion HTML files.
-   - Preserved `กิจกรรมวันนี้ (Today's Activity)` strictly for today-specific case metrics.
+3. **Single-Brand Input Guardrail (ระบบป้องกันและตรวจสอบยี่ห้อเดี่ยว)**:
+   - Backend validation in `routes/assets.js` returning HTTP 400 Bad Request with polite, clear Thai message when multiple brands (e.g., "Dell และ Acer", "HP / Lenovo") are submitted.
+   - Frontend validation in `public/js/assets.js` on blur and submit with non-destructive form correction so the user can easily fix the entry without losing input.
+   - Standardized placeholders to `"เช่น Dell หรือ HP (ระบุ 1 ยี่ห้อ)"` across all companion HTML files.
 
-4. **Authentication Teardown**:
-   - Enhanced `logout()` in `public/js/auth.js` to cleanly reset all cached state, close open modals and drawers, clear search inputs, and redirect to the unauthenticated view.
+4. **Frontend Category Separation & Table Pagination Slots**:
+   - Interactive category pills/tabs (`ทั้งหมด`, `Computer`, `Monitor`, `Printer`, `Scanner`, `Network`, `Tablet` ฯลฯ) placed cleanly above the asset table.
+   - Dynamic page slots (`[1]`, `[2]`, `[3]`, `[4]`...) with previous/next controls, replacing bare next/prev buttons.
 
-5. **Configuration Table Hierarchy**:
-   - Refined `public/js/admin.js` to display `TYPE` → `VALUE` → `DETAILS` with scrollable containers for long vendor procedures to avoid table stretching.
+5. **Separated User Management & Configuration Tables (Non-Stacking UI)**:
+   - Configuration section separated into 3 distinct tabs:
+     - `🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)`
+     - `💻 หมวดหมู่อุปกรณ์ (Device Categories)`
+     - `🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)`
+   - User Management separated into 2 independent cards:
+     - `👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)`
+     - `🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)`
+     - Equipped with Role Switcher Pills (`all`, `admin`, `staff`) for fast filtering and quick-add shortcuts.
+
+6. **Hospital Layout Directory & Picker Modal (`public/js/hospital_layout.js`)**:
+   - Structured mapping of Building 1 (Floors 21 through B and D) and Call Center Buildings (Old and New).
+   - "🏥 เลือกจากผังอาคาร" modal picker and datalist autocomplete integration for single and batch asset intake.
+   - Zero database schema alterations (`0 DB changes`) — dynamic locations/wards leverage existing `/api/configurations` table (`type='location'`).
 
 ---
 
@@ -27,7 +45,9 @@ All previous modifications were fully reversed, and a disciplined, non-breaking 
 
 | Test Suite | Result | Details |
 |---|---|---|
-| `test_suite.js` | **12/12 Passed (100%)** | Health check, Auth, RBAC, User lifecycle, Viability engine, PDPA wipe gate, Multi-asset claims, State machine, IDOR evidence storage, PDF generation, Audit trail, Database backup & email. |
+| `test_suite.js` | **14/14 Stages Passed (100%)** | Health check, Auth, RBAC, User lifecycle, Viability engine, PDPA wipe gate, Multi-asset claims, State machine, IDOR evidence storage, PDF generation, Audit trail, Database backup, Single-brand guardrail, Expiring warranty filtering. |
+| `scripts/verify_frontend_workflows.js` | **58/58 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation, separated config tabs, non-stacking user tables, warranty badge click, layout modal, category tabs, pagination slots. |
+| `scratch/test_user_requirements.js` | **8/8 Passed (100%)** | Single-brand validation (HTTP 400), non-destructive form correction, category tabs, pagination slots, warranty badge click-to-filter, separated config tabs, separated user management, and hospital layout integration. |
 | `test_samples_validation.js` | **5/5 Passed (100%)** | Thai BE dates, CABL0699 cross-linking, repeat failures, downtime calculations, Oracle accounting. |
-| `scripts/qa_audit.js` | **Passed (100%)** | 252/252 element IDs and 21/21 inline event handlers verified. |
-| `scripts/verify_frontend_workflows.js` | **40/40 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation. |
+| `scripts/qa_audit.js` | **Passed (100%)** | Element IDs and inline event handlers verified across all HTML templates. |
+

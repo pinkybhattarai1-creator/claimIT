@@ -386,14 +386,44 @@ function updateClaimsPaginationUI() {
     pageDisplay.textContent = `หน้า ${state.claimsPagination.page}`;
   }
 
+  const maxPage = Math.ceil(state.claimsPagination.total / state.claimsPagination.limit) || 1;
+
+  // Direct Page-Jump Slot Selector
+  const jumpSelect = document.getElementById('claims-page-jump-select');
+  if (jumpSelect) {
+    let options = '';
+    for (let p = 1; p <= maxPage; p++) {
+      options += `<option value="${p}" ${p === state.claimsPagination.page ? 'selected' : ''}>หน้า ${p} จาก ${maxPage}</option>`;
+    }
+    jumpSelect.innerHTML = options;
+  }
+
+  // Page Size Selector sync
+  const limitSelect = document.getElementById('claims-pagination-limit');
+  if (limitSelect && limitSelect.value !== String(state.claimsPagination.limit)) {
+    limitSelect.value = String(state.claimsPagination.limit);
+  }
+
   const btnPrev = document.getElementById('claims-btn-prev-page');
   const btnNext = document.getElementById('claims-btn-next-page');
   if (btnPrev && btnNext) {
-    const maxPage = Math.ceil(state.claimsPagination.total / state.claimsPagination.limit);
     btnPrev.style.display = state.claimsPagination.page <= 1 ? 'none' : 'inline-block';
     btnNext.style.display = (state.claimsPagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
   }
 }
+
+window.changeClaimsLimit = function(newLimit) {
+  if (!state.claimsPagination) return;
+  state.claimsPagination.limit = parseInt(newLimit, 10) || 15;
+  state.claimsPagination.page = 1;
+  loadClaimsList();
+};
+
+window.jumpToClaimsPage = function(page) {
+  if (!state.claimsPagination) return;
+  state.claimsPagination.page = parseInt(page, 10) || 1;
+  loadClaimsList();
+};
 
 window.claimsChangePage = function(delta) {
   if (!state.claimsPagination) return;

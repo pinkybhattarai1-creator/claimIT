@@ -145,15 +145,15 @@ async function fetchAndDisplayEvaluation(assetTag, prefix) {
       
       let html = '';
       if (evalData.isWorthClaiming) {
-        container.style.background = 'rgba(16, 185, 129, 0.1)';
-        container.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-        container.style.color = '#10b981';
-        html = `<strong>💡 ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
+        container.style.background = 'var(--success-light)';
+        container.style.border = '1px solid var(--success-border)';
+        container.style.color = 'var(--success-text)';
+        html = `<strong>💡 ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color: var(--text-primary); margin-top: 4px; display: inline-block;">${evalData.reason}</span>`;
       } else {
-        container.style.background = 'rgba(239, 68, 68, 0.1)';
-        container.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-        container.style.color = '#ef4444';
-        html = `<strong>⚠️ ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color:#fff;">${evalData.reason}</span>`;
+        container.style.background = 'var(--danger-light)';
+        container.style.border = '1px solid var(--danger-border)';
+        container.style.color = 'var(--danger-text)';
+        html = `<strong>⚠️ ผลการประเมินความคุ้มค่าในการส่งซ่อม (Claim Worthiness):</strong><br><span style="color: var(--text-primary); margin-top: 4px; display: inline-block;">${evalData.reason}</span>`;
       }
 
       container.innerHTML = html;
@@ -357,6 +357,49 @@ function displayAssetDetails(asset) {
 }
 
 // Add Asset Live Pre-Check & Auto-Calculator
+// Single-Brand Guardrail Client Validator
+function validateSingleBrandLocal(brand) {
+  if (!brand || typeof brand !== 'string') return { isValid: true };
+  const trimmed = brand.trim();
+  if (!trimmed) return { isValid: true };
+
+  const KNOWN_BRANDS = [
+    'dell', 'acer', 'hp', 'lenovo', 'asus', 'apple', 'cisco', 'zebra',
+    'tsc', 'logitech', 'epson', 'canon', 'brother', 'samsung', 'lg',
+    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba'
+  ];
+
+  const brandMatches = [];
+  for (const b of KNOWN_BRANDS) {
+    const regex = new RegExp(`\\b${b}\\b`, 'i');
+    if (regex.test(trimmed)) {
+      brandMatches.push(b.toUpperCase());
+    }
+  }
+  if (brandMatches.length > 1) {
+    return {
+      isValid: false,
+      detected: brandMatches.join(', '),
+      error: `ไม่อนุญาตให้ระบุหลายยี่ห้อพร้อมกันในอุปกรณ์ชิ้นเดียว (ตรวจพบ: ${brandMatches.join(', ')}) กรุณาระบุเพียง 1 ยี่ห้อ เช่น Dell หรือ HP`
+    };
+  }
+
+  const delimiterRegex = /[,/&+]|\s+(?:and|or|กับ|และ|หรือ)\s+/i;
+  if (delimiterRegex.test(trimmed)) {
+    const segments = trimmed.split(delimiterRegex).map(s => s.trim()).filter(Boolean);
+    if (segments.length > 1) {
+      return {
+        isValid: false,
+        detected: trimmed,
+        error: `ไม่อนุญาตให้ระบุหลายยี่ห้อพร้อมกันในอุปกรณ์ชิ้นเดียว (ตรวจพบ: ${trimmed}) กรุณาระบุเพียง 1 ยี่ห้อ เช่น Dell หรือ HP`
+      };
+    }
+  }
+
+  return { isValid: true };
+}
+window.validateSingleBrandLocal = validateSingleBrandLocal;
+
 function setupAddAssetSafeguards() {
   const tagInput = document.getElementById('new-asset-tag');
   const serialInput = document.getElementById('new-serial');
@@ -368,17 +411,101 @@ function setupAddAssetSafeguards() {
   const warningMsg = document.getElementById('add-asset-dup-msg');
   const bmeWarningBox = document.getElementById('add-asset-bme-warning');
   const bmeWarningMsg = document.getElementById('add-asset-bme-msg');
+  const brandWarningBox = document.getElementById('add-asset-brand-warning');
+  const brandWarningMsg = document.getElementById('add-asset-brand-msg');
   const submitBtn = document.getElementById('btn-submit-add-asset');
+
+  const batchBrandInput = document.getElementById('batch-brand');
+  const batchBrandWarningBox = document.getElementById('batch-asset-brand-warning');
+  const batchBrandWarningMsg = document.getElementById('batch-asset-brand-msg');
+  const batchSubmitBtn = document.getElementById('btn-submit-batch-asset');
+
   let dupTimer = null;
   let isDupBlocked = false;
   let isBmeBlocked = false;
+  let isBrandBlocked = false;
+  let isBatchBrandBlocked = false;
 
   const BME_REGEX = /\b(ventilator|infusion\s*pump|syringe\s*pump|defibrillator|patient\s*monitor|vital\s*signs?\s*monitor|anesthesia\s*machine|dialysis|aed|ecg|ekg)\b|เครื่องช่วยหายใจ|เครื่องให้สารละลาย|เครื่องกระตุกหัวใจ|เครื่องติดตามสัญญาณชีพ|เครื่องดมยาสลบ|เครื่องฟอกไต/i;
 
   function updateSubmitButtonState() {
     if (submitBtn) {
-      submitBtn.disabled = isDupBlocked || isBmeBlocked;
+      submitBtn.disabled = isDupBlocked || isBmeBlocked || isBrandBlocked;
     }
+    if (batchSubmitBtn) {
+      batchSubmitBtn.disabled = isBatchBrandBlocked;
+    }
+  }
+
+  // Single Asset Brand Safeguard on blur (non-nagging during typing)
+  function checkSingleBrandSafeguard() {
+    if (!brandInput) return;
+    const val = (brandInput.value || '').trim();
+    const check = validateSingleBrandLocal(val);
+    if (!check.isValid) {
+      isBrandBlocked = true;
+      if (brandWarningBox) {
+        brandWarningBox.style.display = 'block';
+        if (brandWarningMsg) brandWarningMsg.textContent = check.error;
+      }
+      brandInput.style.borderColor = '#ef4444';
+    } else {
+      isBrandBlocked = false;
+      if (brandWarningBox) brandWarningBox.style.display = 'none';
+      brandInput.style.borderColor = '';
+    }
+    updateSubmitButtonState();
+  }
+
+  // Batch Asset Brand Safeguard on blur
+  function checkBatchBrandSafeguard() {
+    if (!batchBrandInput) return;
+    const val = (batchBrandInput.value || '').trim();
+    const check = validateSingleBrandLocal(val);
+    if (!check.isValid) {
+      isBatchBrandBlocked = true;
+      if (batchBrandWarningBox) {
+        batchBrandWarningBox.style.display = 'block';
+        if (batchBrandWarningMsg) batchBrandWarningMsg.textContent = check.error;
+      }
+      batchBrandInput.style.borderColor = '#ef4444';
+    } else {
+      isBatchBrandBlocked = false;
+      if (batchBrandWarningBox) batchBrandWarningBox.style.display = 'none';
+      batchBrandInput.style.borderColor = '';
+    }
+    updateSubmitButtonState();
+  }
+
+  if (brandInput) {
+    brandInput.addEventListener('blur', checkSingleBrandSafeguard);
+    brandInput.addEventListener('input', () => {
+      // If currently showing an error and user fixes it, dismiss smoothly
+      if (isBrandBlocked) {
+        const check = validateSingleBrandLocal(brandInput.value || '');
+        if (check.isValid) {
+          isBrandBlocked = false;
+          if (brandWarningBox) brandWarningBox.style.display = 'none';
+          brandInput.style.borderColor = '';
+          updateSubmitButtonState();
+        }
+      }
+    });
+  }
+
+  if (batchBrandInput) {
+    batchBrandInput.addEventListener('blur', checkBatchBrandSafeguard);
+    batchBrandInput.addEventListener('input', () => {
+      if (isBatchBrandBlocked) {
+        const check = validateSingleBrandLocal(batchBrandInput.value || '');
+        if (check.isValid) {
+          isBatchBrandBlocked = false;
+          if (batchBrandWarningBox) batchBrandWarningBox.style.display = 'none';
+          batchBrandInput.style.borderColor = '';
+          updateSubmitButtonState();
+        }
+      }
+    });
   }
 
   function checkBmeMedicalDevice() {
@@ -406,7 +533,6 @@ function setupAddAssetSafeguards() {
 
   if (deviceNameInput) deviceNameInput.addEventListener('input', checkBmeMedicalDevice);
   if (modelInput) modelInput.addEventListener('input', checkBmeMedicalDevice);
-  if (brandInput) brandInput.addEventListener('input', checkBmeMedicalDevice);
   if (categorySelect) categorySelect.addEventListener('change', checkBmeMedicalDevice);
 
   function checkDuplicate(val) {
@@ -525,6 +651,24 @@ async function handleAddAsset(e) {
     status: 'Working'
   };
 
+  // Enforce Single-Brand Guardrail on submit (never clear form, allow correction)
+  const brandCheck = validateSingleBrandLocal(payload.brand);
+  if (!brandCheck.isValid) {
+    showToast(brandCheck.error, 'error');
+    const brandInput = document.getElementById('new-brand');
+    if (brandInput) {
+      brandInput.style.borderColor = '#ef4444';
+      brandInput.focus();
+    }
+    const brandWarningBox = document.getElementById('add-asset-brand-warning');
+    const brandWarningMsg = document.getElementById('add-asset-brand-msg');
+    if (brandWarningBox) {
+      brandWarningBox.style.display = 'block';
+      if (brandWarningMsg) brandWarningMsg.textContent = brandCheck.error;
+    }
+    return;
+  }
+
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = '⏳ กำลังบันทึก...';
@@ -624,6 +768,24 @@ async function handleBatchAssetSubmit(e) {
   const priceVal = parseFloat(document.getElementById('batch-price')?.value) || 0;
   const poVal = document.getElementById('batch-po-number')?.value?.trim() || '';
   const sReq = document.getElementById('batch-sanitization-req')?.checked ? 1 : 0;
+
+  // Enforce Single-Brand Guardrail on batch submit (never clear form, allow correction)
+  const brandCheck = validateSingleBrandLocal(brandVal);
+  if (!brandCheck.isValid) {
+    showToast(brandCheck.error, 'error');
+    const batchBrandInput = document.getElementById('batch-brand');
+    if (batchBrandInput) {
+      batchBrandInput.style.borderColor = '#ef4444';
+      batchBrandInput.focus();
+    }
+    const batchBrandWarningBox = document.getElementById('batch-asset-brand-warning');
+    const batchBrandWarningMsg = document.getElementById('batch-asset-brand-msg');
+    if (batchBrandWarningBox) {
+      batchBrandWarningBox.style.display = 'block';
+      if (batchBrandWarningMsg) batchBrandWarningMsg.textContent = brandCheck.error;
+    }
+    return;
+  }
 
   const rawLines = (document.getElementById('batch-scanner-textarea')?.value || '').trim().split('\n');
   const items = [];
@@ -841,3 +1003,32 @@ async function copyAssetDataToClipboard() {
     showToast('ไม่สามารถคัดลอกข้อมูลได้', 'error');
   }
 }
+
+// Category Tabs Filter Navigation
+function selectCategoryTab(category) {
+  if (typeof state === 'undefined') return;
+  state.filters.category = category || '';
+  state.pagination.page = 1;
+
+  document.querySelectorAll('.category-tab-btn').forEach(btn => {
+    const cat = btn.getAttribute('data-cat') || '';
+    if (cat === state.filters.category) {
+      btn.classList.add('active');
+      btn.classList.remove('btn-secondary');
+    } else {
+      btn.classList.remove('active');
+      btn.classList.add('btn-secondary');
+    }
+  });
+
+  const titleEl = document.getElementById('inventory-table-title');
+  if (titleEl) {
+    titleEl.textContent = category ? `📋 ทะเบียนครุภัณฑ์ไอที: หมวดหมู่ [${category}]` : '📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)';
+  }
+
+  if (typeof refreshData === 'function') {
+    refreshData();
+  }
+}
+window.selectCategoryTab = selectCategoryTab;
+

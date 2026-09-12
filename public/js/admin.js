@@ -5,38 +5,35 @@
  */
 
 function populateUserTable(users) {
-  const tbody = document.getElementById('user-table-body');
-  if (!tbody) return;
+  const adminTbody = document.getElementById('user-table-admin-body');
+  const staffTbody = document.getElementById('user-table-staff-body');
+  const legacyTbody = document.getElementById('user-table-body');
 
-  tbody.innerHTML = '';
+  if (adminTbody) adminTbody.innerHTML = '';
+  if (staffTbody) staffTbody.innerHTML = '';
+  if (legacyTbody) legacyTbody.innerHTML = '';
+
+  const sortedUsers = [...users].sort((a, b) => a.role.localeCompare(b.role) || a.username.localeCompare(b.username));
   
-  // Sort users so Admin is first
-  const sortedUsers = [...users].sort((a, b) => a.role.localeCompare(b.role));
-  
-  let currentRole = null;
-  sortedUsers.forEach(u => {
-    if (currentRole !== u.role) {
-      currentRole = u.role;
-      const groupTr = document.createElement('tr');
-      groupTr.style.background = 'rgba(255, 255, 255, 0.1)';
-      groupTr.innerHTML = `<td colspan="6" style="font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${currentRole === 'admin' ? '🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)' : '👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)'}</td>`;
-      tbody.appendChild(groupTr);
-    }
+  let adminCount = 0;
+  let staffCount = 0;
+
+  function createUserRow(u) {
     const tr = document.createElement('tr');
     const isSelf = state.user && state.user.id === u.id;
-    const activeBadge = u.is_active === 0 ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:10px;">ระงับใช้งาน</span>' : '';
+    const activeBadge = u.is_active === 0 ? '<span class="badge" style="background:#dc2626; color:#fff; font-size:10px; margin-left:4px;">ระงับใช้งาน</span>' : '';
 
     let actionButtons = `
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
-        <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 10px;" onclick="openEditUserModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.name)}', '${escapeHtml(u.department)}', '${u.role}')">✏️ แก้ไข</button>
-        <button class="btn btn-secondary" style="padding: 3px 6px; font-size: 10px;" onclick="adminResetPassword(${u.id}, '${escapeHtml(u.username)}')">🔑 รีเซ็ต</button>
+        <button class="btn btn-secondary" style="padding: 3px 7px; font-size: 11px;" onclick="openEditUserModal(${u.id}, '${escapeHtml(u.username)}', '${escapeHtml(u.name)}', '${escapeHtml(u.department)}', '${u.role}')">✏️ แก้ไข</button>
+        <button class="btn btn-secondary" style="padding: 3px 7px; font-size: 11px;" onclick="adminResetPassword(${u.id}, '${escapeHtml(u.username)}')">🔑 รีเซ็ต</button>
     `;
 
     if (!isSelf && u.username !== 'admin') {
       if (u.is_active === 0) {
-        actionButtons += `<button class="btn btn-success" style="padding: 3px 6px; font-size: 10px; background:#16a34a;" onclick="reactivateUser(${u.id})">🔄 เปิดใช้งาน</button>`;
+        actionButtons += `<button class="btn btn-success" style="padding: 3px 7px; font-size: 11px; background:#16a34a;" onclick="reactivateUser(${u.id})">🔄 เปิดใช้งาน</button>`;
       } else {
-        actionButtons += `<button class="btn btn-danger" style="padding: 3px 6px; font-size: 10px;" onclick="deleteUser(${u.id})">⛔ ระงับ</button>`;
+        actionButtons += `<button class="btn btn-danger" style="padding: 3px 7px; font-size: 11px;" onclick="deleteUser(${u.id})">⛔ ระงับ</button>`;
       }
     }
     actionButtons += `</div>`;
@@ -46,11 +43,53 @@ function populateUserTable(users) {
       <td><strong>${escapeHtml(u.username)}</strong> ${activeBadge}</td>
       <td>${escapeHtml(u.name)}</td>
       <td>${escapeHtml(u.department)}</td>
-      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role.toUpperCase()}</span></td>
+      <td><span class="badge ${u.role === 'admin' ? 'badge-working' : 'badge-vendor'}">${u.role === 'admin' ? 'ADMIN' : 'STAFF'}</span></td>
       <td>${actionButtons}</td>
     `;
-    tbody.appendChild(tr);
+    return tr;
+  }
+
+  sortedUsers.forEach(u => {
+    if (u.role === 'admin') {
+      adminCount++;
+      if (adminTbody) adminTbody.appendChild(createUserRow(u));
+    } else {
+      staffCount++;
+      if (staffTbody) staffTbody.appendChild(createUserRow(u));
+    }
   });
+
+  if (adminTbody && adminCount === 0) {
+    adminTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:12px;">ไม่พบข้อมูลผู้ดูแลระบบ</td></tr>';
+  }
+  if (staffTbody && staffCount === 0) {
+    staffTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:12px;">ไม่พบข้อมูลช่างเทคนิคสารสนเทศ</td></tr>';
+  }
+
+  // Update counts
+  const adminBadge = document.getElementById('user-admin-count');
+  if (adminBadge) adminBadge.textContent = adminCount;
+  const staffBadge = document.getElementById('user-staff-count');
+  if (staffBadge) staffBadge.textContent = staffCount;
+  const totalBadge = document.getElementById('user-total-count');
+  if (totalBadge) totalBadge.textContent = users.length;
+  const pillAllBadge = document.getElementById('user-pill-all-count');
+  if (pillAllBadge) pillAllBadge.textContent = users.length;
+
+  // Legacy table population for backwards compatibility
+  if (legacyTbody) {
+    let currentRole = null;
+    sortedUsers.forEach(u => {
+      if (currentRole !== u.role) {
+        currentRole = u.role;
+        const groupTr = document.createElement('tr');
+        groupTr.style.background = 'var(--surface-subtle)';
+        groupTr.innerHTML = `<td colspan="6" style="font-weight: 700; font-size: 12px; color: var(--primary); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle); letter-spacing: 0.5px;">${currentRole === 'admin' ? '🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)' : '👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)'}</td>`;
+        legacyTbody.appendChild(groupTr);
+      }
+      legacyTbody.appendChild(createUserRow(u));
+    });
+  }
 }
 
 function escapeHtml(str) {
@@ -189,41 +228,106 @@ async function handleAddUser(e) {
 }
 
 function populateConfigTable(configs) {
-  const tbody = document.getElementById('config-table-body');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  
-  const sortedConfigs = [...configs].sort((a, b) => a.type.localeCompare(b.type));
-  let currentType = null;
+  const brandsTbody = document.getElementById('config-brands-table-body');
+  const categoriesTbody = document.getElementById('config-categories-table-body');
+  const locationsTbody = document.getElementById('config-locations-table-body');
+  const legacyTbody = document.getElementById('config-table-body');
 
-  sortedConfigs.forEach(c => {
-    if (currentType !== c.type) {
-      currentType = c.type;
-      const groupTr = document.createElement('tr');
-      groupTr.style.background = 'rgba(255, 255, 255, 0.08)';
-      const typeLabel = currentType === 'brand' ? '🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)' : (currentType === 'category' ? '💻 หมวดหมู่อุปกรณ์ (Device Categories)' : '🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)');
-      groupTr.innerHTML = `<td colspan="5" style="font-weight: 700; font-size: 12px; color: var(--primary); padding: 8px 12px;">${typeLabel}</td>`;
-      tbody.appendChild(groupTr);
-    }
+  if (brandsTbody) brandsTbody.innerHTML = '';
+  if (categoriesTbody) categoriesTbody.innerHTML = '';
+  if (locationsTbody) locationsTbody.innerHTML = '';
+  if (legacyTbody) legacyTbody.innerHTML = '';
+
+  let brandsCount = 0;
+  let categoriesCount = 0;
+  let locationsCount = 0;
+
+  function createConfigRow(c) {
     const tr = document.createElement('tr');
-    
-    const badgeClass = c.type === 'brand' ? 'badge-vendor' : (c.type === 'category' ? 'badge-working' : 'badge-donation');
-    const tdId = `<td>${c.id}</td>`;
-    const tdType = `<td><span class="badge ${badgeClass}" style="font-size: 10.5px; font-weight: 700;">${c.type.toUpperCase()}</span></td>`;
+    const tdId = `<td style="font-weight: 600; width: 60px;">${c.id}</td>`;
     const tdValue = `<td><strong style="color: var(--text-primary); font-size: 13px;">${escapeHtml(c.value)}</strong></td>`;
     const tdDetails = `<td><div style="max-height: 120px; overflow-y: auto; background: var(--surface-subtle); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 12px; line-height: 1.5;">${c.details || '-'}</div></td>`;
     const tdActions = `
-      <td>
+      <td style="width: 140px;">
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.editConfig(${c.id}, '${escapeHtml(c.type)}', '${escapeHtml(c.value)}', '${escapeHtml(c.details || '')}')">✏️ แก้ไข</button>
           <button class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.deleteConfig(${c.id})">🗑️ ลบ</button>
         </div>
       </td>
     `;
+    tr.innerHTML = tdId + tdValue + tdDetails + tdActions;
+    return tr;
+  }
 
-    tr.innerHTML = tdId + tdType + tdValue + tdDetails + tdActions;
-    tbody.appendChild(tr);
+  const sortedConfigs = [...configs].sort((a, b) => a.type.localeCompare(b.type) || a.value.localeCompare(b.value));
+
+  sortedConfigs.forEach(c => {
+    if (c.type === 'brand') {
+      brandsCount++;
+      if (brandsTbody) brandsTbody.appendChild(createConfigRow(c));
+    } else if (c.type === 'category') {
+      categoriesCount++;
+      if (categoriesTbody) categoriesTbody.appendChild(createConfigRow(c));
+    } else if (c.type === 'location') {
+      locationsCount++;
+      if (locationsTbody) locationsTbody.appendChild(createConfigRow(c));
+    }
   });
+
+  // Empty states
+  if (brandsTbody && brandsCount === 0) {
+    brandsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:12px;">ไม่พบรายการแบรนด์และศูนย์บริการ</td></tr>';
+  }
+  if (categoriesTbody && categoriesCount === 0) {
+    categoriesTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:12px;">ไม่พบรายการหมวดหมู่อุปกรณ์</td></tr>';
+  }
+  if (locationsTbody && locationsCount === 0) {
+    locationsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:12px;">ยังไม่มีสถานที่เพิ่มเติมที่บันทึกไว้ในระบบ</td></tr>';
+  }
+
+  // Update count badges
+  const bBadge = document.getElementById('config-brands-count');
+  if (bBadge) bBadge.textContent = brandsCount;
+  const cBadge = document.getElementById('config-categories-count');
+  if (cBadge) cBadge.textContent = categoriesCount;
+  const lBadge = document.getElementById('config-locations-count');
+  if (lBadge) lBadge.textContent = locationsCount;
+
+  // Legacy table population for backward compatibility
+  if (legacyTbody) {
+    let currentType = null;
+    sortedConfigs.forEach(c => {
+      if (currentType !== c.type) {
+        currentType = c.type;
+        const groupTr = document.createElement('tr');
+        groupTr.style.background = 'var(--surface-subtle)';
+        const typeLabel = currentType === 'brand' ? '🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)' : (currentType === 'category' ? '💻 หมวดหมู่อุปกรณ์ (Device Categories)' : '🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)');
+        groupTr.innerHTML = `<td colspan="5" style="font-weight: 700; font-size: 12px; color: var(--primary); padding: 9px 12px; border-bottom: 1px solid var(--border-subtle);">${typeLabel}</td>`;
+        legacyTbody.appendChild(groupTr);
+      }
+      const tr = document.createElement('tr');
+      const badgeClass = c.type === 'brand' ? 'badge-vendor' : (c.type === 'category' ? 'badge-working' : 'badge-donation');
+      const tdId = `<td>${c.id}</td>`;
+      const tdType = `<td><span class="badge ${badgeClass}" style="font-size: 10.5px; font-weight: 700;">${c.type.toUpperCase()}</span></td>`;
+      const tdValue = `<td><strong style="color: var(--text-primary); font-size: 13px;">${escapeHtml(c.value)}</strong></td>`;
+      const tdDetails = `<td><div style="max-height: 120px; overflow-y: auto; background: var(--surface-subtle); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 12px; line-height: 1.5;">${c.details || '-'}</div></td>`;
+      const tdActions = `
+        <td>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.editConfig(${c.id}, '${escapeHtml(c.type)}', '${escapeHtml(c.value)}', '${escapeHtml(c.details || '')}')">✏️ แก้ไข</button>
+            <button class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.deleteConfig(${c.id})">🗑️ ลบ</button>
+          </div>
+        </td>
+      `;
+      tr.innerHTML = tdId + tdType + tdValue + tdDetails + tdActions;
+      legacyTbody.appendChild(tr);
+    });
+  }
+
+  // Update hospital layout datalist with custom locations
+  if (typeof setupHospitalLayoutDatalist === 'function') {
+    setupHospitalLayoutDatalist(configs);
+  }
 }
 
 function updateDynamicDropdowns(configs) {
@@ -497,3 +601,52 @@ async function deleteFeedbackItem(id) {
   }
 }
 window.deleteFeedbackItem = deleteFeedbackItem;
+
+// ─── Role & Config View Helpers (Separated Layout) ──────────────────────────
+window.filterUserRole = function(role) {
+  const adminCard = document.getElementById('user-admin-section-card');
+  const staffCard = document.getElementById('user-staff-section-card');
+  const pills = document.querySelectorAll('.user-role-pill-btn');
+
+  pills.forEach(p => {
+    const isTarget = p.getAttribute('data-role') === role;
+    p.classList.toggle('active', isTarget);
+    p.classList.toggle('btn-primary', isTarget);
+    p.classList.toggle('btn-secondary', !isTarget);
+  });
+
+  if (role === 'admin') {
+    if (adminCard) adminCard.style.display = 'block';
+    if (staffCard) staffCard.style.display = 'none';
+  } else if (role === 'staff') {
+    if (adminCard) adminCard.style.display = 'none';
+    if (staffCard) staffCard.style.display = 'block';
+  } else {
+    // all
+    if (adminCard) adminCard.style.display = 'block';
+    if (staffCard) staffCard.style.display = 'block';
+  }
+};
+
+window.openAddUserModalWithRole = function(role = 'staff') {
+  const modal = document.getElementById('add-user-modal');
+  if (!modal) return;
+  const form = document.getElementById('add-user-form');
+  if (form) form.reset();
+  const roleSelect = document.getElementById('new-user-role');
+  if (roleSelect && role) roleSelect.value = role;
+  modal.style.display = 'flex';
+};
+
+window.openAddConfigModalWithType = function(type = 'brand') {
+  const modal = document.getElementById('add-config-modal');
+  if (!modal) return;
+  const form = document.getElementById('add-config-form');
+  if (form) form.reset();
+  const idInput = document.getElementById('config-id');
+  if (idInput) idInput.value = '';
+  const typeSelect = document.getElementById('config-type');
+  if (typeSelect && type) typeSelect.value = type;
+  modal.style.display = 'flex';
+};
+

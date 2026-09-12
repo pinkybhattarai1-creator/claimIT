@@ -10,16 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Wipe any stored session on page load so it NEVER traps users in previous accounts
-  try {
-    sessionStorage.removeItem('claimit_user');
-    localStorage.removeItem('claimit_user');
-  } catch (e) {}
-  state.user = null;
-
-  // Always show clean authentication / login screen
-  switchView('auth', false);
-
   // Set up all event listeners across modules
   setupEventListeners();
 
@@ -28,9 +18,50 @@ function initApp() {
     if (e.state && e.state.view && state.user) {
       switchView(e.state.view, false);
     } else {
-      switchView('auth', false);
+      switchView(state.user ? 'ward' : 'auth', false);
     }
   });
+
+  // Try to restore existing session from sessionStorage
+  let restoredUser = null;
+  try {
+    const raw = sessionStorage.getItem('claimit_user');
+    if (raw) {
+      restoredUser = JSON.parse(raw);
+    }
+  } catch (e) {}
+
+  if (restoredUser && restoredUser.token) {
+    const expTime = typeof parseJwtExp === 'function' ? parseJwtExp(restoredUser.token) : null;
+    if (!expTime || expTime > Date.now()) {
+      state.user = restoredUser;
+      showUserNavigation();
+      if (typeof startSessionMonitor === 'function') startSessionMonitor();
+
+      // Determine initial view based on current URL pathname or user role
+      const path = window.location.pathname.toLowerCase();
+      let targetView = 'ward';
+      if (path.includes('config') || path.includes('admin')) {
+        targetView = (state.user.role === 'admin') ? 'config' : 'ward';
+      } else if (path.includes('it')) {
+        targetView = (state.user.role === 'admin' || state.user.role === 'staff') ? 'it' : 'ward';
+      } else if (path.includes('ward') || path.includes('staff')) {
+        targetView = 'ward';
+      } else {
+        targetView = (state.user.role === 'admin') ? 'it' : 'ward';
+      }
+      switchView(targetView, false);
+      return;
+    }
+  }
+
+  // Not logged in or expired session -> show clean authentication / login screen
+  state.user = null;
+  try {
+    sessionStorage.removeItem('claimit_user');
+    localStorage.removeItem('claimit_user');
+  } catch (e) {}
+  switchView('auth', false);
 }
 
 // Routing & View Switcher with URL Path Synchronization
@@ -118,7 +149,7 @@ function switchView(viewName, pushHistory = true) {
     userBadge.style.display = 'flex';
     btnConfig?.classList.add('active');
     btnTopConfig?.classList.add('active');
-    const currentActiveCfgTab = document.querySelector('.config-tab-btn.active')?.getAttribute('data-tab') || 'tab-cfg-settings';
+    const currentActiveCfgTab = document.querySelector('.config-tab-btn.active')?.getAttribute('data-tab') || 'tab-cfg-brands';
     switchConfigTab(currentActiveCfgTab);
     refreshData();
   }
@@ -138,27 +169,34 @@ window.returnToHome = function() {
 
 // Switch IT sub-navigation tab (Eliminates infinite scrolling)
 function switchItTab(tabId) {
+  const resolvedId = tabId.startsWith('tab-it-') ? tabId : `tab-it-${tabId}`;
   document.querySelectorAll('.it-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === resolvedId);
   });
   document.querySelectorAll('.it-tab-pane').forEach(pane => {
-    pane.style.display = pane.id === tabId ? 'block' : 'none';
+    pane.style.display = pane.id === resolvedId ? 'block' : 'none';
   });
-  const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${tabId}"]`);
+  const activeBtn = document.querySelector(`.it-tab-btn[data-tab="${resolvedId}"]`);
   updateBreadcrumb('ศูนย์ซ่อมและเคลมประกัน', activeBtn ? activeBtn.textContent.trim() : '');
 }
 window.switchItTab = switchItTab;
 
 // Switch System Configuration sub-navigation tab (Separate Part)
 function switchConfigTab(tabId) {
+  let resolvedId = tabId.startsWith('tab-cfg-') ? tabId : `tab-cfg-${tabId}`;
+  if (resolvedId === 'tab-cfg-settings') resolvedId = 'tab-cfg-brands';
+
   document.querySelectorAll('.config-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === resolvedId);
   });
   document.querySelectorAll('.config-tab-pane').forEach(pane => {
-    pane.style.display = pane.id === tabId ? 'block' : 'none';
+    pane.style.display = pane.id === resolvedId ? 'block' : 'none';
   });
-  const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${tabId}"]`);
+  const activeBtn = document.querySelector(`.config-tab-btn[data-tab="${resolvedId}"]`);
   updateBreadcrumb('ตั้งค่าระบบและจัดการผู้ใช้งาน', activeBtn ? activeBtn.textContent.trim() : '');
+  if ((resolvedId === 'tab-cfg-locations' || resolvedId === 'tab-cfg-layout') && typeof renderHospitalLayoutView === 'function') {
+    renderHospitalLayoutView('hospital-layout-content-area');
+  }
 }
 window.switchConfigTab = switchConfigTab;
 
@@ -190,6 +228,7 @@ async function refreshData() {
       limit: state.pagination.limit
     });
     if (state.filters.status) params.append('status', state.filters.status);
+    if (state.filters.category) params.append('category', state.filters.category);
 
     const assetsRes = await fetch(`/api/assets?${params.toString()}`, { headers: getAuthHeaders() });
     if (assetsRes.status === 401 || assetsRes.status === 403) {
@@ -245,16 +284,46 @@ function updatePaginationUI() {
     pageDisplay.textContent = `หน้า ${state.pagination.page}`;
   }
 
+  const maxPage = Math.ceil(state.pagination.total / state.pagination.limit) || 1;
+
+  // Direct Page-Jump Slot Selector
+  const jumpSelect = document.getElementById('asset-page-jump-select');
+  if (jumpSelect) {
+    let options = '';
+    for (let p = 1; p <= maxPage; p++) {
+      options += `<option value="${p}" ${p === state.pagination.page ? 'selected' : ''}>หน้า ${p} จาก ${maxPage}</option>`;
+    }
+    jumpSelect.innerHTML = options;
+  }
+
+  // Page Size Selector sync
+  const limitSelect = document.getElementById('asset-pagination-limit');
+  if (limitSelect && limitSelect.value !== String(state.pagination.limit)) {
+    limitSelect.value = String(state.pagination.limit);
+  }
+
   const btnPrev = document.getElementById('btn-prev-page');
   const btnNext = document.getElementById('btn-next-page');
   if (btnPrev && btnNext) {
-    const maxPage = Math.ceil(state.pagination.total / state.pagination.limit);
     btnPrev.disabled = state.pagination.page <= 1;
     btnNext.disabled = (state.pagination.page >= maxPage || maxPage === 0);
     btnPrev.style.display = state.pagination.page <= 1 ? 'none' : 'inline-block';
     btnNext.style.display = (state.pagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
   }
 }
+
+function changeAssetLimit(newLimit) {
+  state.pagination.limit = parseInt(newLimit, 10) || 15;
+  state.pagination.page = 1;
+  refreshData();
+}
+window.changeAssetLimit = changeAssetLimit;
+
+function jumpToAssetPage(page) {
+  state.pagination.page = parseInt(page, 10) || 1;
+  refreshData();
+}
+window.jumpToAssetPage = jumpToAssetPage;
 
 function changePage(delta) {
   if (!state.pagination) return;
@@ -571,17 +640,37 @@ function setupEventListeners() {
   document.getElementById('profile-form')?.addEventListener('submit', handleProfileSubmit);
   document.getElementById('change-password-form')?.addEventListener('submit', handleChangePasswordSubmit);
 
-  // Proactive Warranty Expiry Badge Quick Filter (60-day threshold)
-  document.getElementById('warranty-expiring-badge')?.addEventListener('click', () => {
-    switchView('it');
-    switchItTab('inventory');
+  // Proactive Warranty Expiry Badge Quick Navigation & Filter (60-day threshold)
+  function goToExpiringWarrantyAssets() {
+    if (typeof switchView === 'function') switchView('it');
+    if (typeof switchItTab === 'function') switchItTab('tab-it-inventory');
+
+    // Reset category tab to All
+    if (typeof selectCategoryTab === 'function') {
+      selectCategoryTab('');
+    } else if (state.filters) {
+      state.filters.category = '';
+    }
+
     const filterStatus = document.getElementById('filter-status');
     if (filterStatus) {
       filterStatus.value = 'expiring_60d';
       state.filters.status = 'expiring_60d';
       state.pagination.page = 1;
-      refreshData();
+      if (typeof refreshData === 'function') refreshData();
     }
+
+    const invTable = document.getElementById('inventory-table-title') || document.getElementById('tab-it-inventory');
+    if (invTable) {
+      invTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  window.goToExpiringWarrantyAssets = goToExpiringWarrantyAssets;
+
+  document.getElementById('warranty-expiring-badge')?.addEventListener('click', goToExpiringWarrantyAssets);
+  document.getElementById('warranty-expiring-text')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    goToExpiringWarrantyAssets();
   });
 
   // Initialize Modular Sub-systems
@@ -602,9 +691,11 @@ function switchStaffSubView(subView) {
 
   [btnScan, btnTracker, btnLoaner].forEach(b => {
     if (b) {
-      b.style.background = 'transparent';
-      b.style.borderColor = 'var(--border-color)';
-      b.style.color = 'var(--text-muted)';
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-secondary');
+      b.style.background = '';
+      b.style.borderColor = '';
+      b.style.color = '';
     }
   });
 
@@ -612,28 +703,22 @@ function switchStaffSubView(subView) {
   if (paneTracker) paneTracker.style.display = 'none';
   if (paneLoaner) paneLoaner.style.display = 'none';
 
+  let activeBtn = null;
   if (subView === 'scan') {
-    if (btnScan) {
-      btnScan.style.background = 'rgba(99, 102, 241, 0.2)';
-      btnScan.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-      btnScan.style.color = '#fff';
-    }
+    activeBtn = btnScan;
     if (paneScan) paneScan.style.display = 'block';
   } else if (subView === 'tracker') {
-    if (btnTracker) {
-      btnTracker.style.background = 'rgba(99, 102, 241, 0.2)';
-      btnTracker.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-      btnTracker.style.color = '#fff';
-    }
+    activeBtn = btnTracker;
     if (paneTracker) paneTracker.style.display = 'block';
     loadStaffTracker();
   } else if (subView === 'loaner') {
-    if (btnLoaner) {
-      btnLoaner.style.background = 'rgba(99, 102, 241, 0.2)';
-      btnLoaner.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-      btnLoaner.style.color = '#fff';
-    }
+    activeBtn = btnLoaner;
     if (paneLoaner) paneLoaner.style.display = 'block';
+  }
+
+  if (activeBtn) {
+    activeBtn.classList.remove('btn-secondary');
+    activeBtn.classList.add('btn-primary', 'active');
   }
 }
 window.switchStaffSubView = switchStaffSubView;

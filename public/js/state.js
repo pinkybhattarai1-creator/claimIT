@@ -12,12 +12,12 @@ const state = {
   pendingFuzzyAsset: null, // holds a fuzzy match until user confirms
   pagination: {
     page: 1,
-    limit: 50,
+    limit: 15,
     total: 0
   },
   claimsPagination: {
     page: 1,
-    limit: 50,
+    limit: 15,
     total: 0
   },
   filters: {
@@ -31,7 +31,7 @@ const state = {
     endDate: '',
     search: '',
     page: 1,
-    limit: 100,
+    limit: 15,
     total: 0
   }
 };
