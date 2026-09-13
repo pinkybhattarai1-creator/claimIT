@@ -287,8 +287,67 @@ it('schema.sql remains 100% clean with 0 modified tables', () => {
   assert.ok(!schemaContent.includes('ALTER TABLE'), 'Zero ALTER TABLE migration statements');
 });
 
-// ─── 8. 100% SHA-256 Hash Synchronization across 6 Companion HTML Files ──────
-console.log('\n--- 8. 6 HTML Files SHA-256 Hash Verification ---');
+// ─── 8. Category Dropdown & Scrollbar Elimination ───────────────────────────
+console.log('\n--- 8. Category Dropdown & Scrollbar Elimination ---');
+it('HTML contains #filter-category-select and removes #category-tabs-bar', () => {
+  assert.ok(indexHtmlContent.includes('id="filter-category-select"'), 'filter-category-select must exist');
+  assert.ok(!indexHtmlContent.includes('id="category-tabs-bar"'), 'category-tabs-bar must be removed to eliminate scrollbars');
+});
+
+it('assets.js provides and exports onCategoryDropdownChange', () => {
+  assert.ok(assetsJsContent.includes('function onCategoryDropdownChange'));
+  assert.ok(assetsJsContent.includes('onCategoryDropdownChange'));
+});
+
+// ─── 9. Immutable Hospital Locations & Clean Directory ───────────────────────
+console.log('\n--- 9. Immutable Hospital Locations & Clean Directory ---');
+it('HTML does not contain add location button or secondary stacked table', () => {
+  assert.ok(!indexHtmlContent.includes('➕ เพิ่มสถานที่ / แผนกใหม่'), 'Add location button must be removed');
+  assert.ok(!indexHtmlContent.includes('id="config-locations-table-body"'), 'Secondary locations table must be removed');
+});
+
+it('hospital_layout.js filters conflicting legacy custom locations', () => {
+  assert.ok(hospitalJsContent.includes('existingDeptNames'), 'Should filter out locations conflicting with physical tower');
+  assert.ok(!hospitalJsContent.includes('➕ เพิ่มแผนกใหม่'), 'Add custom department button should be removed');
+});
+
+// ─── 10. Global Button Disabled States & Role Graying Out ───────────────────
+console.log('\n--- 10. Global Button Disabled States & Role Graying Out ---');
+const authJsContent = fs.readFileSync(path.join(rootDir, 'public', 'js', 'auth.js'), 'utf8');
+const adminJsContent = fs.readFileSync(path.join(rootDir, 'public', 'js', 'admin.js'), 'utf8');
+
+it('HTML IT section includes id="btn-it-to-config"', () => {
+  assert.ok(indexHtmlContent.includes('id="btn-it-to-config"'), 'btn-it-to-config must exist');
+});
+
+it('auth.js grays out btn-it-to-config for Staff users', () => {
+  assert.ok(authJsContent.includes('btnItToConfig.disabled = true'), 'Should disable btn-it-to-config for non-admin');
+  assert.ok(authJsContent.includes('เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น'), 'Should show admin-only tooltip');
+});
+
+it('assets.js grays out btn-report-broken on already broken/salvaged assets', () => {
+  assert.ok(assetsJsContent.includes('btnReportBroken.disabled = true'), 'Should disable btn-report-broken when in active repair');
+});
+
+it('app.js grays out pagination previous/next buttons at boundaries', () => {
+  assert.ok(appJsContent.includes('btnPrev.style.cursor = isPrevDisabled ? \'not-allowed\' : \'pointer\''));
+  assert.ok(appJsContent.includes('btnNext.style.cursor = isNextDisabled ? \'not-allowed\' : \'pointer\''));
+});
+
+// ─── 11. Clean Subtabs & Category Natural Ordering ───────────────────────────
+console.log('\n--- 11. Clean Subtabs & Category Ordering ---');
+it('Config subtabs have sleek pill badges without parenthesis spacing', () => {
+  assert.ok(indexHtmlContent.includes('id="config-brands-count"'));
+  assert.ok(!indexHtmlContent.includes('(<span id="config-brands-count">'));
+});
+
+it('admin.js sorts categories by ID ascending and provides Thai labels', () => {
+  assert.ok(adminJsContent.includes('CATEGORY_THAI_LABELS'));
+  assert.ok(adminJsContent.includes('(Number(a.id) || 0) - (Number(b.id) || 0)'));
+});
+
+// ─── 12. 100% SHA-256 Hash Synchronization across 6 Companion HTML Files ──────
+console.log('\n--- 12. 6 HTML Files SHA-256 Hash Verification ---');
 const htmlFiles = ['admin.html', 'config.html', 'index.html', 'it.html', 'login.html', 'ward.html'];
 const hashes = {};
 
@@ -306,6 +365,73 @@ it('All 6 HTML templates are 100% identical byte-for-byte', () => {
   console.log(`     Consistent SHA-256: ${firstHash}`);
 });
 
+// ─── 13. Dynamic IT Hotline Phone Numbers & Staff Link Synchronization ───────
+console.log('\n--- 13. Dynamic IT Hotline Phone Numbers & Staff Link Synchronization ---');
+
+it('HTML contains staff hotline container and sidebar hotline text', () => {
+  assert.ok(indexHtmlContent.includes('id="staff-hotline-container"'), 'staff-hotline-container must exist');
+  assert.ok(indexHtmlContent.includes('id="sidebar-hotline-text"'), 'sidebar-hotline-text must exist');
+});
+
+it('HTML contains admin hotline configuration card elements', () => {
+  assert.ok(indexHtmlContent.includes('id="cfg-hotline-input"'), 'cfg-hotline-input must exist');
+  assert.ok(indexHtmlContent.includes('id="cfg-hotline-preview"'), 'cfg-hotline-preview must exist');
+  assert.ok(indexHtmlContent.includes('id="btn-save-hotline"'), 'btn-save-hotline must exist');
+});
+
+it('admin.js exports previewHotlineNumbers and saveHotlineNumbers', () => {
+  assert.ok(adminJsContent.includes('previewHotlineNumbers'), 'previewHotlineNumbers should be defined');
+  assert.ok(adminJsContent.includes('saveHotlineNumbers'), 'saveHotlineNumbers should be defined');
+});
+
+it('app.js exports updateHotlineNumbersUI and binds it to refreshData and startup', () => {
+  assert.ok(appJsContent.includes('function updateHotlineNumbersUI'));
+  assert.ok(appJsContent.includes('updateHotlineNumbersUI(configs)'));
+});
+
+it('routes/configurations.js exposes hotline via public-contact endpoint', () => {
+  const cfgRouteContent = fs.readFileSync(path.join(rootDir, 'routes', 'configurations.js'), 'utf8');
+  assert.ok(cfgRouteContent.includes("'hotline'"), 'hotline type should be allowed in public-contact endpoint');
+});
+
+it('Simulates updateHotlineNumbersUI: dynamically updates staff call buttons and sidebar text', () => {
+  let staffContainerMock = { innerHTML: '' };
+  let sidebarTextMock = { textContent: '' };
+  let previewMock = { innerHTML: '' };
+  let inputMock = { value: '' };
+
+  const mockDoc = {
+    activeElement: null,
+    getElementById: (id) => {
+      if (id === 'staff-hotline-container') return staffContainerMock;
+      if (id === 'sidebar-hotline-text') return sidebarTextMock;
+      if (id === 'cfg-hotline-preview') return previewMock;
+      if (id === 'cfg-hotline-input') return inputMock;
+      return null;
+    }
+  };
+
+  const updateHotlineCode = appJsContent.substring(
+    appJsContent.indexOf('function updateHotlineNumbersUI(configs)'),
+    appJsContent.indexOf('window.updateHotlineNumbersUI = updateHotlineNumbersUI;')
+  );
+
+  const updateFn = new Function('document', 'escapeHtml', `
+    ${updateHotlineCode}
+    return updateHotlineNumbersUI;
+  `)(mockDoc, s => s);
+
+  // Test updating to custom phone numbers
+  updateFn([{ type: 'hotline', value: '5501, 5502, 5503, 5504' }]);
+
+  assert.ok(staffContainerMock.innerHTML.includes('href="tel:5501"'), 'Button for 5501 rendered');
+  assert.ok(staffContainerMock.innerHTML.includes('href="tel:5504"'), 'Button for 5504 rendered');
+  assert.ok(staffContainerMock.innerHTML.includes('☎️ 5501'), 'Label for 5501 rendered');
+  assert.strictEqual(sidebarTextMock.textContent, 'โทรภายใน 5501 - 5502 - 5503 - 5504');
+  assert.strictEqual(inputMock.value, '5501, 5502, 5503, 5504');
+});
+
 console.log('\n===============================================================');
 console.log(`🎉 VERIFICATION RESULT: ${passedTests}/${totalTests} TESTS PASSED (100%)`);
 console.log('===============================================================');
+

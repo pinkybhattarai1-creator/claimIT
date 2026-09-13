@@ -302,7 +302,7 @@
                   <div style="font-size: 24px; margin-bottom: 6px;">📞</div>
                   <h4>สายด่วน IT Support</h4>
                   <p style="font-size: 12px; margin-bottom: 12px;">ติดต่อช่างไอทีเวรประจำวัน รพ.</p>
-                  <div style="display: flex; gap: 6px; justify-content: center;">
+                  <div id="staff-hotline-container" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
                     <a href="tel:4401" class="btn btn-secondary btn-sm">☎️ 4401</a>
                     <a href="tel:4402" class="btn btn-secondary btn-sm">☎️ 4402</a>
                     <a href="tel:4403" class="btn btn-secondary btn-sm">☎️ 4403</a>
@@ -445,7 +445,7 @@
             <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-inventory">📋 ทะเบียนครุภัณฑ์ไอที</button>
             <button type="button" class="btn btn-secondary btn-sm it-tab-btn" data-tab="tab-it-audit">📜 ประวัติการทำรายการ</button>
             
-            <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('config')" style="margin-left: auto; color: var(--primary); border-color: var(--primary-border);">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-it-to-config" onclick="switchView('config')" style="margin-left: auto; color: var(--primary); border-color: var(--primary-border);">
               ⚙️ ตั้งค่าระบบ (Admin) →
             </button>
           </div>
@@ -738,7 +738,19 @@
                   <h3 class="card-title" id="inventory-table-title">📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)</h3>
                   <div class="card-subtitle">ระบบค้นหาครุภัณฑ์ ตรวจสอบรอบบำรุงรักษา และส่งออกรายงาน</div>
                 </div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                  <select id="filter-category-select" class="form-control" style="width: auto; font-size: 12.5px;" onchange="onCategoryDropdownChange(this.value)">
+                    <option value="">🌐 ทุกหมวดหมู่ (All Categories)</option>
+                    <option value="Computer">💻 Computer</option>
+                    <option value="Clinical Workstation">🖥️ Clinical Workstation</option>
+                    <option value="Clinical IT Display">📺 Clinical IT Display</option>
+                    <option value="Tablet">📱 Tablet</option>
+                    <option value="Scanner">🏷️ Scanner / Barcode</option>
+                    <option value="Printer">🖨️ Printer</option>
+                    <option value="Network">🌐 Network</option>
+                    <option value="Mobile Nursing Cart">🛒 Mobile Nursing Cart</option>
+                    <option value="Others">📦 อื่นๆ (Others)</option>
+                  </select>
                   <select id="filter-status" class="form-control" style="width: auto; font-size: 12.5px;">
                     <option value="">-- ทุกสถานะ --</option>
                     <option value="Working">ใช้งานปกติ (Working)</option>
@@ -755,20 +767,6 @@
                   <button class="btn btn-secondary btn-sm" id="btn-copy-data">📋 คัดลอกตาราง (TSV)</button>
                   <button class="btn btn-sm" id="btn-open-add-asset-modal">➕ เพิ่มครุภัณฑ์ใหม่</button>
                 </div>
-              </div>
-
-              <!-- Category Tabs Navigation Bar (Frontend Separation) -->
-              <div class="category-tabs-nav" id="category-tabs-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px 2px; margin-bottom: 8px; -webkit-overflow-scrolling: touch;">
-                <button type="button" class="btn btn-sm category-tab-btn active" data-cat="" onclick="selectCategoryTab('')">🌐 ทั้งหมด</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Computer" onclick="selectCategoryTab('Computer')">💻 Computer</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Clinical Workstation" onclick="selectCategoryTab('Clinical Workstation')">🖥️ Clinical Workstation</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Clinical IT Display" onclick="selectCategoryTab('Clinical IT Display')">📺 Clinical IT Display</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Tablet" onclick="selectCategoryTab('Tablet')">📱 Tablet</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Scanner" onclick="selectCategoryTab('Scanner')">🏷️ Scanner / Barcode</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Printer" onclick="selectCategoryTab('Printer')">🖨️ Printer</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Network" onclick="selectCategoryTab('Network')">🌐 Network</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Mobile Nursing Cart" onclick="selectCategoryTab('Mobile Nursing Cart')">🛒 Mobile Nursing Cart</button>
-                <button type="button" class="btn btn-secondary btn-sm category-tab-btn" data-cat="Others" onclick="selectCategoryTab('Others')">📦 อื่นๆ</button>
               </div>
 
               <div class="table-container">
@@ -911,12 +909,11 @@
         <section id="config-section" class="view-section">
           <!-- Config Sub-Navigation Tabs Bar (Separated Sections) -->
           <div class="card" style="padding: 8px 12px; margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm active config-tab-btn" data-tab="tab-cfg-brands">🏷️ แบรนด์และคู่มือศูนย์บริการ (<span id="config-brands-count">0</span>)</button>
-            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-categories">💻 หมวดหมู่อุปกรณ์ (<span id="config-categories-count">0</span>)</button>
-            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-locations">🏥 แผนกและสถานที่ติดตั้ง (<span id="config-locations-count">0</span>)</button>
-            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-users">👥 จัดการผู้ใช้งานระบบ (<span id="user-total-count">0</span>)</button>
+            <button type="button" class="btn btn-secondary btn-sm active config-tab-btn" data-tab="tab-cfg-brands">🏷️ แบรนด์และคู่มือศูนย์บริการ <span class="badge badge-subtle" id="config-brands-count">0</span></button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-categories">💻 หมวดหมู่อุปกรณ์ <span class="badge badge-subtle" id="config-categories-count">0</span></button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-locations">🏥 แผนกและสถานที่ติดตั้ง <span class="badge badge-subtle" id="config-locations-count">0</span></button>
+            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-users">👥 จัดการผู้ใช้งานระบบ <span class="badge badge-subtle" id="user-total-count">0</span></button>
             <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-backup">💾 สำรองข้อมูลและบำรุงรักษาระบบ</button>
-            <button type="button" class="btn btn-secondary btn-sm config-tab-btn" data-tab="tab-cfg-feedback" onclick="loadAdminFeedback()">💬 ข้อเสนอแนะและแจ้งปัญหา (<span id="feedback-count-badge">0</span>)</button>
           </div>
 
           <!-- CONFIG TAB 1: BRANDS & RMA GUIDES -->
@@ -977,47 +974,19 @@
             </div>
           </div>
 
-          <!-- CONFIG TAB 3: LOCATIONS & WARDS -->
+          <!-- CONFIG TAB 3: LOCATIONS & WARDS (IMMUTABLE HOSPITAL DIRECTORY) -->
           <div id="tab-cfg-locations" class="config-tab-pane" style="display: none;">
             <div class="card" style="margin-bottom: 20px;">
               <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
                 <div>
                   <h3 class="card-title">🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)</h3>
-                  <div class="card-subtitle">ผังอาคาร ชั้น โซนบริการ และสถานที่ติดตั้งครุภัณฑ์ทั่วทั้งโรงพยาบาล</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                  <button type="button" class="btn btn-sm" onclick="openAddConfigModalWithType('location')">➕ เพิ่มสถานที่ / แผนกใหม่</button>
+                  <div class="card-subtitle">ผังอาคาร ชั้น โซนบริการ และสถานที่ติดตั้งครุภัณฑ์ทั่วทั้งโรงพยาบาล (Hospital Architecture Directory)</div>
                 </div>
               </div>
 
               <!-- Interactive Hospital Layout Area rendered by hospital_layout.js -->
               <div id="hospital-layout-content-area" style="padding: 14px;">
                 <!-- Loaded dynamically by hospital_layout.js -->
-              </div>
-            </div>
-
-            <!-- Custom / Registered Locations Table -->
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <h4 class="card-title" style="font-size: 14px;">📋 รายการสถานที่และแผนกที่ลงทะเบียนในระบบ (Registered Location Records)</h4>
-                  <div class="card-subtitle">จัดการและแก้ไขชื่อแผนกหรือสถานที่ติดตั้งเพิ่มเติม</div>
-                </div>
-              </div>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 70px;">ID</th>
-                      <th style="width: 260px;">ชื่อสถานที่ / แผนก (Location)</th>
-                      <th>รายละเอียด / อาคาร / ชั้น (Details)</th>
-                      <th style="width: 140px;">การจัดการ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="config-locations-table-body">
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
@@ -1113,8 +1082,35 @@
             </table>
           </div>
 
-          <!-- CONFIG TAB 3: BACKUP & MAINTENANCE -->
+          <!-- CONFIG TAB 3: BACKUP & MAINTENANCE & SYSTEM SETTINGS -->
           <div id="tab-cfg-backup" class="config-tab-pane" style="display: none;">
+            <!-- Hotline & Emergency Contacts Configuration -->
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">📞 เบอร์โทรศัพท์สายด่วนไอที (IT Support Hotline Numbers)</h3>
+                  <div class="card-subtitle">กำหนดเบอร์โทรศัพท์ติดต่อด่วนสำหรับเจ้าหน้าที่แผนกและวอร์ด (แสดงที่หน้าจอเจ้าหน้าที่และแถบเมนูด้านข้าง)</div>
+                </div>
+              </div>
+              <div style="padding: 4px 0 10px 0;">
+                <label style="font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px;" for="cfg-hotline-input">
+                  หมายเลขโทรศัพท์สายด่วน (ระบุเบอร์โทร คั่นด้วยเครื่องหมายจุลภาค เช่น 4401, 4402, 4403):
+                </label>
+                <div style="display: flex; gap: 8px; max-width: 600px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <input type="text" id="cfg-hotline-input" class="form-control" placeholder="เช่น 4401, 4402, 4403" value="4401, 4402, 4403" style="flex: 1; min-width: 240px;" oninput="previewHotlineNumbers(this.value)">
+                  <button type="button" class="btn btn-primary" id="btn-save-hotline" onclick="saveHotlineNumbers()" style="white-space: nowrap;">
+                    💾 บันทึกเบอร์สายด่วน
+                  </button>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">ตัวอย่างปุ่มกดโทรด่วนบนหน้าจอเจ้าหน้าที่ (Staff Preview):</div>
+                <div id="cfg-hotline-preview" style="display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 14px; background: var(--surface-subtle); border-radius: var(--radius-sm); border: 1px dashed var(--border-subtle); width: fit-content; min-width: 260px;">
+                  <a href="tel:4401" class="btn btn-secondary btn-sm" onclick="return false;">☎️ 4401</a>
+                  <a href="tel:4402" class="btn btn-secondary btn-sm" onclick="return false;">☎️ 4402</a>
+                  <a href="tel:4403" class="btn btn-secondary btn-sm" onclick="return false;">☎️ 4403</a>
+                </div>
+              </div>
+            </div>
+
             <div class="card">
               <h3 class="card-title" style="margin-bottom: 6px;">💾 สำรองข้อมูลและบำรุงรักษาระบบ</h3>
               <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
@@ -1228,7 +1224,7 @@
           <div>💻 <strong>Acer Support:</strong> <a href="tel:021539600">02-153-9600</a></div>
           <div>🏷️ <strong>IDA RMA:</strong> support@idagroup.co.th</div>
           <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); color: #34d399;">
-            🛡️ <strong>IT Helpdesk:</strong> โทรภายใน 4401 - 4403
+            🛡️ <strong>IT Helpdesk:</strong> <span id="sidebar-hotline-text">โทรภายใน 4401 - 4403</span>
           </div>
         </div>
       </div>

@@ -100,6 +100,24 @@ function showUserNavigation() {
   if (btnTopIt) btnTopIt.style.display = isAdmin ? 'inline-flex' : 'none';
   if (btnTopConfig) btnTopConfig.style.display = isAdmin ? 'inline-flex' : 'none';
   if (topbarLogout) topbarLogout.style.display = 'inline-flex';
+
+  // Admin Switch Button in IT section (Grayed out with tooltip for Staff)
+  const btnItToConfig = document.getElementById('btn-it-to-config');
+  if (btnItToConfig) {
+    if (isAdmin) {
+      btnItToConfig.disabled = false;
+      btnItToConfig.style.opacity = '1';
+      btnItToConfig.style.cursor = 'pointer';
+      btnItToConfig.title = 'ไปยังหน้าตั้งค่าระบบ (Admin)';
+      btnItToConfig.onclick = () => switchView('config');
+    } else {
+      btnItToConfig.disabled = true;
+      btnItToConfig.style.opacity = '0.5';
+      btnItToConfig.style.cursor = 'not-allowed';
+      btnItToConfig.title = 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น';
+      btnItToConfig.onclick = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
+    }
+  }
 }
 
 function logout() {

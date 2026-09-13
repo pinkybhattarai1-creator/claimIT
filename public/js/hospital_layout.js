@@ -417,12 +417,20 @@ function renderHospitalLayoutView(containerId = 'hospital-layout-content-area', 
   ccHtml += `</div></div>`;
   html += ccHtml;
 
-  // 3. Registered & Custom Locations (from state.configs or window.state.configs)
+  // 3. Registered Auxiliary Locations (from state.configs or window.state.configs)
+  // Filter out any legacy entries that conflict with physical Building 1 / Call Center departments (e.g., Ward 20)
+  const existingDeptNames = new Set();
+  HOSPITAL_LAYOUT.forEach(b => {
+    (b.floors || []).forEach(f => {
+      (f.departments || []).forEach(d => existingDeptNames.add(d.toLowerCase().trim()));
+    });
+  });
+
   const stateConfigs = (typeof window !== 'undefined' && window.state && Array.isArray(window.state.configs))
     ? window.state.configs
     : (typeof state !== 'undefined' && state && Array.isArray(state.configs) ? state.configs : []);
 
-  const customLocations = stateConfigs.filter(c => c && c.type === 'location');
+  const customLocations = stateConfigs.filter(c => c && c.type === 'location' && !existingDeptNames.has((c.value || '').toLowerCase().trim()));
   if (customLocations.length > 0) {
     let customBadges = customLocations
       .filter(cl => !query || cl.value.toLowerCase().includes(query) || (cl.details && cl.details.toLowerCase().includes(query)))
@@ -435,8 +443,7 @@ function renderHospitalLayoutView(containerId = 'hospital-layout-content-area', 
       html += `
         <div class="card" style="margin-bottom: 16px; border: 1px solid var(--border-subtle);">
           <div class="card-header" style="background: rgba(139, 92, 246, 0.04); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
-            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #6d28d9;">📍 แผนกและสถานที่เพิ่มเติมที่ลงทะเบียนในระบบ (Custom & Registered Wards)</h4>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="openAddConfigModalWithType('location')" style="font-size: 11.5px; padding: 2px 8px;">➕ เพิ่มแผนกใหม่</button>
+            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #6d28d9;">📍 สถานที่และแผนกเฉพาะกิจ (Registered Auxiliary Units)</h4>
           </div>
           <div style="padding: 12px 14px; line-height: 1.6;">
             ${customBadges}

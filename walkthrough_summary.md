@@ -7,37 +7,35 @@ All requirements and architectural enhancements were executed focusing strictly 
 1. **Comprehensive Master Documentation**:
    - Master reference maintained at `d:/claimit/claimIT/WALKTHROUGHS_MASTER.md` capturing all 21 walkthrough guides, architectural roles, and workflows.
    - Updated detailed walkthrough guides:
-     - `03_it_portal_dashboard.md`: Interactive warranty badge click-to-filter, category tabs, and pagination slots.
-     - `11_asset_management.md`: Single-brand guardrail, category separation, pagination slots, and hospital layout picker modal.
+     - `02_staff_portal.md`: Dynamic IT Support Hotline with `href="tel:..."` dialing links, state-based disabled state for Report Broken button on already damaged/in-repair equipment.
+     - `03_it_portal_dashboard.md`: Compact Category Dropdown (`filter-category-select`), interactive warranty badge click-to-filter, and role-based disabled state for Admin config button (`#btn-it-to-config`).
+     - `11_asset_management.md`: Category dropdown selector eliminating scrollbars, single-brand guardrail, pagination slot buttons with boundary disabled states, and hospital layout picker modal.
      - `14_user_management.md`: Separated non-stacking Admin and Staff tables, role switcher pills (`ทั้งหมด`, `แอดมิน`, `ช่างเทคนิค`), and quick-add shortcuts.
-     - `15_system_configurations.md`: 3 separated non-stacking sub-tabs (Brands & RMA Guides, Categories, Locations & Wards), interactive Hospital Layout Directory (Building 1 Floors 21-B,D + Call Center buildings), and zero-DB dynamic additions.
+     - `15_system_configurations.md`: 5 separated non-stacking sub-tabs, Authoritative Immutable Hospital Directory, sequential category sorting by numeric ID with Thai translation labels, and Dynamic IT Support Hotline Numbers configuration.
+     - `17_quick_sidebar.md`: Vendor hotlines and real-time IT Helpdesk number synchronization with Admin settings.
+     - `19_security_and_rbac.md`: Role-based button disabled states with informative tooltips.
 
-2. **Interactive Warranty Expiration Direct Navigation**:
-   - Made `#warranty-expiring-badge` and `#warranty-expiring-text` clickable with direct routing to ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry) and instantaneous filtering to expiring assets (`warranty=expiring`).
+2. **Category Dropdown & Horizontal Scrollbar Elimination**:
+   - Replaced 10 horizontal scrolling tab buttons with a compact `<select id="filter-category-select">` beside `#filter-status`.
+   - Connected bidirectionally with `onCategoryDropdownChange(val)` and `selectCategoryTab(cat)`.
 
-3. **Single-Brand Input Guardrail (ระบบป้องกันและตรวจสอบยี่ห้อเดี่ยว)**:
-   - Backend validation in `routes/assets.js` returning HTTP 400 Bad Request with polite, clear Thai message when multiple brands (e.g., "Dell และ Acer", "HP / Lenovo") are submitted.
-   - Frontend validation in `public/js/assets.js` on blur and submit with non-destructive form correction so the user can easily fix the entry without losing input.
-   - Standardized placeholders to `"เช่น Dell หรือ HP (ระบุ 1 ยี่ห้อ)"` across all companion HTML files.
+3. **Immutable Hospital Locations & Clean Architecture Directory**:
+   - Acknowledged hospital buildings/wards as fixed physical architecture: removed `➕ เพิ่มสถานที่ / แผนกใหม่` and eliminated stacked secondary tables.
+   - Standardized Building 1 (Floors 21 through D) + Call Center buildings in `hospital_layout.js` as the single authoritative hospital reference.
 
-4. **Frontend Category Separation & Table Pagination Slots**:
-   - Interactive category pills/tabs (`ทั้งหมด`, `Computer`, `Monitor`, `Printer`, `Scanner`, `Network`, `Tablet` ฯลฯ) placed cleanly above the asset table.
-   - Dynamic page slots (`[1]`, `[2]`, `[3]`, `[4]`...) with previous/next controls, replacing bare next/prev buttons.
+4. **Global Button Disabled States & Role Graying Out**:
+   - Role-Based: Staff users see `⚙️ ตั้งค่าระบบ (Admin) →` (`#btn-it-to-config`) grayed out (`disabled = true`, `opacity: 0.5`, `cursor: not-allowed`) with an admin-only tooltip.
+   - State-Based: Assets already broken/in-repair disable `#btn-report-broken` on the Ward portal.
+   - Boundary: Pagination buttons (`#btn-prev-page`, `#btn-next-page`) gray out stably at page 1 and max page.
 
-5. **Separated User Management & Configuration Tables (Non-Stacking UI)**:
-   - Configuration section separated into 3 distinct tabs:
-     - `🏷️ แบรนด์และคู่มือศูนย์บริการ (Brands & RMA Guides)`
-     - `💻 หมวดหมู่อุปกรณ์ (Device Categories)`
-     - `🏥 แผนกและสถานที่ติดตั้ง (Locations & Wards)`
-   - User Management separated into 2 independent cards:
-     - `👨‍💻 ช่างเทคนิคสารสนเทศ (IT Support Specialists)`
-     - `🛡️ ผู้ดูแลระบบสารสนเทศ (IT Support Administrators)`
-     - Equipped with Role Switcher Pills (`all`, `admin`, `staff`) for fast filtering and quick-add shortcuts.
+5. **Dynamic IT Hotline Phone Numbers & Staff Link Synchronization**:
+   - Admin settings card under `#tab-cfg-backup` allows custom comma-separated phone numbers (e.g. `4401, 4402, 4403`) with interactive preview.
+   - Dynamic update to Staff / Ward portal (`#staff-hotline-container`) with clickable `tel:` links.
+   - Dynamic update to Sidebar IT Helpdesk text (`#sidebar-hotline-text`).
+   - Stored in existing `configurations` table (`type = 'hotline'`) with ZERO schema changes.
 
-6. **Hospital Layout Directory & Picker Modal (`public/js/hospital_layout.js`)**:
-   - Structured mapping of Building 1 (Floors 21 through B and D) and Call Center Buildings (Old and New).
-   - "🏥 เลือกจากผังอาคาร" modal picker and datalist autocomplete integration for single and batch asset intake.
-   - Zero database schema alterations (`0 DB changes`) — dynamic locations/wards leverage existing `/api/configurations` table (`type='location'`).
+6. **100% SHA-256 Hash Matching across 6 HTML Templates**:
+   - `index.html`, `admin.html`, `config.html`, `it.html`, `login.html`, and `ward.html` are synchronized byte-for-byte (`2d3bcdb5b6fc4623201bba25cadd92d772fe7d2efefc2216352876c5d395c268`).
 
 ---
 
@@ -45,9 +43,9 @@ All requirements and architectural enhancements were executed focusing strictly 
 
 | Test Suite | Result | Details |
 |---|---|---|
+| `scripts/test_user_requirements.js` | **38/38 Passed (100%)** | Single-brand validation (HTTP 400), compound brand whitelisting, category dropdown, real numbered pagination slots with boundary disabling, immutable hospital directory, role/state button disabled states, clean subtabs, SHA-256 match, and dynamic hotline configuration with staff call buttons. |
+| `scripts/verify_frontend_workflows.js` | **66/66 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation, real frontend DOM JS execution, brand guardrails, and category dropdown filtering. |
 | `test_suite.js` | **14/14 Stages Passed (100%)** | Health check, Auth, RBAC, User lifecycle, Viability engine, PDPA wipe gate, Multi-asset claims, State machine, IDOR evidence storage, PDF generation, Audit trail, Database backup, Single-brand guardrail, Expiring warranty filtering. |
-| `scripts/verify_frontend_workflows.js` | **66/66 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation, real frontend DOM JS execution, brand guardrails, compound brand whitelisting, category tabs, and pagination slots. |
-| `scripts/test_user_requirements.js` | **22/22 Passed (100%)** | Single-brand validation (HTTP 400), legitimate compound brand whitelisting (`A&D Medical`, `Bang & Olufsen`), non-destructive form correction, category tabs, real numbered pagination slot buttons `[1], [2], [3]`, warranty badge click-to-filter with single refresh call, search focus preservation, dynamic custom locations, separated config tabs, separated user management, zero DB changes, and byte-for-byte SHA-256 hash match across all 6 HTML templates. |
 | `test_workflow.js` | **9/9 Stages Passed (100%)** | Complete integration workflow: Admin auth, asset search, PDPA gate, data sanitization, RMA claim, pickup state, resolve RMA, EOL salvage (Pending Sell / Pending Donation), audit log verification. |
 | `test_samples_validation.js` | **5/5 Passed (100%)** | Thai BE dates, CABL0699 cross-linking, repeat failures, downtime calculations, Oracle accounting. |
 

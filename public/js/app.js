@@ -258,6 +258,7 @@ async function refreshData() {
           if (typeof window !== 'undefined' && window.state) window.state.configs = configs;
           if (typeof updateDynamicDropdowns === 'function') updateDynamicDropdowns(configs);
           if (typeof setupHospitalLayoutDatalist === 'function') setupHospitalLayoutDatalist(configs);
+          if (typeof updateHotlineNumbersUI === 'function') updateHotlineNumbersUI(configs);
           if (state.user.role === 'admin' && typeof populateConfigTable === 'function') {
             populateConfigTable(configs);
           }
@@ -333,10 +334,18 @@ function updatePaginationUI() {
   const btnPrev = document.getElementById('btn-prev-page');
   const btnNext = document.getElementById('btn-next-page');
   if (btnPrev && btnNext) {
-    btnPrev.disabled = state.pagination.page <= 1;
-    btnNext.disabled = (state.pagination.page >= maxPage || maxPage === 0);
-    btnPrev.style.display = state.pagination.page <= 1 ? 'none' : 'inline-block';
-    btnNext.style.display = (state.pagination.page >= maxPage || maxPage === 0) ? 'none' : 'inline-block';
+    const isPrevDisabled = state.pagination.page <= 1;
+    const isNextDisabled = (state.pagination.page >= maxPage || maxPage === 0);
+
+    btnPrev.disabled = isPrevDisabled;
+    btnPrev.style.opacity = isPrevDisabled ? '0.5' : '1';
+    btnPrev.style.cursor = isPrevDisabled ? 'not-allowed' : 'pointer';
+    btnPrev.style.display = 'inline-block';
+
+    btnNext.disabled = isNextDisabled;
+    btnNext.style.opacity = isNextDisabled ? '0.5' : '1';
+    btnNext.style.cursor = isNextDisabled ? 'not-allowed' : 'pointer';
+    btnNext.style.display = 'inline-block';
   }
 }
 
@@ -494,6 +503,7 @@ function setupEventListeners() {
   const btnReportBroken = document.getElementById('btn-report-broken');
   if (btnReportBroken) {
     btnReportBroken.addEventListener('click', async () => {
+      if (btnReportBroken.disabled) return;
       const issueInput = document.getElementById('ward-issue-input');
       let issueText = issueInput ? issueInput.value.trim() : '';
       if (state.wardCapturedPhotoFile) {
@@ -609,6 +619,19 @@ function setupEventListeners() {
   document.getElementById('btn-copy-data')?.addEventListener('click', copyAssetDataToClipboard);
 
   // Filter & Pagination Events
+  const filterCategorySelect = document.getElementById('filter-category-select');
+  if (filterCategorySelect) {
+    filterCategorySelect.addEventListener('change', (e) => {
+      if (typeof selectCategoryTab === 'function') {
+        selectCategoryTab(e.target.value);
+      } else {
+        state.filters.category = e.target.value;
+        state.pagination.page = 1;
+        refreshData();
+      }
+    });
+  }
+
   const filterStatus = document.getElementById('filter-status');
   if (filterStatus) {
     filterStatus.addEventListener('change', (e) => {
@@ -1058,7 +1081,55 @@ async function triggerManualBackup() {
 }
 window.triggerManualBackup = triggerManualBackup;
 
-// Initialize Network info on load
+// ─── IT Hotline Numbers UI Synchronizer ────────────────────────────────────
+function updateHotlineNumbersUI(configs) {
+  if (!configs || !Array.isArray(configs)) return;
+  const hotlineCfg = configs.find(c => c.type === 'hotline');
+  const rawValue = (hotlineCfg && hotlineCfg.value) ? hotlineCfg.value : '4401, 4402, 4403';
+
+  // Extract phone numbers separated by comma, slash, semicolon, or whitespace
+  const numbers = rawValue.split(/[,;/]+/).map(s => s.trim()).filter(Boolean);
+  if (numbers.length === 0) numbers.push('4401', '4402', '4403');
+
+  // 1. Update Staff / Ward portal call buttons
+  const container = document.getElementById('staff-hotline-container');
+  if (container) {
+    container.innerHTML = numbers.map(num => {
+      const telClean = num.replace(/[^0-9+]/g, '');
+      return `<a href="tel:${telClean || num}" class="btn btn-secondary btn-sm" title="โทร ${escapeHtml(num)}">☎️ ${escapeHtml(num)}</a>`;
+    }).join('\n');
+  }
+
+  // 2. Update Sidebar IT Helpdesk text
+  const sidebarText = document.getElementById('sidebar-hotline-text');
+  if (sidebarText) {
+    if (numbers.length === 1) {
+      sidebarText.textContent = `โทรภายใน ${numbers[0]}`;
+    } else {
+      sidebarText.textContent = `โทรภายใน ${numbers.join(' - ')}`;
+    }
+  }
+
+  // 3. Update Admin Hotline Input & Preview if present
+  const hotlineInput = document.getElementById('cfg-hotline-input');
+  if (hotlineInput && document.activeElement !== hotlineInput) {
+    hotlineInput.value = numbers.join(', ');
+  }
+  if (typeof previewHotlineNumbers === 'function') {
+    previewHotlineNumbers(numbers.join(', '));
+  }
+}
+window.updateHotlineNumbersUI = updateHotlineNumbersUI;
+
+// Initialize Network info and public contact on load
 document.addEventListener('DOMContentLoaded', () => {
   fetchNetworkInfo();
+  fetch('/api/configurations/public-contact')
+    .then(r => r.ok ? r.json() : [])
+    .then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        updateHotlineNumbersUI(data);
+      }
+    })
+    .catch(() => {});
 });

@@ -300,13 +300,21 @@ function initializeDatabase() {
           ['location', 'Ward 20', 'Floor 2'],
           ['location', 'ICU', 'Floor 3'],
           ['location', 'ฉุกเฉิน (ER)', 'Floor 1'],
-          ['location', 'Technical Support & Infrastructure', 'Floor 4']
+          ['location', 'Technical Support & Infrastructure', 'Floor 4'],
+          ['hotline', '4401, 4402, 4403', 'เบอร์โทรศัพท์สายด่วน IT Support และ Helpdesk ประจำวัน']
         ];
 
         const stmt = db.prepare("INSERT INTO configurations (type, value, details) VALUES (?, ?, ?)");
         defaultConfigs.forEach(cfg => stmt.run(cfg));
         stmt.finalize();
         console.log('ClaimIT configurations seeded with rich brand procedures.');
+      } else {
+        // Ensure default hotline configuration exists even if configurations table was already seeded
+        db.get("SELECT 1 FROM configurations WHERE type = 'hotline' AND is_deleted = 0", (hErr, hRow) => {
+          if (!hErr && !hRow) {
+            db.run("INSERT INTO configurations (type, value, details) VALUES ('hotline', '4401, 4402, 4403', 'เบอร์โทรศัพท์สายด่วน IT Support และ Helpdesk ประจำวัน')");
+          }
+        });
       }
     });
 

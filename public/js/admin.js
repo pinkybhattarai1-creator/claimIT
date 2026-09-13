@@ -242,6 +242,18 @@ function populateConfigTable(configs) {
   let categoriesCount = 0;
   let locationsCount = 0;
 
+  const CATEGORY_THAI_LABELS = {
+    'Computer': 'คอมพิวเตอร์และโน้ตบุ๊ก',
+    'Clinical Workstation': 'คอมพิวเตอร์ประจำจุดบริการทางคลินิก (COW / Station)',
+    'Clinical IT Display': 'จอมอนิเตอร์ตรวจวินิจฉัยทางการแพทย์ (Diagnostic Display)',
+    'Tablet': 'แท็บเล็ตทางการแพทย์ / หอผู้ป่วย (Ward Tablet)',
+    'Scanner': 'เครื่องอ่านบาร์โค้ด / ฉลากยา (Barcode Scanner)',
+    'Printer': 'เครื่องพิมพ์เอกสาร / พิมพ์สติกเกอร์ (Printer)',
+    'Network': 'อุปกรณ์ระบบเครือข่ายสื่อสาร (Network & Switch)',
+    'Mobile Nursing Cart': 'รถเข็นจ่ายยาและพยาบาลอัจฉริยะ (Medication Cart)',
+    'Others': 'อุปกรณ์เทคโนโลยีสารสนเทศอื่นๆ (General IT)'
+  };
+
   function createConfigRow(c) {
     const tr = document.createElement('tr');
     const tdId = `<td style="font-weight: 600; width: 60px;">${c.id}</td>`;
@@ -259,20 +271,46 @@ function populateConfigTable(configs) {
     return tr;
   }
 
-  const sortedConfigs = [...configs].sort((a, b) => a.type.localeCompare(b.type) || a.value.localeCompare(b.value));
+  function createCategoryConfigRow(c) {
+    const tr = document.createElement('tr');
+    const tdId = `<td style="font-weight: 600; width: 60px;">${c.id}</td>`;
+    const thaiLabel = CATEGORY_THAI_LABELS[c.value] ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">🇹🇭 ${CATEGORY_THAI_LABELS[c.value]}</div>` : '';
+    const tdValue = `<td><strong style="color: var(--text-primary); font-size: 13px;">${escapeHtml(c.value)}</strong>${thaiLabel}</td>`;
+    const tdDetails = `<td><div style="max-height: 120px; overflow-y: auto; background: var(--surface-subtle); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 12px; line-height: 1.5;">${c.details || '-'}</div></td>`;
+    const tdActions = `
+      <td style="width: 140px;">
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.editConfig(${c.id}, '${escapeHtml(c.type)}', '${escapeHtml(c.value)}', '${escapeHtml(c.details || '')}')">✏️ แก้ไข</button>
+          <button class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="event.stopPropagation(); window.deleteConfig(${c.id})">🗑️ ลบ</button>
+        </div>
+      </td>
+    `;
+    tr.innerHTML = tdId + tdValue + tdDetails + tdActions;
+    return tr;
+  }
 
-  sortedConfigs.forEach(c => {
-    if (c.type === 'brand') {
-      brandsCount++;
-      if (brandsTbody) brandsTbody.appendChild(createConfigRow(c));
-    } else if (c.type === 'category') {
-      categoriesCount++;
-      if (categoriesTbody) categoriesTbody.appendChild(createConfigRow(c));
-    } else if (c.type === 'location') {
-      locationsCount++;
-      if (locationsTbody) locationsTbody.appendChild(createConfigRow(c));
-    }
+  // Group and sort configs: Categories by ID ascending (natural order: 6, 7, 8, 9...), Brands by alphabetical value
+  const brandsList = configs.filter(c => c.type === 'brand').sort((a, b) => a.value.localeCompare(b.value));
+  const categoriesList = configs.filter(c => c.type === 'category').sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+
+  brandsList.forEach(c => {
+    brandsCount++;
+    if (brandsTbody) brandsTbody.appendChild(createConfigRow(c));
   });
+
+  categoriesList.forEach(c => {
+    categoriesCount++;
+    if (categoriesTbody) categoriesTbody.appendChild(createCategoryConfigRow(c));
+  });
+
+  // Locations are immutable hospital architecture directory
+  if (typeof getAllHospitalLocations === 'function') {
+    locationsCount = getAllHospitalLocations().length;
+  } else if (typeof HOSPITAL_LAYOUT !== 'undefined' && Array.isArray(HOSPITAL_LAYOUT)) {
+    locationsCount = HOSPITAL_LAYOUT.reduce((acc, b) => acc + (b.floors ? b.floors.reduce((facc, f) => facc + (f.departments ? f.departments.length : 0), 0) : 0), 0);
+  } else {
+    locationsCount = configs.filter(c => c.type === 'location').length;
+  }
 
   // Empty states
   if (brandsTbody && brandsCount === 0) {
@@ -280,9 +318,6 @@ function populateConfigTable(configs) {
   }
   if (categoriesTbody && categoriesCount === 0) {
     categoriesTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:12px;">ไม่พบรายการหมวดหมู่อุปกรณ์</td></tr>';
-  }
-  if (locationsTbody && locationsCount === 0) {
-    locationsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:12px;">ยังไม่มีสถานที่เพิ่มเติมที่บันทึกไว้ในระบบ</td></tr>';
   }
 
   // Update count badges
@@ -296,6 +331,7 @@ function populateConfigTable(configs) {
   // Legacy table population for backward compatibility
   if (legacyTbody) {
     let currentType = null;
+    const sortedConfigs = [...configs].sort((a, b) => (a.type || '').localeCompare(b.type || ''));
     sortedConfigs.forEach(c => {
       if (currentType !== c.type) {
         currentType = c.type;
@@ -322,6 +358,16 @@ function populateConfigTable(configs) {
       tr.innerHTML = tdId + tdType + tdValue + tdDetails + tdActions;
       legacyTbody.appendChild(tr);
     });
+  }
+
+  // Populate IT Hotline input and preview
+  const hotlineCfg = configs.find(c => c.type === 'hotline');
+  const hotlineInput = document.getElementById('cfg-hotline-input');
+  if (hotlineInput && document.activeElement !== hotlineInput) {
+    hotlineInput.value = hotlineCfg ? hotlineCfg.value : '4401, 4402, 4403';
+  }
+  if (typeof previewHotlineNumbers === 'function') {
+    previewHotlineNumbers(hotlineInput ? hotlineInput.value : (hotlineCfg ? hotlineCfg.value : '4401, 4402, 4403'));
   }
 
   // Update hospital layout datalist with custom locations
@@ -440,6 +486,74 @@ async function handleAddConfig(e) {
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }
+
+// ─── IT Hotline & Contact Numbers Configuration ───────────────────────────
+function previewHotlineNumbers(val) {
+  const preview = document.getElementById('cfg-hotline-preview');
+  if (!preview) return;
+  const numbers = (val || '').split(/[,;/]+/).map(s => s.trim()).filter(Boolean);
+  if (numbers.length === 0) {
+    preview.innerHTML = '<span style="color: var(--text-muted); font-size: 12px;">ระบุหมายเลขโทรศัพท์อย่างน้อย 1 หมายเลข</span>';
+    return;
+  }
+  preview.innerHTML = numbers.map(num => {
+    const telClean = num.replace(/[^0-9+]/g, '');
+    return `<a href="tel:${telClean || num}" class="btn btn-secondary btn-sm" onclick="return false;">☎️ ${escapeHtml(num)}</a>`;
+  }).join(' ');
+}
+window.previewHotlineNumbers = previewHotlineNumbers;
+
+async function saveHotlineNumbers() {
+  const input = document.getElementById('cfg-hotline-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) {
+    showToast('กรุณาระบุหมายเลขโทรศัพท์อย่างน้อย 1 หมายเลข', 'warning');
+    return;
+  }
+
+  const saveBtn = document.getElementById('btn-save-hotline');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ กำลังบันทึก...';
+  }
+
+  try {
+    const configs = (window.state && window.state.configs) ? window.state.configs : [];
+    const existing = configs.find(c => c.type === 'hotline');
+    const url = existing ? `/api/configurations/${existing.id}` : '/api/configurations';
+    const method = existing ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        type: 'hotline',
+        value: val,
+        details: 'เบอร์โทรศัพท์สายด่วน IT Support และ Helpdesk ประจำวัน'
+      })
+    });
+
+    if (res.ok) {
+      showToast('บันทึกหมายเลขโทรศัพท์สายด่วนเรียบร้อยแล้ว', 'success');
+      if (typeof refreshData === 'function') {
+        await refreshData();
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || 'บันทึกข้อมูลล้มเหลว', 'error');
+    }
+  } catch (error) {
+    console.error('saveHotlineNumbers error:', error);
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 บันทึกเบอร์สายด่วน';
+    }
+  }
+}
+window.saveHotlineNumbers = saveHotlineNumbers;
 
 // ─── Admin Feedback Management ─────────────────────────────────────────────
 let adminFeedbackCache = [];

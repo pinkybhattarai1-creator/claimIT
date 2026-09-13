@@ -42,7 +42,7 @@
 - Acer Call Center: 02-153-9600
 - IDA RMA Service: support@idagroup.co.th
 - TSC Barcode Printer: ติดต่อ Line Service
-- IT Helpdesk รพ.: โทรภายใน 4401–4403
+- IT Helpdesk รพ.: โทรภายใน 4401–4403 (เชื่อมโยงแบบเรียลไทม์กับการตั้งค่าเบอร์สายด่วนในหน้า Admin Config และปรับเปลี่ยนตามเบอร์ที่บันทึกไว้ทันที)
 
 ### แผง 4: ส่งออกข้อมูล (Quick Export)
 - ปุ่ม [ดาวน์โหลด Excel ทั้งหมด (.xls)]

@@ -278,6 +278,22 @@ function displayAssetDetails(asset) {
   if (prefix === 'ward') {
     const placeholder = document.getElementById('ward-empty-placeholder');
     if (placeholder) placeholder.style.display = 'none';
+
+    const btnReportBroken = document.getElementById('btn-report-broken');
+    if (btnReportBroken) {
+      const isUnrepairableOrActive = ['Broken', 'Pending Pickup', 'Pending Sell', 'Pending Donation', 'Scrapped'].includes(asset.status);
+      if (isUnrepairableOrActive) {
+        btnReportBroken.disabled = true;
+        btnReportBroken.style.opacity = '0.5';
+        btnReportBroken.style.cursor = 'not-allowed';
+        btnReportBroken.title = `ครุภัณฑ์นี้อยู่ในสถานะ [${asset.status}] แล้ว ไม่สามารถส่งเรื่องแจ้งซ่อมซ้ำได้`;
+      } else {
+        btnReportBroken.disabled = false;
+        btnReportBroken.style.opacity = '1';
+        btnReportBroken.style.cursor = 'pointer';
+        btnReportBroken.title = 'คลิกเพื่อส่งเรื่องแจ้งซ่อม';
+      }
+    }
   }
   
   // Audio beep confirmation on successful scan
@@ -1038,12 +1054,19 @@ async function copyAssetDataToClipboard() {
   }
 }
 
-// Category Tabs Filter Navigation
+// Category Filter Navigation (Dropdown & Tabs Synchronization)
 function selectCategoryTab(category, skipRefresh = false) {
   if (typeof state === 'undefined') return;
   state.filters.category = category || '';
   state.pagination.page = 1;
 
+  // Keep dropdown selector in sync
+  const catSelect = document.getElementById('filter-category-select');
+  if (catSelect && catSelect.value !== (category || '')) {
+    catSelect.value = category || '';
+  }
+
+  // Keep any category tab buttons in sync
   document.querySelectorAll('.category-tab-btn').forEach(btn => {
     const cat = btn.getAttribute('data-cat') || '';
     if (cat === state.filters.category) {
@@ -1064,14 +1087,21 @@ function selectCategoryTab(category, skipRefresh = false) {
     refreshData();
   }
 }
+
+function onCategoryDropdownChange(value) {
+  selectCategoryTab(value, false);
+}
+
 if (typeof window !== 'undefined') {
   window.selectCategoryTab = selectCategoryTab;
+  window.onCategoryDropdownChange = onCategoryDropdownChange;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     validateSingleBrandLocal,
-    selectCategoryTab
+    selectCategoryTab,
+    onCategoryDropdownChange
   };
 }
 

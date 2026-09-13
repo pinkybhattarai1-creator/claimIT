@@ -22,9 +22,9 @@
 | 12_eol_salvage.md | EOL & Salvage — ขาย / บริจาค / แทงจำหน่าย | IT/Admin |
 | 13_audit_trail.md | Audit Trail — ประวัติการเคลื่อนย้ายและการเปลี่ยนแปลง | IT/Admin |
 | 14_user_management.md | จัดการผู้ใช้งาน (RBAC: Admin & Staff) | Admin |
-| 15_system_configurations.md | ตั้งค่าระบบ — แบรนด์ หมวดหมู่ สถานที่ | Admin |
+| 15_system_configurations.md | ตั้งค่าระบบ — แบรนด์ หมวดหมู่ ผังอาคารโรงพยาบาล และสายด่วนไอที | Admin |
 | 16_excel_csv_export.md | ส่งออกข้อมูล Excel / CSV | Admin (Excel) / Staff (CSV) |
-| 17_quick_sidebar.md | Quick Hub Sidebar — ข้อมูลด่วนและ Hotlines | ทุกคน |
+| 17_quick_sidebar.md | Quick Hub Sidebar — ข้อมูลด่วนและสายด่วน IT Helpdesk | ทุกคน |
 | 18_email_notifications.md | การส่งอีเมลแจ้งเตือน (Resend Integration) | IT/Admin |
 | 19_security_and_rbac.md | ความปลอดภัย — JWT, RBAC, Rate Limiting | Admin / Dev |
 | 20_installation_and_devops.md | ติดตั้งระบบ — Node.js & Docker | Developer |

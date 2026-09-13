@@ -44,7 +44,9 @@ Middleware:
 - staffOnly: ต้อง login (role ใดก็ได้)
 - adminOnly: ต้องเป็น admin เท่านั้น
 
-Staff กดปุ่ม IT Portal → แสดง Toast Warning (ไม่ redirect)
+UI Controls & Role-Based Disabled States:
+- Staff กดปุ่ม IT Portal → แสดง Toast Warning (ไม่ redirect)
+- ปุ่มทางลัดเข้าสู่หน้าตั้งค่าระบบ `⚙️ ตั้งค่าระบบ (Admin) →` (`#btn-it-to-config`) บนแถบเมนู IT จะถูกปิดการใช้งานและแสดงสถานะ Grayed out (`disabled = true`, `opacity: 0.5`, `cursor: not-allowed`) สำหรับผู้ใช้ทั่วไป (Staff) พร้อม Tooltip ระบุว่า *"เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น"*
 
 ---
 

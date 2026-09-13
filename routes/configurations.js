@@ -6,7 +6,7 @@ const { handleDbError } = require('../utils/safeError');
 
 // GET /api/configurations/public-contact (Public endpoint for login page contact info)
 router.get('/public-contact', (req, res) => {
-  db.all("SELECT type, value, details FROM configurations WHERE type IN ('contact', 'hospital_profile', 'helpdesk') AND is_deleted = 0", [], (err, rows) => {
+  db.all("SELECT type, value, details FROM configurations WHERE type IN ('contact', 'hospital_profile', 'helpdesk', 'hotline') AND is_deleted = 0", [], (err, rows) => {
     if (err) return handleDbError(res, err);
     res.json(rows);
   });
