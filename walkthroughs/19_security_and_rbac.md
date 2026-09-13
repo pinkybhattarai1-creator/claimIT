@@ -138,32 +138,47 @@ Headers ที่ส่งกลับ:
 
 ---
 
-## สิทธิ์ตาม API Endpoint
+## สิทธิ์ตาม API Endpoint (API Access Control Matrix)
 
-| Endpoint | Method | สิทธิ์ |
-|---|---|---|
-| /health | GET | Public |
-| /api/verify-gate | POST | Public |
-| /api/auth/login | POST | Public |
-| /api/auth/change-password | POST | Public (ต้องรู้รหัสเดิม) |
-| /api/assets | GET | Staff+ |
-| /api/assets | POST | Admin |
-| /api/assets/:tag | PUT/DELETE | Admin |
-| /api/assets/salvage | POST | Admin (verifyToken, adminOnly) |
-| /api/claims | GET/POST | Staff+ |
-| /api/claims/:id/status | PUT | Admin (verifyToken, adminOnly) |
-| /api/users | GET/POST | Admin |
-| /api/users/:id | PUT/DELETE | Admin |
-| /api/configurations | GET | Staff+ |
-| /api/configurations | POST/PUT/DELETE | Admin |
-| /api/departments | GET | Authenticated |
-| /api/departments | POST/PUT/DELETE | Admin |
-| /api/audit-logs | GET | Staff+ |
-| /api/export/excel | GET | Admin (verifyToken, adminOnly) |
-| /api/export/assets.csv | GET | Staff+ |
-| /api/evidence/upload | POST | Staff+ |
-| /api/evidence/:id/view | GET | Staff+ (+ ownership check) |
-| /api/backup | POST | Admin (verifyToken, adminOnly) |
+| Endpoint | Method | สิทธิ์ | คำอธิบาย |
+|---|---|---|---|
+| /health | GET | Public | ตรวจสอบสถานะเซิร์ฟเวอร์และการเชื่อมต่อฐานข้อมูล |
+| /api/network-info | GET | Public | ดึงข้อมูล IP เครือข่าย LAN สำหรับเชื่อมต่อมือถือ/iPhone |
+| /api/verify-gate | POST | Public | ตรวจสอบ Security Passcode |
+| /api/auth/login | POST | Public (Rate Limited) | ล็อกอินรับ JWT Token |
+| /api/auth/me | GET | Authenticated | ดึงข้อมูลโปรไฟล์ผู้ใช้งานปัจจุบัน |
+| /api/auth/refresh | POST | Authenticated | รีเฟรช JWT Token ขยายอายุการใช้งาน |
+| /api/auth/change-password | POST | Authenticated | เปลี่ยนรหัสผ่านตนเอง (ยกเลิก token เก่าทันที) |
+| /api/auth/request-reset | POST | Public (Rate Limited) | ขอรับ Token สำหรับรีเซ็ตรหัสผ่าน |
+| /api/auth/reset-with-token | POST | Public (Rate Limited) | ตั้งรหัสผ่านใหม่ด้วย Reset Token |
+| /api/configurations/public-contact | GET | Public | ดึงข้อมูลติดต่อและสายด่วน IT Hotline |
+| /api/configurations | GET | Staff+ | ดึงข้อมูลการตั้งค่าแบรนด์/หมวดหมู่/สถานที่ |
+| /api/configurations | POST/PUT/DELETE | Admin | เพิ่ม/แก้ไข/ลบค่าคอนฟิก |
+| /api/configurations/wipe-data | POST | Admin (Confirm Code) | ล้างข้อมูลระบบเพื่อเริ่มต้นใหม่ (ต้องมีรหัสยืนยัน) |
+| /api/feedback/public | GET | Public | ดึงรายการข้อเสนอแนะและปัญหาบนกระดานสาธารณะ |
+| /api/feedback | POST | Public / Staff+ | ส่งข้อเสนอแนะหรือแจ้งปัญหาการใช้งาน |
+| /api/feedback | GET | Admin | ดูรายการข้อเสนอแนะและปัญหาทั้งหมด |
+| /api/feedback/:id | PUT/DELETE | Admin | ตอบกลับ/เปลี่ยนสถานะ/ลบข้อเสนอแนะ |
+| /api/feedback/export/csv | GET | Admin | ส่งออกข้อคิดเห็นเป็น CSV |
+| /api/feedback/export/markdown | GET | Admin | ส่งออกข้อคิดเห็นเป็น FEEDBACK_LOG.md |
+| /api/assets | GET | Staff+ | ดูรายการครุภัณฑ์ทั้งหมด (กรองหมวดหมู่/สถานะ) |
+| /api/assets | POST | Admin | เพิ่มครุภัณฑ์ใหม่ (ตรวจยี่ห้อเดี่ยว) |
+| /api/assets/:tag | PUT/DELETE | Admin | แก้ไข/ระงับครุภัณฑ์ |
+| /api/assets/salvage | POST | Admin | แทงจำหน่าย/ขายทอดตลาด/บริจาค |
+| /api/claims | GET/POST | Staff+ | ดูรายการ/สร้างใบส่งเคลม |
+| /api/claims/:id/status | PUT | Admin | เปลี่ยนสถานะใบเคลมตาม State Machine |
+| /api/users | GET/POST | Admin | ดูรายการ/เพิ่มผู้ใช้งานใหม่ (`must_change_password=1`) |
+| /api/users/:id | PUT/DELETE | Admin | แก้ไข/ระงับผู้ใช้งาน |
+| /api/users/:id/reset-password | POST | Admin | รีเซ็ตรหัสผ่านผู้ใช้งานโดยแอดมิน |
+| /api/users/:id/reactivate | POST | Admin | เปิดใช้งานบัญชีที่ถูกระงับ |
+| /api/departments | GET | Authenticated | ดูรายชื่อแผนกและผังอาคาร |
+| /api/departments | POST/PUT/DELETE | Admin | จัดการแผนก |
+| /api/audit-logs | GET | Staff+ | ตรวจสอบบันทึกการทำรายการ (Audit Trail) |
+| /api/export/excel | GET | Admin | ส่งออกรายงาน Excel (.xls SpreadsheetML) |
+| /api/export/assets.csv | GET | Staff+ | ส่งออก CSV ข้อมูลครุภัณฑ์ |
+| /api/evidence/upload | POST | Staff+ | อัปโหลดไฟล์หลักฐานภาพถ่าย/เอกสาร |
+| /api/evidence/:id/view | GET | Staff+ (+ IDOR check) | ดู/ดาวน์โหลดไฟล์หลักฐาน |
+| /api/backup | POST | Admin | สำรองฐานข้อมูล SQLite อัตโนมัติ |
 
 ---
 

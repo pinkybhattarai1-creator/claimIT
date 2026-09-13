@@ -11,9 +11,9 @@ All requirements and architectural enhancements were executed focusing strictly 
      - `03_it_portal_dashboard.md`: Compact Category Dropdown (`filter-category-select`), interactive warranty badge click-to-filter, and role-based disabled state for Admin config button (`#btn-it-to-config`).
      - `11_asset_management.md`: Category dropdown selector eliminating scrollbars, single-brand guardrail, pagination slot buttons with boundary disabled states, and hospital layout picker modal.
      - `14_user_management.md`: Separated non-stacking Admin and Staff tables, role switcher pills (`ทั้งหมด`, `แอดมิน`, `ช่างเทคนิค`), and quick-add shortcuts.
-     - `15_system_configurations.md`: 5 separated non-stacking sub-tabs, Authoritative Immutable Hospital Directory, sequential category sorting by numeric ID with Thai translation labels, and Dynamic IT Support Hotline Numbers configuration.
+     - `15_system_configurations.md`: 6 separated non-stacking sub-tabs (แบรนด์, หมวดหมู่, ผังอาคาร, ผู้ใช้, ข้อเสนอแนะ Feedback & Bugs `#tab-cfg-feedback`, สำรองข้อมูล), Authoritative Immutable Hospital Directory, sequential category sorting by numeric ID with Thai translation labels, and Dynamic IT Support Hotline Numbers configuration.
      - `17_quick_sidebar.md`: Vendor hotlines and real-time IT Helpdesk number synchronization with Admin settings.
-     - `19_security_and_rbac.md`: Role-based button disabled states with informative tooltips.
+     - `19_security_and_rbac.md`: Role-based button disabled states with informative tooltips and comprehensive API Access Control Matrix.
 
 2. **Category Dropdown & Horizontal Scrollbar Elimination**:
    - Replaced 10 horizontal scrolling tab buttons with a compact `<select id="filter-category-select">` beside `#filter-status`.
@@ -35,7 +35,7 @@ All requirements and architectural enhancements were executed focusing strictly 
    - Stored in existing `configurations` table (`type = 'hotline'`) with ZERO schema changes.
 
 6. **100% SHA-256 Hash Matching across 6 HTML Templates**:
-   - `index.html`, `admin.html`, `config.html`, `it.html`, `login.html`, and `ward.html` are synchronized byte-for-byte (`2d3bcdb5b6fc4623201bba25cadd92d772fe7d2efefc2216352876c5d395c268`).
+   - `index.html`, `admin.html`, `config.html`, `it.html`, `login.html`, and `ward.html` are synchronized byte-for-byte (`865fcc29524deb2cc9226588b361c8f3a4e8d494d5e9dfc6a17ddd5c5aed8faa`).
 
 ---
 

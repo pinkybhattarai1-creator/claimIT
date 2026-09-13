@@ -48,32 +48,25 @@ ClaimIT ออกแบบมาเพื่อกระบวนการทำ
 
 ## 🌿 โครงสร้าง Git Branches บน GitHub
 
-- **`rewrite`** *(Target Production Release Branch)*: โค้ดหลักระบบ ClaimIT v1.0 ปรับปรุงโครงสร้าง Full-Stack ใหม่, รองรับ Intranet รพ. 10.33.xx.xx, ช่างภาคสนาม iPhone/มือถือ, และระบบ Multi-Asset Claim
-- **`finalhtinmc`**: โค้ดหลักระบบ ClaimIT ก่อนการจัดโครงสร้าง
-- **`main`**: รวมโค้ดหลักสำหรับ Production Deployment
+- **`last-week`** *(Active Production & Development Branch)*: โค้ดหลักระบบ ClaimIT ปรับปรุงโครงสร้าง Full-Stack ล่าสุด, ระบบ 1-Click Fast Login 2 บัญชีหลัก, ทะเบียนผังอาคารและสายด่วนไอที, ตรวจสอบสถานะประกันแบบเรียลไทม์, และระบบ Multi-Asset Claim
+- **`main`**: สาขาหลักสำหรับ Production Deployment
+- **`rewrite`**: สาขารวมการปรับปรุงโครงสร้าง Full-Stack
 
 ---
 
-## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Pre-seeded Accounts: 4 IT Admins + 4 IT Staff)
+## 👤 บัญชีเริ่มต้นสำหรับเข้าใช้งานระบบ (Authoritative Pre-seeded Accounts)
 
-### 💻 บัญชีเจ้าหน้าที่ฝ่ายไอที (4 IT Admins)
-| Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
-|---|---|---|---|
-| `admin` | `admin123` | Admin 1 (Technical Support Head - หัวหน้าไอที) | Technical Support & Infrastructure |
-| `admin2` | `admin123` | Admin 2 (Senior IT Support - ช่างอาวุโส) | Technical Support & Infrastructure |
-| `admin3` | `admin123` | Admin 3 (Systems & Network IT - ดูแลระบบ) | Technical Support & Infrastructure |
-| `admin4` | `admin123` | Admin 4 (Hardware & Claim IT - ฝ่ายเคลม) | Technical Support & Infrastructure |
+ระบบติดตั้งมาพร้อม 2 บัญชีหลักตามมาตรฐานความปลอดภัยโรงพยาบาล (Security Hardening):
 
-### 🛠️ บัญชีช่างไอทีภาคสนาม / On-site Support (4 IT Staff)
-| Username | Password | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
-|---|---|---|---|
-| `staff` | `staff123` | Staff 1 (IT Field Technician - On-Site) | Technical Support & Infrastructure |
-| `staff2` | `staff123` | Staff 2 (IT On-site Support - ช่างประจำวอร์ด) | Technical Support & Infrastructure |
-| `staff3` | `staff123` | Staff 3 (IT Mobile Hardware Support - โมบาย/iPhone) | Technical Support & Infrastructure |
-| `staff4` | `staff123` | Staff 4 (IT Ward Support Staff - ผู้ช่วยไอที) | Technical Support & Infrastructure |
+| บทบาท | Username | Password เริ่มต้น | ชื่อ-ตำแหน่ง | แผนก/สังกัด |
+|---|---|---|---|---|
+| 👑 **IT Administrator (ผู้ดูแลระบบ)** | `admin` | `admin123` | Admin 1 (Technical Support Head - หัวหน้าฝ่ายไอที) | Technical Support & Infrastructure |
+| 🩺 **IT Support Staff (ช่างภาคสนาม)** | `staff` | `staff123` | Staff 1 (IT Field Technician - ช่างไอทีภาคสนาม) | Technical Support & Infrastructure |
 
-*(หมายเหตุ: ทุกบัญชีสามารถกดปุ่ม "✏️ แก้ไขชื่อ" เพื่อเปลี่ยนชื่อและแผนกของตนเองได้ตลอดเวลาตามต้องการ)*
+- **ปุ่มเข้าสู่ระบบด่วน 1-Click (Fast Login):** หน้าล็อกอินมีปุ่มทางลัด 2 ปุ่ม (`👑 แอดมิน (admin)` และ `🩺 เจ้าหน้าที่ (staff)`) เพื่อสลับสิทธิ์การทดสอบได้อย่างรวดเร็ว
+- **การเพิ่มผู้ใช้งาน:** ผู้ดูแลระบบ (Admin) สามารถสร้างบัญชี Admin หรือ Staff เพิ่มเติมได้ไม่จำกัดผ่านเมนู **[⚙️ ตั้งค่าระบบ] → [👥 จัดการผู้ใช้งานระบบ]** โดยผู้ใช้ใหม่จะถูกกำหนดให้เปลี่ยนรหัสผ่านในการเข้าสู่ระบบครั้งแรก (`must_change_password = 1`)
+- **การแก้ไขข้อมูลตนเอง:** ทุกบัญชีสามารถกดปุ่ม **"✏️ แก้ไขชื่อ"** บนแถบ Header หรือคลิกที่รูปโปรไฟล์เพื่อเปลี่ยนชื่อ-นามสกุล และแผนกของตนเองได้ตลอดเวลาตามต้องการ
 
 ---
 
-*อัปเดต: สิงหาคม 2026 — ครอบคลุมระบบช่างไอทีภาคสนาม, ใช้งานผ่าน iPhone/มือถือ, อัปโหลดภาพถ่ายครุภัณฑ์, ระบบ 6 เดือน, และวันที่สองปี พ.ศ./ค.ศ.*
+*อัปเดต: กันยายน 2026 — ครอบคลุมระบบช่างไอทีภาคสนาม, สแกนเนอร์ออฟไลน์และกล้องถ่ายรูป, ระบบกรองประกัน 60 วัน/6 เดือน, ผังอาคารโรงพยาบาล, สายด่วนไอที, และการจัดการผู้ใช้งานแบบแยกตาราง*
