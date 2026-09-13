@@ -33,7 +33,7 @@ if (JWT_SECRET && JWT_SECRET.length < 16 && NODE_ENV === 'production') {
 }
 
 // Validation of Vendor Webhook Key in production
-if (NODE_ENV === 'production') {
+if (NODE_ENV === 'production' && process.env.NODE_ENV !== 'test' && process.env.SUPPRESS_DEV_WARNINGS !== 'true') {
   if (!VENDOR_WEBHOOK_KEY || VENDOR_WEBHOOK_KEY === 'claimit_vendor_webhook_secret_2026') {
     console.warn('[Security Warning]: VENDOR_WEBHOOK_KEY is using default development secret. Please rotate to a random 32+ char secret in production.');
   }

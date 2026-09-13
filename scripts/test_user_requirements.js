@@ -15,6 +15,7 @@
  * 10. 100% SHA-256 hash match across all 6 companion HTML templates
  */
 
+process.env.SUPPRESS_DEV_WARNINGS = 'true';
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');

@@ -27,9 +27,9 @@ ClaimIT is a single-page application (SPA) designed for hospital IT equipment wa
 | Walkthrough | Feature Area | Key UX/UI Controls & Workflows |
 |---|---|---|
 | **01_getting_started** | Login & Navigation | Persona-based one-click demo login, responsive topbar, sidebar drawer. |
-| **02_staff_portal** | Field Technician Portal | Barcode search input, camera capture button, preset chip shortcuts, quick action buttons (Report Broken with state-based disabled guardrail, 6M PM, Emergency Loaner), **Dynamic IT Support Hotline** (`4401 - 4403`) with click-to-dial `tel:` links. |
+| **02_staff_portal** | Field Technician Portal | Barcode search input, **Live Camera & Offline Photo Scanner** (รองรับ iOS Safari), preset chip shortcuts, quick action buttons (Report Broken with state-based disabled guardrail, 6M PM, Emergency Loaner), **Dynamic IT Support Hotline** (`4401 - 4403`) with click-to-dial `tel:` links. |
 | **03_it_portal_dashboard** | IT Operations Hub | 4 Sub-tabs: Scanner/Lookup, Vendor Claims, Asset Inventory, Audit Trail. Stat summary cards with **Interactive Warranty Expiration Filter**, **Compact Category Dropdown Selector** (eliminating horizontal scrollbars), and **Role-based Disabled Navigation** (`#btn-it-to-config` grayed out for Staff). |
-| **04_asset_scanning_and_lookup** | Scanner & Search | Hardware scanner burst listener, anti-typo mode, fuzzy search suggestions, asset detail cards. |
+| **04_asset_scanning_and_lookup** | Scanner & Search | Hardware scanner burst listener, anti-typo mode, fuzzy search suggestions, asset detail cards, **Live Camera Scanner & Offline Multi-Format Barcode Engine** (ถอดรหัสบาร์โค้ด Code 128 / QR Code ออฟไลน์ 100% รองรับ iOS Safari และ Android บนแลน พร้อมระบบ Auto-Attach ภาพหลักฐาน). |
 | **05_pdpa_data_sanitization** | PDPA Wipe Gate | Data sanitization badge, wipe confirmation code input (`WIPED` / `WIPED-<TAG>`), audit logging. |
 | **06_rma_claim_creation** | Multi-Asset RMA Claims | 1 to 5 asset picker, live viability score calculator, vendor selection, RMA voucher dispatch. |
 | **07_viability_score** | Viability Score Engine | Formula factoring purchase price, remaining warranty days, repair cost, and device age. Score $\le 5.0$ = VIABLE. |

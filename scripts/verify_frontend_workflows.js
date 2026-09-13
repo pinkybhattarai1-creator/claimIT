@@ -4,6 +4,7 @@
  * tests responsiveness rules, and confirms zero regressions.
  */
 
+process.env.SUPPRESS_DEV_WARNINGS = 'true';
 const http = require('http');
 const fs = require('fs');
 const nodePath = require('path');

@@ -332,6 +332,11 @@ async function startLiveCameraStream() {
       if (hasDetector && barcodeDetectorInstance) {
         isDetectingBarcode = true;
         startContinuousBarcodeDetection(video);
+      } else if (window.Html5Qrcode) {
+        isDetectingBarcode = true;
+        if (statusEl) statusEl.textContent = '🟢 กำลังตรวจจับบาร์โค้ดอัตโนมัติ (Multi-format Engine)...';
+        startContinuousBarcodeDetection(video);
+        if (fallbackZone) fallbackZone.style.display = 'block';
       } else {
         if (statusEl) statusEl.textContent = 'ℹ️ กำลังแสดงภาพสด สามารถถ่ายภาพบาร์โค้ดเพื่อค้นหาได้';
         if (fallbackZone) fallbackZone.style.display = 'block';
@@ -358,17 +363,65 @@ function closeCameraBarcodeScanner() {
 }
 window.closeCameraBarcodeScanner = closeCameraBarcodeScanner;
 
+let fallbackQrEngine = null;
+let liveScanCanvas = null;
+let liveScanContext = null;
+
+function getFallbackQrEngine() {
+  if (!fallbackQrEngine && window.Html5Qrcode) {
+    let tempBox = document.getElementById('camera-scanner-temp-box');
+    if (!tempBox) {
+      tempBox = document.createElement('div');
+      tempBox.id = 'camera-scanner-temp-box';
+      tempBox.style.display = 'none';
+      document.body.appendChild(tempBox);
+    }
+    try {
+      fallbackQrEngine = new window.Html5Qrcode('camera-scanner-temp-box', false);
+    } catch (e) {
+      console.warn('Could not initialize Html5Qrcode:', e);
+    }
+  }
+  return fallbackQrEngine;
+}
+
 async function startContinuousBarcodeDetection(video) {
-  if (!isDetectingBarcode || !barcodeDetectorInstance || !video) return;
+  if (!isDetectingBarcode || !video) return;
 
   try {
     if (video.readyState >= 2) {
-      const barcodes = await barcodeDetectorInstance.detect(video);
-      if (barcodes && barcodes.length > 0) {
-        const rawCode = barcodes[0].rawValue;
-        if (rawCode) {
-          handleBarcodeDetected(rawCode);
-          return;
+      if (barcodeDetectorInstance) {
+        const barcodes = await barcodeDetectorInstance.detect(video);
+        if (barcodes && barcodes.length > 0) {
+          const rawCode = barcodes[0].rawValue;
+          if (rawCode) {
+            handleBarcodeDetected(rawCode);
+            return;
+          }
+        }
+      } else if (window.Html5Qrcode) {
+        const qrEngine = getFallbackQrEngine();
+        if (qrEngine && qrEngine.qrcode) {
+          if (!liveScanCanvas) {
+            liveScanCanvas = document.createElement('canvas');
+            liveScanContext = liveScanCanvas.getContext('2d', { willReadFrequently: true });
+          }
+          const vw = video.videoWidth || 640;
+          const vh = video.videoHeight || 480;
+          if (liveScanCanvas.width !== vw || liveScanCanvas.height !== vh) {
+            liveScanCanvas.width = vw;
+            liveScanCanvas.height = vh;
+          }
+          liveScanContext.drawImage(video, 0, 0, vw, vh);
+          try {
+            const res = await qrEngine.qrcode.decodeAsync(liveScanCanvas);
+            if (res && res.text) {
+              handleBarcodeDetected(res.text);
+              return;
+            }
+          } catch (_) {
+            // Frame did not contain a readable barcode
+          }
         }
       }
     }
@@ -377,7 +430,15 @@ async function startContinuousBarcodeDetection(video) {
   }
 
   if (isDetectingBarcode) {
-    requestAnimationFrame(() => startContinuousBarcodeDetection(video));
+    if (barcodeDetectorInstance) {
+      requestAnimationFrame(() => startContinuousBarcodeDetection(video));
+    } else {
+      setTimeout(() => {
+        if (isDetectingBarcode) {
+          requestAnimationFrame(() => startContinuousBarcodeDetection(video));
+        }
+      }, 250);
+    }
   }
 }
 
@@ -417,20 +478,43 @@ async function handleBarcodePhotoUpload(event) {
     img.src = URL.createObjectURL(file);
     await img.decode();
 
+    let detectedText = null;
+
+    // 1. Native BarcodeDetector (Chrome, Edge, Android)
     if ('BarcodeDetector' in window) {
       try {
         const detector = new window.BarcodeDetector();
         const barcodes = await detector.detect(img);
-        if (barcodes && barcodes.length > 0) {
-          handleBarcodeDetected(barcodes[0].rawValue);
-          return;
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          detectedText = barcodes[0].rawValue;
         }
       } catch (detErr) {
-        console.warn('Barcode detection attempt warning:', detErr);
+        console.warn('Native BarcodeDetector attempt warning:', detErr);
       }
     }
 
-    // Graceful Photo Evidence Attachment & Tag Prompt (iOS Safari / Non-detector browsers)
+    // 2. Offline Multi-Format Html5Qrcode Library (iOS Safari, Firefox, LAN HTTP)
+    if (!detectedText && window.Html5Qrcode) {
+      try {
+        const qrEngine = getFallbackQrEngine();
+        if (qrEngine) {
+          try {
+            detectedText = await qrEngine.scanFile(file, false);
+          } catch (scanErr) {
+            // No barcode detected in image
+          }
+        }
+      } catch (hErr) {
+        console.warn('Html5Qrcode scanFile warning:', hErr);
+      }
+    }
+
+    if (detectedText) {
+      handleBarcodeDetected(detectedText);
+      return;
+    }
+
+    // Graceful Photo Evidence Attachment & Tag Prompt (iOS Safari / Non-detector browsers when no barcode found)
     if (activeScanTargetPrefix === 'ward') {
       state.wardCapturedPhotoFile = file;
       const statusTag = document.getElementById('ward-camera-status-tag');
@@ -445,7 +529,7 @@ async function handleBarcodePhotoUpload(event) {
 
     closeCameraBarcodeScanner();
     if (typeof showToast === 'function') {
-      showToast('📷 แนบภาพถ่ายเรียบร้อยแล้ว กรุณาระบุหรือยืนยันรหัสครุภัณฑ์เพื่อค้นหา', 'info', 4500);
+      showToast('📷 แนบภาพถ่ายเรียบร้อยแล้ว ไม่พบบาร์โค้ดในภาพ กรุณาระบุหรือยืนยันรหัสครุภัณฑ์เพื่อค้นหา', 'info', 4500);
     }
     const inputId = `${activeScanTargetPrefix}-search-input`;
     const input = document.getElementById(inputId);
@@ -455,6 +539,8 @@ async function handleBarcodePhotoUpload(event) {
   } catch (err) {
     console.error('Barcode photo error:', err);
     if (statusEl) statusEl.textContent = '❌ ไม่สามารถอ่านภาพได้';
+  } finally {
+    if (event.target) event.target.value = '';
   }
 }
 window.handleBarcodePhotoUpload = handleBarcodePhotoUpload;
