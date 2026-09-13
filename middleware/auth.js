@@ -16,6 +16,8 @@ function verifyToken(req, res, next) {
     } else {
       return res.status(401).json({ error: 'รูปแบบ Authorization Header ไม่ถูกต้อง (Format: Bearer <token>)' });
     }
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
   }
 
   if (!token) {

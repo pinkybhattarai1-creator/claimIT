@@ -1133,3 +1133,91 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(() => {});
 });
+
+// ==========================================================================
+// User & Admin Manual Modal Controller (Dual-Role Documentation Center)
+// ==========================================================================
+function openManualModal() {
+  const modal = document.getElementById('modal-manual-download');
+  if (!modal) return;
+
+  const userRole = (state.user && state.user.role) ? state.user.role : 'staff';
+  const adminSection = document.getElementById('manual-admin-section');
+  const adminActions = document.getElementById('manual-admin-actions');
+  const adminRestricted = document.getElementById('manual-admin-restricted');
+  const regenSection = document.getElementById('manual-regenerate-section');
+
+  if (userRole === 'admin') {
+    if (adminActions) adminActions.style.display = 'flex';
+    if (adminRestricted) adminRestricted.style.display = 'none';
+    if (regenSection) regenSection.style.display = 'block';
+  } else {
+    if (adminActions) adminActions.style.display = 'none';
+    if (adminRestricted) adminRestricted.style.display = 'block';
+    if (regenSection) regenSection.style.display = 'none';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeManualModal() {
+  const modal = document.getElementById('modal-manual-download');
+  if (modal) modal.style.display = 'none';
+}
+
+function viewManualOnline(role) {
+  const token = state.user && state.user.token ? state.user.token : '';
+  const url = `/api/manuals/${encodeURIComponent(role)}/html?token=${encodeURIComponent(token)}`;
+  window.open(url, '_blank');
+}
+
+function downloadManualFile(role, format) {
+  const token = state.user && state.user.token ? state.user.token : '';
+  const url = `/api/manuals/${encodeURIComponent(role)}/${encodeURIComponent(format)}?token=${encodeURIComponent(token)}`;
+  window.location.href = url;
+}
+
+async function triggerRegenerateManuals() {
+  if (!state.user || state.user.role !== 'admin') {
+    if (typeof showToast === 'function') {
+      showToast('สิทธิ์ไม่เพียงพอ: เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น', 'warning');
+    }
+    return;
+  }
+  const btn = document.getElementById('btn-regenerate-manuals');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ กำลังสร้างคู่มือ...';
+  }
+  try {
+    const res = await fetch('/api/manuals/regenerate', {
+      method: 'POST',
+      headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Authorization': 'Bearer ' + state.user.token }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (typeof showToast === 'function') {
+        showToast(data.message || 'สร้างคู่มือระบบใหม่สำเร็จเรียบร้อยแล้ว', 'success', 3500);
+      }
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(data.error || 'การสร้างคู่มือล้มเหลว', 'error');
+      }
+    }
+  } catch (err) {
+    if (typeof showToast === 'function') {
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔄 สร้างคู่มือใหม่ทันที';
+    }
+  }
+}
+
+window.openManualModal = openManualModal;
+window.closeManualModal = closeManualModal;
+window.viewManualOnline = viewManualOnline;
+window.downloadManualFile = downloadManualFile;
+window.triggerRegenerateManuals = triggerRegenerateManuals;

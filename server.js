@@ -133,6 +133,7 @@ app.use('/api/export', require('./routes/export'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/manuals', require('./routes/manuals'));
 app.use('/api', require('./routes/audit'));
 const { performBackup } = require('./scripts/backup');
 const { verifyToken, adminOnly } = require('./middleware/auth');

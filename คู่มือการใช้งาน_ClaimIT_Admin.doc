@@ -1,0 +1,396 @@
+﻿<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>คู่มือผู้ดูแลระบบและวิศวกรไอที ClaimIT (Admin System Manual)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 20mm 20mm 20mm;
+      mso-header-margin: 36pt;
+      mso-footer-margin: 36pt;
+    }
+    body {
+      font-family: 'Sarabun', 'TH Sarabun New', 'Cordia New', 'Segoe UI', Tahoma, sans-serif;
+      font-size: 14pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: none;
+    }
+    .cover-page {
+      text-align: center;
+      padding: 40px 20px;
+      border-bottom: 3px solid #0284c7;
+      margin-bottom: 30px;
+    }
+    .cover-icon {
+      font-size: 48pt;
+      margin-bottom: 10px;
+    }
+    h1.title {
+      font-size: 24pt;
+      color: #0f172a;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .subtitle {
+      font-size: 15pt;
+      color: #475569;
+      margin-bottom: 15px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11pt;
+      font-weight: bold;
+      background: #e0f2fe;
+      color: #0369a1;
+      margin: 4px;
+    }
+    .badge-staff {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .badge-admin {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .meta-box {
+      margin-top: 20px;
+      padding: 14px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      font-size: 12pt;
+      color: #334155;
+    }
+    h2.section-header {
+      padding: 12px 18px;
+      border-radius: 6px;
+      color: #ffffff;
+      margin-top: 40px;
+      font-size: 18pt;
+    }
+    .header-staff {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    .header-admin {
+      background: linear-gradient(135deg, #0284c7 0%, #1e40af 100%);
+    }
+    h2 {
+      color: #0284c7;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-top: 35px;
+      font-size: 17pt;
+    }
+    h3 {
+      color: #334155;
+      margin-top: 22px;
+      font-size: 14pt;
+    }
+    p, li {
+      font-size: 13pt;
+      color: #334155;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 12pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 9px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .callout {
+      padding: 14px 18px;
+      border-left: 5px solid #0284c7;
+      background: #f0f9ff;
+      border-radius: 0 8px 8px 0;
+      margin: 18px 0;
+    }
+    .callout.warning {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+    }
+    .callout.danger {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    .callout.success {
+      border-left-color: #10b981;
+      background: #f0fdf4;
+    }
+    .callout-title {
+      font-weight: bold;
+      font-size: 13pt;
+      margin-bottom: 4px;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12pt;
+      color: #0369a1;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="cover-icon">💻 🛡️ ⚙️</div>
+    <h1 class="title">คู่มือผู้ดูแลระบบและวิศวกรไอที ClaimIT (Admin System Manual)</h1>
+    <div class="subtitle">ระบบบริหารจัดการรับประกัน ส่งเคลมศูนย์บริการ และควบคุมโครงสร้างระบบสารสนเทศโรงพยาบาล<br>Hospital IT Warranty, RMA Claim & System Administration Master Manual</div>
+    <span class="badge badge-admin">🔵 สำหรับผู้ดูแลระบบ / วิศวกรคอมพิวเตอร์ / หัวหน้าฝ่ายไอที (Admin & Operations)</span>
+    <span class="badge">ฉบับปรับปรุงปี 2026 (ครบทั้ง 21 โมดูล)</span>
+    <div class="meta-box">
+      <strong>จัดทำโดย:</strong> ฝ่ายเทคโนโลยีสารสนเทศและโครงสร้างพื้นฐานโรงพยาบาล<br>
+      <strong>ครอบคลุม:</strong> การบริหารทะเบียนครุภัณฑ์, ออกใบเคลม RMA 1-5 เครื่อง, มาตรการล้างข้อมูล PDPA, ประเมินความคุ้มค่า Viability Score, Audit Trail, ผังอาคารถาวร, จัดการผู้ใช้ RBAC, ส่งออก Excel และ DevOps
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <h2>📑 สารบัญคู่มือผู้ดูแลระบบ (Complete Admin Index - 21 Modules)</h2>
+  <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:25px;">
+    <ul style="margin:0; line-height:1.8;">
+      <li><strong>01. เริ่มต้นใช้งาน & สิทธิ์การเข้าถึง (RBAC):</strong> บัญชีผู้ดูแลระบบ <code>admin / admin123</code> และการจัดการโทเค็น JWT</li>
+      <li><strong>02. แดชบอร์ดศูนย์ควบคุมไอที (IT Operations Hub):</strong> ตัวชี้วัด KPIs, แจ้งเตือน <code>expiring_60d</code> & <code>expiring_6m</code></li>
+      <li><strong>03. สแกนและค้นหาครุภัณฑ์ขั้นสูง:</strong> Hardware Burst Listener, Anti-Typo Engine และ Offline Barcode Engine</li>
+      <li><strong>04. การบริหารจัดการทะเบียนครุภัณฑ์ (Asset Management):</strong> Category Dropdown Selector, Single-Brand Guardrail, Numbered Pagination Slots และผังอาคารโรงพยาบาล</li>
+      <li><strong>05. มาตรการความปลอดภัยข้อมูล PDPA Storage Sanitization:</strong> ประตูกักกันข้อมูล (Enforced Wipe Gate: พิมพ์ "ยืนยัน" / "WIPED")</li>
+      <li><strong>06. การสร้างใบส่งเคลมศูนย์บริการ (Multi-Asset RMA):</strong> รวบรวมส่งเคลม 1 ถึง 5 เครื่องต่อใบเคลม และเลือกศูนย์บริการ</li>
+      <li><strong>07. เครื่องคำนวณความคุ้มค่า (Viability Score Engine):</strong> ดัชนีตัดสิน &le; 5.0 (VIABLE) vs &gt; 5.0 (NOT_VIABLE)</li>
+      <li><strong>08. วงจรสถานะงานเคลม (6-Stage Claim State Machine):</strong> DRAFT &rarr; CONFIRMED &rarr; SUBMITTED &rarr; VENDOR_RESPONSE &rarr; RETURNED &rarr; CLOSED</li>
+      <li><strong>09. ระบบจัดเก็บไฟล์หลักฐานและความปลอดภัย (Evidence Storage):</strong> IDOR Protection, Magic Byte Inspection และการกักกันไฟล์ 90 วัน</li>
+      <li><strong>10. ศูนย์พิมพ์เอกสารราชการและ PDF (PDF & Print Center):</strong> ใบส่งเคลม RMA Voucher, Gate Pass และ Repair Slips ฟอนต์ไทย Tahoma</li>
+      <li><strong>11. การแทงจำหน่ายและจัดการซาก (EOL & Salvage Disposal):</strong> Pending Sell, Sold, Pending Donation, Donated และ Scrapped</li>
+      <li><strong>12. บันทึกประวัติการเปลี่ยนแปลงแบบแก้ไขไม่ได้ (Audit Trail):</strong> รหัสอ้างอิง <code>CHG-YYYYMMDD-XXXXXX</code> และตัวกรองช่วงเวลา</li>
+      <li><strong>13. การบริหารจัดการบัญชีผู้ใช้ (User Management):</strong> แยกตาราง Admin/Staff, ตัวกรองบทบาท, นโยบายรหัสผ่าน <code>must_change_password</code></li>
+      <li><strong>14. การตั้งค่าระบบ 6 แท็บย่อย (System Configurations):</strong> แบรนด์, หมวดหมู่เรียงตาม ID, ทะเบียนผังอาคารโรงพยาบาลถาวร, ผู้ใช้, Feedback & Bugs (#tab-cfg-feedback) และสำรองฐานข้อมูล</li>
+      <li><strong>15. ระบบสายด่วนไอทีแบบไดนามิก (Dynamic IT Hotline):</strong> ควบคุมเบอร์โทร <code>4401 - 4403</code> เชื่อมโยงสู่หน้า Staff ทันทีแบบ 0-DB changes</li>
+      <li><strong>16. การส่งออกข้อมูล Excel & CSV:</strong> Microsoft Excel SpreadsheetML (.xls) แบบหลายชีต และ UTF-8 BOM CSV</li>
+      <li><strong>17. เมนูทางลัดด่วน (Quick Access Sidebar Drawer):</strong> สถิติงานประจำวัน, ประวัติการสแกน และสายด่วน Vendor</li>
+      <li><strong>18. การแจ้งเตือนผ่านอีเมล (Email Notifications):</strong> Resend API Integration สำหรับรายงานผล Viability และใบเคลม</li>
+      <li><strong>19. มาตรการความปลอดภัยและป้องกันการโจมตี (Security & Hardening):</strong> Rate Limiting, CORS, Parameterized SQL, Token Revocation</li>
+      <li><strong>20. การติดตั้งระบบและการบำรุงรักษา (DevOps & Deployment):</strong> Node.js, Docker Compose, SQLite WAL Mode และ Daily Auto-Maintenance</li>
+      <li><strong>ภาคผนวก:</strong> Disaster Recovery, การกู้คืนฐานข้อมูลสำรอง และ FAQ สำหรับผู้ดูแลระบบ</li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 2: ADMIN DEEP DIVE -->
+  <h2 class="section-header header-admin">🔵 รายละเอียดโมดูลระบบสารสนเทศและการควบคุมส่วนกลาง</h2>
+
+  <div style="text-align:center; margin:20px 0;">
+    <div style="font-weight:bold; color:#1e40af; margin-bottom:6px;">💻 ภาพรวมหน้าจอศูนย์ควบคุมและตารางครุภัณฑ์ (IT Portal Admin UI)</div>
+    <svg width="100%" height="220" viewBox="0 0 840 220" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff; border-radius:8px; border:1px solid #cbd5e1; margin:15px 0;">
+    <!-- Top Filter Bar -->
+    <rect x="15" y="15" width="810" height="50" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="30" y="45" font-family="sans-serif" font-size="13" font-weight="bold" fill="#0f172a">กรองข้อมูล:</text>
+    
+    <!-- Category Dropdown -->
+    <rect x="110" y="25" width="180" height="30" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+    <text x="125" y="45" font-family="sans-serif" font-size="12" fill="#0f172a">📁 หมวดหมู่: ทั้งหมด (All) ▾</text>
+
+    <!-- Status Filter -->
+    <rect x="305" y="25" width="160" height="30" rx="4" fill="#ffffff" stroke="#94a3b8"/>
+    <text x="320" y="45" font-family="sans-serif" font-size="12" fill="#0f172a">📊 สถานะ: ทั้งหมด ▾</text>
+
+    <!-- Add Asset Button -->
+    <rect x="670" y="25" width="140" height="30" rx="4" fill="#0284c7"/>
+    <text x="740" y="45" font-family="sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">➕ เพิ่มครุภัณฑ์ใหม่</text>
+
+    <!-- Table Mockup -->
+    <rect x="15" y="75" width="810" height="85" fill="#f1f5f9" stroke="#e2e8f0"/>
+    <line x1="15" y1="105" x2="825" y2="105" stroke="#cbd5e1"/>
+    <text x="30" y="95" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569">รหัสครุภัณฑ์</text>
+    <text x="170" y="95" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569">ยี่ห้อ/รุ่น (Single-Brand)</text>
+    <text x="380" y="95" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569">สถานที่ (ผังอาคาร 1-Call Center)</text>
+    <text x="630" y="95" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569">สถานะรับประกัน</text>
+    <text x="760" y="95" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569">จัดการ</text>
+
+    <text x="30" y="130" font-family="monospace" font-size="11" fill="#0f172a">CIT-2024-AIO-01</text>
+    <text x="170" y="130" font-family="sans-serif" font-size="11" fill="#0f172a">Dell OptiPlex 7400</text>
+    <text x="380" y="130" font-family="sans-serif" font-size="11" fill="#0f172a">Building 1 ชั้น 2 (OPD)</text>
+    <text x="630" y="130" font-family="sans-serif" font-size="11" fill="#16a34a">🟢 ปกติ (พ.ศ. 2570)</text>
+    <text x="760" y="130" font-family="sans-serif" font-size="11" fill="#0284c7">🔍 รายละเอียด</text>
+
+    <!-- Pagination Slots -->
+    <rect x="15" y="170" width="810" height="40" rx="6" fill="#f8fafc"/>
+    <text x="30" y="195" font-family="sans-serif" font-size="12" fill="#64748b">แสดง 1 - 25 จากทั้งหมด 348 รายการ</text>
+    
+    <!-- Slots -->
+    <rect x="600" y="176" width="30" height="28" rx="4" fill="#e2e8f0"/>
+    <text x="615" y="195" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">&lt;</text>
+    <rect x="636" y="176" width="30" height="28" rx="4" fill="#0284c7"/>
+    <text x="651" y="195" font-family="sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
+    <rect x="672" y="176" width="30" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="687" y="195" font-family="sans-serif" font-size="12" fill="#334155" text-anchor="middle">2</text>
+    <rect x="708" y="176" width="30" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="723" y="195" font-family="sans-serif" font-size="12" fill="#334155" text-anchor="middle">3</text>
+    <rect x="744" y="176" width="30" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="759" y="195" font-family="sans-serif" font-size="12" fill="#334155" text-anchor="middle">4</text>
+    <rect x="780" y="176" width="30" height="28" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="795" y="195" font-family="sans-serif" font-size="12" fill="#334155" text-anchor="middle">&gt;</text>
+  </svg>
+  </div>
+
+  <h3>2.1 การบริหารจัดการทะเบียนครุภัณฑ์ (Asset Management)</h3>
+  <ul>
+    <li><strong>ตัวกรองหมวดหมู่ Dropdown Selector (<code>filter-category-select</code>):</strong> ออกแบบกะทัดรัด สะอาดตา อยู่เคียงข้างตัวกรองสถานะอุปกรณ์ ช่วยตัดปัญหา Horizontal Scrollbar กรองเฉพาะ Computer, Monitor, Printer, Network ได้ทันที</li>
+    <li><strong>ระบบป้องกันการพิมพ์หลายยี่ห้อ (Single-Brand Guardrail):</strong> ตรวจสอบทั้ง Frontend และ Backend ป้องกันไม่ให้พิมพ์หลายยี่ห้อปนกัน (เช่น <code>Dell และ Acer</code>, <code>HP, Lenovo</code>) พร้อมระบบ Whitelist รองรับชื่อแบรนด์ผสมถูกต้อง เช่น <em>A&amp;D Medical, Bang &amp; Olufsen, AT&amp;T</em></li>
+    <li><strong>ปุ่มสล็อตตัวเลขสลับหน้า (Numbered Pagination Slots):</strong> แสดงปุ่ม <code>[1]</code> <code>[2]</code> <code>[3]</code> ... ชัดเจน พร้อมระบบล็อกปุ่มขอบหน้า (Boundary Disabled)</li>
+    <li><strong>🏥 ทำเนียบผังอาคารโรงพยาบาลมาตรฐาน (Hospital Layout Picker):</strong> กดเลือกอาคาร ชั้น และแผนกจากผังโครงสร้างจริง (อาคาร 1 ชั้น 21 ถึง ชั้น D และอาคาร Call Center) ป้องกันข้อผิดพลาดในการพิมพ์ชื่อสถานที่</li>
+  </ul>
+
+  <h3>2.2 มาตรการความปลอดภัยข้อมูล PDPA (Enforced Wipe Gate)</h3>
+  <div class="callout danger">
+    <div class="callout-title">🛑 ข้อบังคับความปลอดภัยข้อมูลผู้ป่วย (PDPA Data Sanitization Gate)</div>
+    อุปกรณ์ที่มีสื่อบันทึกข้อมูล (ฮาร์ดดิสก์, SSD) เช่น คอมพิวเตอร์ All-in-One หรือโน้ตบุ๊ก <strong>จะถูกระบบบล็อกไม่ให้ออกใบส่งเคลมเด็ดขาด</strong> จนกว่าผู้ดูแลระบบจะยืนยันว่าได้ถอดสื่อบันทึกข้อมูลหรือทำการล้างข้อมูลความปลอดภัยเรียบร้อยแล้ว
+  </div>
+  <ol>
+    <li>เปิดการ์ดรายละเอียดของเครื่องที่แจ้งซ่อม</li>
+    <li>ติ๊กช่อง <em>"ข้าพเจ้ายืนยันว่าได้ถอดสื่อบันทึกข้อมูล หรือล้างข้อมูลความปลอดภัยเรียบร้อยแล้ว"</em></li>
+    <li>พิมพ์รหัสยืนยัน: <strong style="color:#0284c7; font-size:14pt;">ยืนยัน หรือ WIPED</strong></li>
+    <li>กดปุ่ม <strong>[ยืนยันความปลอดภัยข้อมูล]</strong> ระบบจะบันทึก Audit Log และปลดล็อกให้สามารถนำเครื่องเข้าสู่กระบวนการสร้างใบเคลม RMA ได้ทันที</li>
+  </ol>
+
+  <h3>2.3 การประเมินความคุ้มค่า (Viability Score Engine)</h3>
+  <div style="text-align:center; margin:15px 0;">
+    <svg width="100%" height="90" viewBox="0 0 600 90" xmlns="http://www.w3.org/2000/svg" style="background:#fff; border-radius:8px; border:1px solid #e2e8f0; margin:15px 0;">
+    <rect x="40" y="25" width="260" height="24" rx="12" fill="#10b981"/>
+    <rect x="300" y="25" width="260" height="24" rx="12" fill="#ef4444"/>
+    <text x="170" y="41" font-family="sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">🟢 0.0 - 5.0 : คุ้มค่าส่งซ่อม (VIABLE)</text>
+    <text x="430" y="41" font-family="sans-serif" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">🔴 5.1 - 10.0 : ไม่คุ้มค่าส่งซ่อม (NOT VIABLE)</text>
+    <line x1="300" y1="18" x2="300" y2="56" stroke="#0f172a" stroke-width="3"/>
+    <text x="300" y="14" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0f172a" text-anchor="middle">เกณฑ์ตัดสิน (5.0)</text>
+    <text x="40" y="70" font-family="sans-serif" font-size="11" fill="#64748b">อยู่ในประกัน = 1.0 (คุ้มที่สุด ไม่เสียค่าอะไหล่)</text>
+    <text x="300" y="70" font-family="sans-serif" font-size="11" fill="#64748b" text-anchor="middle">หมดประกันแต่มูลค่ายังคุ้มซ่อม (2.0 - 5.0)</text>
+    <text x="560" y="70" font-family="sans-serif" font-size="11" fill="#64748b" text-anchor="end">หมดอายุเกิน 5 ปี = 8.5+</text>
+  </svg>
+  </div>
+  <p>ระบบใช้สูตรคำนวณความคุ้มค่าทางเศรษฐศาสตร์:</p>
+  <ul>
+    <li><strong>อยู่ในสัญญาประกัน:</strong> Viability Score = <strong>1.0 (VIABLE)</strong> (คุ้มค่าที่สุด ศูนย์บริการรับผิดชอบค่าอะไหล่และค่าแรง)</li>
+    <li><strong>หมดประกันแล้ว:</strong> คำนวณจากราคาจัดซื้อเดิม, ค่าซ่อมประเมิน, และอายุการใช้งาน:
+      <ul>
+        <li>คะแนน <strong>0.0 – 5.0 (🟢 VIABLE):</strong> คุ้มค่าส่งซ่อมศูนย์บริการ</li>
+        <li>คะแนน <strong>5.1 – 10.0 (🔴 NOT VIABLE):</strong> ไม่คุ้มค่าซ่อม (เครื่องเก่าเกิน 5 ปี หรือค่าซ่อมเกิน 50% ของมูลค่าคงเหลือ) ควรพิจารณาเสนอแทงจำหน่าย (Scrap) หรือขายทอดตลาด</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>2.4 การสร้างใบส่งเคลมศูนย์บริการ (Multi-Asset RMA Claims)</h3>
+  <ul>
+    <li>กดปุ่ม <strong>[➕ สร้างใบเคลมใหม่]</strong> ในแท็บใบส่งเคลม</li>
+    <li>เลือกศูนย์บริการ (Vendor) เช่น Dell ProSupport, HP Care, TSC, Canon, Acer ฯลฯ และใส่เลข Case/Ticket</li>
+    <li>สามารถเลือกครุภัณฑ์ที่ผ่านการล้างข้อมูลแล้วรวมส่งพร้อมกันได้ <strong>1 ถึง 5 เครื่องต่อ 1 ใบเคลม</strong></li>
+    <li>เมื่อบันทึก เครื่องจะเปลี่ยนสถานะเป็น <code>Pending Pickup (รอรถขนส่งมารับ)</code></li>
+  </ul>
+
+  <h3>2.5 วงจรสถานะงานเคลม (6-Stage Claim State Machine)</h3>
+  <div style="text-align:center; margin:15px 0;">
+    <svg width="100%" height="90" viewBox="0 0 780 90" xmlns="http://www.w3.org/2000/svg" style="background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; margin:15px 0;">
+    <!-- States -->
+    <rect x="15" y="25" width="105" height="42" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="67" y="50" font-family="sans-serif" font-size="11" font-weight="bold" fill="#475569" text-anchor="middle">1. DRAFT</text>
+    <path d="M 120 46 L 140 46" stroke="#64748b" stroke-width="2"/>
+
+    <rect x="145" y="25" width="105" height="42" rx="6" fill="#e0f2fe" stroke="#38bdf8"/>
+    <text x="197" y="50" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0369a1" text-anchor="middle">2. CONFIRMED</text>
+    <path d="M 250 46 L 270 46" stroke="#64748b" stroke-width="2"/>
+
+    <rect x="275" y="25" width="105" height="42" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+    <text x="327" y="50" font-family="sans-serif" font-size="11" font-weight="bold" fill="#b45309" text-anchor="middle">3. SUBMITTED</text>
+    <path d="M 380 46 L 400 46" stroke="#64748b" stroke-width="2"/>
+
+    <rect x="405" y="25" width="115" height="42" rx="6" fill="#ede9fe" stroke="#8b5cf6"/>
+    <text x="462" y="50" font-family="sans-serif" font-size="10.5" font-weight="bold" fill="#6d28d9" text-anchor="middle">4. VENDOR_RESP</text>
+    <path d="M 520 46 L 540 46" stroke="#64748b" stroke-width="2"/>
+
+    <rect x="545" y="25" width="105" height="42" rx="6" fill="#fef08a" stroke="#ca8a04"/>
+    <text x="597" y="50" font-family="sans-serif" font-size="11" font-weight="bold" fill="#854d0e" text-anchor="middle">5. RETURNED</text>
+    <path d="M 650 46 L 670 46" stroke="#64748b" stroke-width="2"/>
+
+    <rect x="675" y="25" width="90" height="42" rx="6" fill="#dcfce7" stroke="#22c55e"/>
+    <text x="720" y="50" font-family="sans-serif" font-size="11" font-weight="bold" fill="#15803d" text-anchor="middle">6. CLOSED</text>
+  </svg>
+  </div>
+  <table style="font-size:11.5pt;">
+    <tr><th>ลำดับ</th><th>สถานะ</th><th>ความหมายและเงื่อนไขการเปลี่ยนผ่าน</th></tr>
+    <tr><td>1</td><td><code>DRAFT</code></td><td>ร่างใบเคลม ยังสามารถเพิ่ม/ลดรายการครุภัณฑ์ได้</td></tr>
+    <tr><td>2</td><td><code>CONFIRMED</code></td><td>ยืนยันรายการส่งซ่อม ล็อกรายการครุภัณฑ์</td></tr>
+    <tr><td>3</td><td><code>SUBMITTED</code></td><td>ส่งมอบเครื่องให้รถขนส่ง/ศูนย์บริการเรียบร้อยแล้ว</td></tr>
+    <tr><td>4</td><td><code>VENDOR_RESPONSE</code></td><td>ศูนย์บริการตอบรับ กำลังดำเนินการซ่อมหรือรออะไหล่</td></tr>
+    <tr><td>5</td><td><code>RETURNED</code></td><td>ศูนย์บริการส่งเครื่องกลับมาถึงโรงพยาบาล อยู่ระหว่างตรวจรับ</td></tr>
+    <tr><td>6</td><td><code>CLOSED</code></td><td>ตรวจรับเรียบร้อย ส่งเครื่องคืนวอร์ด ปิดงานสมบูรณ์</td></tr>
+  </table>
+
+  <h3>2.6 การตั้งค่าระบบ 6 แท็บย่อย (System Configurations)</h3>
+  <ol>
+    <li><code>🏷️ แบรนด์ & คู่มือเคลม</code>: บันทึกข้อมูลติดต่อและเงื่อนไขการส่งซ่อมของแต่ละศูนย์บริการ</li>
+    <li><code>💻 หมวดหมู่อุปกรณ์</code>: จัดระเบียบตามลำดับ ID พร้อมคำแปลภาษาไทย</li>
+    <li><code>🏥 แผนกและผังอาคารถาวร (Hospital Directory)</code>: แสดงผังอาคารทางการ (อาคาร 1 และ Call Center) แบบไม่ให้ลบโครงสร้างถาวร</li>
+    <li><code>👥 จัดการบัญชีผู้ใช้ (RBAC)</code>: แยกตารางแสดงผล Admin และ Staff พร้อมปุ่มเปลี่ยนรหัสผ่านและนโยบาย <code>must_change_password</code></li>
+    <li><code>💬 ข้อเสนอแนะและแจ้งปัญหา (Feedback & Bugs)</code>: ติดตามข้อเสนอแนะจากเจ้าหน้าที่หน้างาน (แท็บ <code>#tab-cfg-feedback</code>)</li>
+    <li><code>💾 สำรองฐานข้อมูล & สายด่วนไอที</code>:
+      <ul>
+        <li><strong>แก้ไขเบอร์สายด่วน IT Support Hotline:</strong> ระบุหมายเลขคั่นด้วยจุลภาค เช่น <code>4401, 4402, 4403</code> เพื่ออัปเดตไปยังหน้า Staff ทันที</li>
+        <li><strong>สำรองฐานข้อมูล (SQLite Backup):</strong> คลิกเดียวเพื่อดาวน์โหลด Snapshot ฐานข้อมูลพร้อมโครงสร้างครบถ้วน</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>2.7 ความปลอดภัยและการจัดเก็บหลักฐาน (Evidence Storage & IDOR Protection)</h3>
+  <ul>
+    <li><strong>Magic Byte Validation:</strong> ตรวจสอบโครงสร้างไบต์จริงของไฟล์ทุกไฟล์บนดิสก์ ป้องกันการปลอมแปลงนามสกุลไฟล์</li>
+    <li><strong>IDOR Protection:</strong> การเข้าถึงไฟล์หลักฐานทุกไฟล์ต้องผ่านการตรวจสอบสิทธิ์ JWT และความสัมพันธ์ของคดี</li>
+    <li><strong>Quarantine Purge:</strong> ระบบทำความสะอาดไฟล์ที่กักกันเกิน 90 วันอัตโนมัติทุก 24 ชั่วโมง</li>
+  </ul>
+
+  <h3>2.8 การติดตั้งและการบำรุงรักษา (DevOps & Maintenance)</h3>
+  <ul>
+    <li><strong>คำสั่งเริ่มต้นระบบ:</strong> <code>npm start</code> หรือรันไฟล์ <code>Start_Hospital_LAN.bat</code></li>
+    <li><strong>การทำงานบนเครือข่ายแลนโรงพยาบาล:</strong> ระบบผูกกับ <code>0.0.0.0</code> และตรวจจับ IP วงแลน <code>10.33.x.x</code> หรือ <code>10.x.x.x</code> อัตโนมัติ</li>
+    <li><strong>SQLite WAL Mode:</strong> เปิดใช้งาน Write-Ahead Logging เพื่อรองรับการอ่าน/เขียนพร้อมกันหลายแผนกได้อย่างมีเสถียรภาพ</li>
+  </ul>
+
+  <hr style="margin-top:40px; border:0; border-top:1px solid #cbd5e1;">
+  <div style="text-align:center; color:#64748b; font-size:11pt; padding:20px 0;">
+    ClaimIT Hospital IT Warranty & RMA Claim Management System — คู่มือผู้ดูแลระบบและวิศวกรไอที (Admin System Manual)
+  </div>
+
+</div>
+</body>
+</html>

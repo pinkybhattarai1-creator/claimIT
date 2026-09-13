@@ -1,0 +1,388 @@
+﻿<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>คู่มือการใช้งานระบบ ClaimIT สำหรับเจ้าหน้าที่วอร์ด (Staff User Manual)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 20mm 20mm 20mm;
+      mso-header-margin: 36pt;
+      mso-footer-margin: 36pt;
+    }
+    body {
+      font-family: 'Sarabun', 'TH Sarabun New', 'Cordia New', 'Segoe UI', Tahoma, sans-serif;
+      font-size: 14pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .cover-page {
+      text-align: center;
+      padding: 40px 20px;
+      border-bottom: 3px solid #0284c7;
+      margin-bottom: 30px;
+    }
+    .cover-icon {
+      font-size: 48pt;
+      margin-bottom: 10px;
+    }
+    h1.title {
+      font-size: 24pt;
+      color: #0f172a;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .subtitle {
+      font-size: 15pt;
+      color: #475569;
+      margin-bottom: 15px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11pt;
+      font-weight: bold;
+      background: #e0f2fe;
+      color: #0369a1;
+      margin: 4px;
+    }
+    .badge-staff {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .badge-admin {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .meta-box {
+      margin-top: 20px;
+      padding: 14px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      font-size: 12pt;
+      color: #334155;
+    }
+    h2.section-header {
+      padding: 12px 18px;
+      border-radius: 6px;
+      color: #ffffff;
+      margin-top: 40px;
+      font-size: 18pt;
+    }
+    .header-staff {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    .header-admin {
+      background: linear-gradient(135deg, #0284c7 0%, #1e40af 100%);
+    }
+    h2 {
+      color: #0284c7;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-top: 35px;
+      font-size: 17pt;
+    }
+    h3 {
+      color: #334155;
+      margin-top: 22px;
+      font-size: 14pt;
+    }
+    p, li {
+      font-size: 13pt;
+      color: #334155;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 12pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 9px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .callout {
+      padding: 14px 18px;
+      border-left: 5px solid #0284c7;
+      background: #f0f9ff;
+      border-radius: 0 8px 8px 0;
+      margin: 18px 0;
+    }
+    .callout.warning {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+    }
+    .callout.danger {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    .callout.success {
+      border-left-color: #10b981;
+      background: #f0fdf4;
+    }
+    .callout-title {
+      font-weight: bold;
+      font-size: 13pt;
+      margin-bottom: 4px;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12pt;
+      color: #0369a1;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="cover-icon">📱 🏥 🛠️</div>
+    <h1 class="title">คู่มือการใช้งานระบบ ClaimIT (Staff User Manual)</h1>
+    <div class="subtitle">ระบบแจ้งซ่อมและตรวจสอบประกันอุปกรณ์คอมพิวเตอร์ประจำแผนก/วอร์ด<br>Hospital IT Support & Broken Asset Reporting Portal</div>
+    <span class="badge badge-staff">🟢 สำหรับเจ้าหน้าที่ประจำวอร์ด / พยาบาล / ช่างไอทีภาคสนาม (Staff)</span>
+    <span class="badge">ฉบับปรับปรุงปี 2026</span>
+    <div class="meta-box">
+      <strong>จัดทำโดย:</strong> ฝ่ายเทคโนโลยีสารสนเทศและโครงสร้างพื้นฐานโรงพยาบาล<br>
+      <strong>วัตถุประสงค์:</strong> เพื่อให้เจ้าหน้าที่ประจำแผนกสามารถตรวจสอบประกัน สแกนบาร์โค้ด แจ้งซ่อม ขอยืมเครื่องสำรอง และติดต่อสายด่วนไอทีได้อย่างถูกต้องรวดเร็ว
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <h2>📑 สารบัญคู่มือเจ้าหน้าที่ (Table of Contents)</h2>
+  <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:25px;">
+    <ul style="margin:0; line-height:1.9;">
+      <li><strong>1.1 การเข้าสู่ระบบและความปลอดภัยของเซสชัน:</strong> Username <code>staff</code>, Password <code>staff123</code> และระบบตัดเซสชันอัตโนมัติ 15 นาที</li>
+      <li><strong>1.2 การค้นหาและสแกนบาร์โค้ด:</strong> เครื่องอ่านบาร์โค้ด, พิมพ์ค้นหา, สแกนกล้องสด และ <em>Offline Photo Scanner</em> (รองรับ iOS Safari และแนบรูปอัตโนมัติ)</li>
+      <li><strong>1.3 การตรวจสอบประกันแบบสองปฏิทิน:</strong> ปฏิทิน พ.ศ. (ไทย) และ ค.ศ. (สากล) พร้อมสถานะประกันเขียว-เหลือง-แดง</li>
+      <li><strong>1.4 การแจ้งซ่อมอุปกรณ์ชำรุด:</strong> เลือกอาการเสีย, แนบภาพจุดชำรุด และ <em>ระบบป้องกันแจ้งซ่อมซ้ำ (Duplicate Guardrail)</em></li>
+      <li><strong>1.5 ช่องทางติดต่อด่วน IT Support Hotline:</strong> หมายเลขโทรศัพท์ส่วนกลาง <code>4401 - 4403</code> พร้อมปุ่ม Click-to-Dial โทรออกได้ทันที</li>
+      <li><strong>1.6 การขอยืมอุปกรณ์สำรองฉุกเฉิน (Emergency Loaner Units):</strong> การขอเบิกใช้งานเครื่องสำรอง All-in-One และ Printer</li>
+      <li><strong>1.7 การติดตามสถานะงานซ่อมประจำแผนก:</strong> ตรวจสอบสถานะงานซ่อม 24 ชั่วโมง และคำชี้แจงปุ่มฟังก์ชันระดับ Admin ที่แสดงผลเป็นสีเทา (Disabled)</li>
+      <li><strong>ภาคผนวก:</strong> ปัญหาที่พบบ่อยและการแก้ไขด้วยตนเอง (FAQ)</li>
+    </ul>
+  </div>
+
+  <div style="text-align:center; margin:25px 0;">
+    <div style="font-weight:bold; color:#0369a1; margin-bottom:6px;">📊 ภาพรวมกระบวนการแจ้งซ่อมและส่งเคลม 5 ขั้นตอน</div>
+    <svg width="100%" height="140" viewBox="0 0 840 140" xmlns="http://www.w3.org/2000/svg" style="background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; margin:15px 0;">
+    <defs>
+      <linearGradient id="gBlue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0369a1"/></linearGradient>
+      <linearGradient id="gRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#dc2626"/></linearGradient>
+      <linearGradient id="gPurple" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#6d28d9"/></linearGradient>
+      <linearGradient id="gAmber" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+      <linearGradient id="gGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+      <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.1"/></filter>
+    </defs>
+    <!-- Step 1 -->
+    <rect x="20" y="25" width="130" height="90" rx="8" fill="url(#gBlue)" filter="url(#shadow)"/>
+    <text x="85" y="55" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#fff">📱</text>
+    <text x="85" y="78" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">1. ตรวจสอบ/แจ้งซ่อม</text>
+    <text x="85" y="96" font-family="sans-serif" font-size="10" text-anchor="middle" fill="#e0f2fe">เจ้าหน้าที่วอร์ด (Staff)</text>
+    <path d="M 155 70 L 180 70 M 175 65 L 180 70 L 175 75" stroke="#0284c7" stroke-width="2.5" fill="none"/>
+    <!-- Step 2 -->
+    <rect x="185" y="25" width="130" height="90" rx="8" fill="url(#gRed)" filter="url(#shadow)"/>
+    <text x="250" y="55" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#fff">🔒</text>
+    <text x="250" y="78" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">2. ล้างข้อมูล PDPA</text>
+    <text x="250" y="96" font-family="sans-serif" font-size="10" text-anchor="middle" fill="#fee2e2">พิมพ์ "ยืนยัน" / "WIPED"</text>
+    <path d="M 320 70 L 345 70 M 340 65 L 345 70 L 340 75" stroke="#ef4444" stroke-width="2.5" fill="none"/>
+    <!-- Step 3 -->
+    <rect x="350" y="25" width="130" height="90" rx="8" fill="url(#gPurple)" filter="url(#shadow)"/>
+    <text x="415" y="55" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#fff">⚖️</text>
+    <text x="415" y="78" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">3. ประเมินความคุ้ม</text>
+    <text x="415" y="96" font-family="sans-serif" font-size="10" text-anchor="middle" fill="#f3e8ff">Viability Score &le; 5.0</text>
+    <path d="M 485 70 L 510 70 M 505 65 L 510 70 L 505 75" stroke="#8b5cf6" stroke-width="2.5" fill="none"/>
+    <!-- Step 4 -->
+    <rect x="515" y="25" width="130" height="90" rx="8" fill="url(#gAmber)" filter="url(#shadow)"/>
+    <text x="580" y="55" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#fff">📑</text>
+    <text x="580" y="78" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">4. ส่งเคลมศูนย์ซ่อม</text>
+    <text x="580" y="96" font-family="sans-serif" font-size="10" text-anchor="middle" fill="#fef3c7">ใบเคลม RMA 1-5 เครื่อง</text>
+    <path d="M 650 70 L 675 70 M 670 65 L 675 70 L 670 75" stroke="#f59e0b" stroke-width="2.5" fill="none"/>
+    <!-- Step 5 -->
+    <rect x="680" y="25" width="135" height="90" rx="8" fill="url(#gGreen)" filter="url(#shadow)"/>
+    <text x="747" y="55" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#fff">✅</text>
+    <text x="747" y="78" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#fff">5. รับเครื่องส่งคืนวอร์ด</text>
+    <text x="747" y="96" font-family="sans-serif" font-size="10" text-anchor="middle" fill="#d1fae5">สถานะปกติ พร้อมใช้งาน</text>
+  </svg>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 1 -->
+  <h2 class="section-header header-staff">📱 การใช้งานระบบแจ้งซ่อมสำหรับเจ้าหน้าที่ประจำวอร์ด</h2>
+
+  <div style="text-align:center; margin:20px 0;">
+    <div style="font-weight:bold; color:#059669; margin-bottom:6px;">📱 ภาพจำลองหน้าจอระบบแจ้งซ่อม Staff Portal UI</div>
+    <svg width="100%" height="490" viewBox="0 0 360 490" xmlns="http://www.w3.org/2000/svg" style="background:#f1f5f9; border-radius:12px; border:2px solid #cbd5e1; margin:15px auto; display:block; max-width:360px;">
+    <!-- Phone Topbar -->
+    <rect x="0" y="0" width="360" height="48" fill="#1e293b"/>
+    <text x="16" y="30" font-family="sans-serif" font-size="18" fill="#ffffff">☰</text>
+    <text x="45" y="30" font-family="sans-serif" font-size="16" font-weight="bold" fill="#38bdf8">ClaimIT</text>
+    <rect x="175" y="14" width="85" height="22" rx="11" fill="#ea580c"/>
+    <text x="217" y="29" font-family="sans-serif" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle">⚠️ 12 ใกล้หมด</text>
+    <circle cx="330" cy="24" r="14" fill="#0284c7"/>
+    <text x="330" y="28" font-family="sans-serif" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">ST</text>
+
+    <!-- IT Hotline Banner -->
+    <rect x="12" y="56" width="336" height="32" rx="6" fill="#e0f2fe" stroke="#bae6fd"/>
+    <text x="22" y="77" font-family="sans-serif" font-size="12" font-weight="bold" fill="#0369a1">☎️ แจ้งฝ่ายไอทีเร่งด่วน: 4401 - 4403</text>
+    <rect x="270" y="60" width="70" height="24" rx="4" fill="#0284c7"/>
+    <text x="305" y="76" font-family="sans-serif" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle">โทรออก</text>
+
+    <!-- Sticky Scanner Box -->
+    <rect x="12" y="96" width="336" height="85" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="22" y="106" width="220" height="34" rx="4" fill="#f8fafc" stroke="#94a3b8"/>
+    <text x="32" y="128" font-family="monospace" font-size="13" fill="#0f172a">CIT-2024-AIO-02</text>
+    <rect x="248" y="106" width="45" height="34" rx="4" fill="#0284c7"/>
+    <text x="270" y="127" font-family="sans-serif" font-size="12" fill="#fff" text-anchor="middle">🔍</text>
+    <rect x="298" y="106" width="40" height="34" rx="4" fill="#10b981"/>
+    <text x="318" y="127" font-family="sans-serif" font-size="12" fill="#fff" text-anchor="middle">📷</text>
+    <circle cx="30" cy="160" r="6" fill="#16a34a"/>
+    <text x="44" y="164" font-family="sans-serif" font-size="11" fill="#475569">🔒 ล็อกหัวอ่านบาร์โค้ด (ปิดแป้นพิมพ์บนจอ)</text>
+
+    <!-- Asset Detail Card -->
+    <rect x="12" y="190" width="336" height="230" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="12" y="190" width="336" height="32" rx="8" fill="#e0f2fe"/>
+    <text x="24" y="211" font-family="sans-serif" font-size="13" font-weight="bold" fill="#0369a1">💻 คอมพิวเตอร์ All-in-One (จุดบริการ 1)</text>
+    <text x="24" y="238" font-family="sans-serif" font-size="12" fill="#334155">รหัสครุภัณฑ์: <strong>CIT-2024-AIO-02</strong></text>
+    <text x="24" y="258" font-family="sans-serif" font-size="12" fill="#334155">สถานที่: อาคาร 1 ชั้น 2 แผนกผู้ป่วยนอก</text>
+    <rect x="24" y="270" width="312" height="28" rx="4" fill="#dcfce7"/>
+    <text x="34" y="289" font-family="sans-serif" font-size="11" font-weight="bold" fill="#15803d">🟢 ประกันปกติ (หมดอายุ พ.ศ. 2570 / ค.ศ. 2027)</text>
+    
+    <!-- State: Broken Guardrail -->
+    <rect x="24" y="306" width="312" height="42" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="180" y="324" font-family="sans-serif" font-size="12" font-weight="bold" fill="#94a3b8" text-anchor="middle">🚨 แจ้งชำรุดเข้าส่วนกลาง (ปิดใช้งาน)</text>
+    <text x="180" y="340" font-family="sans-serif" font-size="10" fill="#64748b" text-anchor="middle">⚠️ อุปกรณ์นี้ได้รับการแจ้งซ่อมแล้ว ไม่สามารถแจ้งซ้ำได้</text>
+
+    <!-- Loaner Action -->
+    <rect x="24" y="358" width="312" height="42" rx="6" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="180" y="384" font-family="sans-serif" font-size="12" font-weight="bold" fill="#b45309" text-anchor="middle">📦 ขอยืมอุปกรณ์สำรองฉุกเฉิน (Loaner Unit)</text>
+
+    <!-- Role Disabled Button Note -->
+    <rect x="12" y="430" width="336" height="45" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="22" y="448" font-family="sans-serif" font-size="11" fill="#64748b">⚙️ ปุ่มตั้งค่าระบบ: แสดงเป็นสีเทา (สำหรับ Admin เท่านั้น)</text>
+    <text x="22" y="465" font-family="sans-serif" font-size="10" fill="#94a3b8">ระบบล็อกตามสิทธิ์เพื่อความปลอดภัยและความเรียบง่าย</text>
+  </svg>
+  </div>
+
+  <h3>1.1 การเข้าสู่ระบบและความปลอดภัยของเซสชัน (Login & 15-Min Auto-Timeout)</h3>
+  <ol>
+    <li>เปิดเว็บเบราว์เซอร์ (Google Chrome, Microsoft Edge, หรือ Safari บน iPhone/iPad)</li>
+    <li>พิมพ์ URL ระบบ ClaimIT (เช่น <code>http://10.33.x.x:8847</code> หรือลิงก์ที่ฝ่ายไอทีจัดเตรียมไว้)</li>
+    <li>กรอก <strong>Username:</strong> <code>staff</code> และ <strong>Password:</strong> <code>staff123</code> (หรือบัญชีประจำแผนก)</li>
+    <li>กดปุ่ม <strong>[เข้าสู่ระบบ]</strong> ระบบจะนำท่านเข้าสู่หน้าจอ <strong>"🛡️ ระบบแจ้งซ่อมประจำแผนก (Staff)"</strong> โดยตรง</li>
+  </ol>
+  <div class="callout warning">
+    <div class="callout-title">🔒 ระบบตัดเซสชันอัตโนมัติเมื่อไม่ใช้งาน 15 นาที (Auto-Timeout)</div>
+    หากเปิดหน้าจอทิ้งไว้โดยไม่มีการขยับเมาส์หรือแตะหน้าจอเกิน 15 นาที ระบบจะแสดงหน้าต่างแจ้งเตือนและออกจากระบบให้อัตโนมัติ เพื่อป้องกันผู้อื่นสวมสิทธิ์การใช้งานตามมาตรฐาน PDPA & ISO 27001
+  </div>
+
+  <h3>1.2 การค้นหาและสแกนครุภัณฑ์ (Barcode, Camera & Offline Photo Scanner)</h3>
+  <ul>
+    <li><strong>ยิงสแกนเนอร์บาร์โค้ด:</strong> ใช้ปืนยิงบาร์โค้ดยิงที่สติ๊กเกอร์รหัสครุภัณฑ์บนตัวเครื่องได้ทันที ข้อมูลจะแสดงขึ้นมาอัตโนมัติ</li>
+    <li><strong>พิมพ์ค้นหา:</strong> พิมพ์รหัสครุภัณฑ์ในช่องค้นหา (เช่น <code>CIT-2024-AIO-02</code>) แล้วกดปุ่ม <strong>[🔍 ค้นหา]</strong></li>
+    <li><strong>🔒 โหมดล็อกหัวอ่านบาร์โค้ด (Scanner Lock):</strong> แตะเปิดสวิตช์นี้เพื่อซ่อนแป้นพิมพ์จำลองบนจอมือถือไม่ให้เด้งขึ้นมาบดบังหน้าจอ</li>
+    <li><strong>📷 สแกนกล้องสดและถ่ายภาพบาร์โค้ด (Offline Multi-Format Engine):</strong>
+      <br>กดปุ่ม <strong>[📷 ถ่ายรูป]</strong> เพื่อเปิดหน้าต่างสแกนเนอร์:
+      <ul>
+        <li><strong>กล้องสด (Live Camera):</strong> ตรวจจับบาร์โค้ด Code 128 / Code 39 และ QR Code อัตโนมัติ</li>
+        <li><strong>ถ่ายภาพบาร์โค้ด (Offline Photo Scanner):</strong> ใช้งานได้บนทุกอุปกรณ์และเบราว์เซอร์ โดยเฉพาะ Apple iOS Safari (iPhone / iPad) บนเครือข่ายแลน HTTP สามารถแตะ <strong>"📸 ถ่ายรูปบาร์โค้ด"</strong> เพื่อประมวลผลถอดรหัสบาร์โค้ดและ QR Code แบบออฟไลน์ได้ทันที 100%</li>
+        <li><strong>แนบภาพหลักฐานอัตโนมัติ:</strong> หากสติ๊กเกอร์บาร์โค้ดเลือนรางหรือฉีกขาดจนสแกนไม่ติด ระบบจะนำภาพถ่ายไปแนบในใบแจ้งซ่อมเป็นภาพหลักฐานความเสียหายให้อัตโนมัติ</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>1.3 การตรวจสอบสถานะประกัน 2 ปฏิทิน (Thai BE & CE)</h3>
+  <ul>
+    <li><span style="color:#15803d; font-weight:bold;">🟢 ปกติ ในประกัน:</span> อยู่ในระยะรับประกัน ซ่อมศูนย์ฟรี พร้อมแสดงวันหมดอายุทั้ง พ.ศ. และ ค.ศ. รวมถึงจำนวนวันที่เหลือ</li>
+    <li><span style="color:#d97706; font-weight:bold;">⚠️ ใกล้หมดประกันใน 6 เดือน:</span> แจ้งเตือนให้รีบตรวจเช็กเครื่องก่อนสิ้นสุดสัญญาประกัน</li>
+    <li><span style="color:#dc2626; font-weight:bold;">🔴 หมดอายุประกันแล้ว:</span> เครื่องหมดสัญญาประกันแล้ว ฝ่ายไอทีจะดำเนินการซ่อมบำรุงตามระเบียบพัสดุ</li>
+  </ul>
+
+  <h3>1.4 การแจ้งซ่อมอุปกรณ์ชำรุด และระบบป้องกันการแจ้งซ้ำซ้อน (Duplicate Guardrail)</h3>
+  <ol>
+    <li>เมื่อค้นหาอุปกรณ์พบแล้ว เลือกอาการเสียจากปุ่มลัด (เปิดไม่ติด, จอดับ, พิมพ์กระดาษติด, บาร์โค้ดไม่ติด) หรือพิมพ์รายละเอียด</li>
+    <li>กดปุ่ม <strong>[📷 ถ่ายภาพจุดชำรุด]</strong> เพื่อแนบภาพความเสียหายจริงหน้างาน</li>
+    <li>กดปุ่มสีแดง <strong>[🚨 แจ้งชำรุดเข้าส่วนกลาง]</strong> เพื่อส่งเรื่องให้ฝ่ายไอทีทันที</li>
+  </ol>
+  <div class="callout danger">
+    <div class="callout-title">🛡️ ระบบป้องกันการแจ้งซ่อมซ้ำซ้อน (Duplicate Report Guardrail)</div>
+    หากอุปกรณ์ชิ้นนั้นอยู่ในสถานะชำรุดอยู่แล้ว หรืออยู่ระหว่างรอส่งเคลม/กำลังซ่อมแซม ปุ่ม <strong>[🚨 แจ้งชำรุดเข้าส่วนกลาง]</strong> จะถูก <strong>ปิดการใช้งาน (Disabled / สีเทา)</strong> โดยอัตโนมัติ พร้อมมีข้อความชี้แจงชัดเจน เพื่อป้องกันไม่ให้เจ้าหน้าที่ในแผนกส่งตั๋วแจ้งซ่อมซ้ำซ้อน
+  </div>
+
+  <h3>1.5 ช่องทางติดต่อด่วน IT Support Hotline (☎️ 4401 - 4403 โทรออกได้ทันที)</h3>
+  <ul>
+    <li>บนหน้าจอ Staff Portal จะมีแถบข้อมูล <strong>"☎️ IT Support Hotline: 4401 - 4403"</strong> แสดงอยู่เสมอ</li>
+    <li><strong>Click-to-Dial:</strong> สามารถแตะที่หมายเลขโทรศัพท์เพื่อโทรติดต่อทีมช่างไอทีได้ทันทีผ่านระบบโทรศัพท์ VoIP ของโรงพยาบาล</li>
+    <li>หมายเลขนี้ได้รับการเชื่อมโยงและควบคุมจากศูนย์กลางไอที หากมีการปรับเปลี่ยนคู่สาย หมายเลขบนหน้าจอจะอัปเดตตรงกันโดยอัตโนมัติ</li>
+  </ul>
+
+  <h3>1.6 การขอยืมอุปกรณ์สำรองฉุกเฉิน (Emergency Loaner Units)</h3>
+  <p>หากเครื่องคอมพิวเตอร์หรือเครื่องพิมพ์ในจุดบริการสำคัญเสีย และฝ่ายไอทีจำเป็นต้องยกเครื่องไปตรวจสอบ:</p>
+  <ol>
+    <li>กดปุ่ม <strong>[📦 ขอยืมเครื่องสำรองฉุกเฉิน (Loaner Unit)]</strong> ใต้การ์ดข้อมูลอุปกรณ์</li>
+    <li>เลือกรหัสเครื่องสำรองที่พร้อมใช้งานในคลัง (เช่น <code>LNR-AIO-01</code> หรือ <code>LNR-PRN-01</code>)</li>
+    <li>นำเครื่องสำรองมาต่อใช้งานแทนได้ทันที ทำให้งานบริการผู้ป่วยดำเนินต่อไปได้โดยไม่สะดุด</li>
+  </ol>
+
+  <h3>1.7 การติดตามสถานะงานซ่อม และคำชี้แจงปุ่มฟังก์ชันสีเทา (Disabled Controls)</h3>
+  <ul>
+    <li><strong>ตารางติดตามงานซ่อม:</strong> เลื่อนดูตารางสรุปงานซ่อมของแผนกตนเองได้ตลอด 24 ชั่วโมง เพื่อดูว่าช่างได้รับเครื่องไปแล้วหรือยัง และมีกำหนดส่งคืนวันไหน</li>
+    <li><strong>ปุ่มฟังก์ชันระดับ Admin แสดงเป็นสีเทา:</strong> ปุ่ม <strong>[⚙️ ไปยังหน้าตั้งค่าระบบ]</strong> จะแสดงเป็นสีเทาและไม่สามารถกดได้ พร้อมมี Tooltip ชี้แจงว่า <em>"สำหรับสิทธิ์ผู้ดูแลระบบ (Admin) เท่านั้น"</em> เพื่อความปลอดภัยของระบบ</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- FAQ -->
+  <h2>❓ ภาคผนวก: การแก้ปัญหาเบื้องต้นสำหรับเจ้าหน้าที่วอร์ด (FAQ)</h2>
+  <h3>Q1: ยิงบาร์โค้ดแล้วขึ้นภาษาไทยเพี้ยนหรือตัวเลขไม่ถูกต้อง?</h3>
+  <p><strong>วิธีแก้:</strong> แป้นพิมพ์คอมพิวเตอร์เปิดโหมดภาษาไทยค้างอยู่ ให้กดปุ่มเปลี่ยนภาษาบนคีย์บอร์ดเป็น <strong>ภาษาอังกฤษ (EN)</strong> ก่อนยิงบาร์โค้ดเสมอ</p>
+
+  <h3>Q2: สแกนผ่านมือถือแล้วแป้นพิมพ์เสมือนเด้งขึ้นมาบังจอภาพ?</h3>
+  <p><strong>วิธีแก้:</strong> ให้เลื่อนเปิดสวิตช์ <strong>"🔒 โหมดล็อกหัวอ่านบาร์โค้ด"</strong> ที่อยู่ด้านล่างช่องค้นหา ระบบจะซ่อนแป้นพิมพ์บนจอให้อัตโนมัติ</p>
+
+  <h3>Q3: สแกนบาร์โค้ดบนมือถือ iPhone / iPad ผ่านเครือข่ายแลนโรงพยาบาลแล้วกล้องสดไม่เปิด?</h3>
+  <p><strong>วิธีแก้:</strong> เบราว์เซอร์ iOS Safari มีข้อกำหนดความปลอดภัยที่ไม่อนุญาตให้เปิดกล้องสดผ่าน HTTP วงแลน ให้แตะที่ปุ่ม <strong>"📸 ถ่ายรูปบาร์โค้ด"</strong> แทน ระบบได้ติดตั้งเอนจินประมวลผลภาพแบบ Offline Multi-Format Barcode Engine ไว้ภายในตัว สามารถถอดรหัสบาร์โค้ดและ QR Code จากภาพถ่ายได้ทันทีโดยไม่ต้องต่ออินเทอร์เน็ตภายนอก</p>
+
+  <h3>Q4: หากสติ๊กเกอร์บาร์โค้ดเลือนรางหรือฉีกขาดจนสแกนไม่ติด ต้องทำอย่างไร?</h3>
+  <p><strong>วิธีแก้:</strong> ให้ถ่ายภาพสติ๊กเกอร์หรือตัวเครื่องตามปกติ ระบบจะแนบรูปถ่ายนั้นเป็นหลักฐานความเสียหายในใบแจ้งซ่อมให้อัตโนมัติ จากนั้นให้เจ้าหน้าที่พิมพ์รหัสครุภัณฑ์เพื่อยืนยันการค้นหา</p>
+
+  <hr style="margin-top:40px; border:0; border-top:1px solid #cbd5e1;">
+  <div style="text-align:center; color:#64748b; font-size:11pt; padding:20px 0;">
+    ClaimIT Hospital IT Warranty & RMA Claim Management System — คู่มือผู้ใช้งานสำหรับเจ้าหน้าที่วอร์ด (Staff User Manual)
+  </div>
+
+</div>
+</body>
+</html>

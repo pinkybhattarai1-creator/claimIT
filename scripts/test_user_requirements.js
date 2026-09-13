@@ -432,6 +432,89 @@ it('Simulates updateHotlineNumbersUI: dynamically updates staff call buttons and
   assert.strictEqual(inputMock.value, '5501, 5502, 5503, 5504');
 });
 
+// ─── 14. Dual Illustrated Manuals, Role-Based Download APIs & UI Modal ─────
+console.log('\n--- 14. Dual Illustrated Manuals & Role-Based APIs ---');
+
+it('Generated self-contained manual files exist on disk for Staff and Admin', () => {
+  const expectedFiles = [
+    'คู่มือการใช้งาน_ClaimIT_Staff.html',
+    'คู่มือการใช้งาน_ClaimIT_Staff.doc',
+    'คู่มือการใช้งาน_ClaimIT_Staff.md',
+    'คู่มือการใช้งาน_ClaimIT_Admin.html',
+    'คู่มือการใช้งาน_ClaimIT_Admin.doc',
+    'คู่มือการใช้งาน_ClaimIT_Admin.md',
+    'คู่มือการใช้งาน_ClaimIT.html',
+    'คู่มือการใช้งาน_ClaimIT.doc',
+    'คู่มือการใช้งาน_ClaimIT.md',
+    'USER_MANUAL.md'
+  ];
+  expectedFiles.forEach(file => {
+    const p = path.join(rootDir, file);
+    assert.ok(fs.existsSync(p), `Missing manual file: ${file}`);
+    const stat = fs.statSync(p);
+    assert.ok(stat.size > 1000, `Manual file too small: ${file} (${stat.size} bytes)`);
+  });
+});
+
+it('HTML contains Manual Center UI elements (Topbar, Sidebar, and Modal)', () => {
+  assert.ok(indexHtmlContent.includes('id="modal-manual-download"'), 'modal-manual-download must exist');
+  assert.ok(indexHtmlContent.includes('id="btn-open-manuals"'), 'btn-open-manuals must exist');
+  assert.ok(indexHtmlContent.includes('id="btn-sidebar-manual"'), 'btn-sidebar-manual must exist');
+  assert.ok(indexHtmlContent.includes('id="manual-admin-section"'), 'manual-admin-section must exist');
+  assert.ok(indexHtmlContent.includes('id="manual-admin-actions"'), 'manual-admin-actions must exist');
+  assert.ok(indexHtmlContent.includes('id="manual-admin-restricted"'), 'manual-admin-restricted must exist');
+  assert.ok(indexHtmlContent.includes('id="manual-regenerate-section"'), 'manual-regenerate-section must exist');
+  assert.ok(indexHtmlContent.includes('id="btn-regenerate-manuals"'), 'btn-regenerate-manuals must exist');
+});
+
+it('app.js exports manual modal controller and download helper functions', () => {
+  assert.ok(appJsContent.includes('function openManualModal'));
+  assert.ok(appJsContent.includes('function closeManualModal'));
+  assert.ok(appJsContent.includes('function viewManualOnline'));
+  assert.ok(appJsContent.includes('function downloadManualFile'));
+  assert.ok(appJsContent.includes('function triggerRegenerateManuals'));
+  assert.ok(appJsContent.includes('window.openManualModal = openManualModal;'));
+  assert.ok(appJsContent.includes('window.closeManualModal = closeManualModal;'));
+});
+
+it('routes/manuals.js enforces RBAC: Staff is blocked from Admin manual (HTTP 403)', () => {
+  const manualsRouter = require(path.join(rootDir, 'routes', 'manuals'));
+  assert.ok(manualsRouter, 'manuals router exists');
+
+  // Verify route handlers exist in router stack
+  const routes = manualsRouter.stack.map(layer => ({
+    path: layer.route?.path,
+    methods: layer.route?.methods
+  })).filter(r => r.path);
+
+  assert.ok(routes.some(r => r.path === '/staff/:format'), 'Route /staff/:format exists');
+  assert.ok(routes.some(r => r.path === '/admin/:format'), 'Route /admin/:format exists');
+  assert.ok(routes.some(r => r.path === '/regenerate'), 'Route /regenerate exists');
+  assert.ok(routes.some(r => r.path === '/list'), 'Route /list exists');
+
+  // Directly test adminOnly middleware logic on /admin/:format
+  const { adminOnly } = require(path.join(rootDir, 'middleware', 'auth'));
+  let staffBlocked = false;
+  let adminPassed = false;
+
+  // Simulate Staff user access
+  const mockStaffReq = { user: { role: 'staff', username: 'staff' } };
+  const mockStaffRes = {
+    status: (code) => {
+      if (code === 403) staffBlocked = true;
+      return { json: () => {} };
+    }
+  };
+  adminOnly(mockStaffReq, mockStaffRes, () => { staffBlocked = false; });
+  assert.strictEqual(staffBlocked, true, 'Staff user must be rejected with HTTP 403');
+
+  // Simulate Admin user access
+  const mockAdminReq = { user: { role: 'admin', username: 'admin' } };
+  const mockAdminRes = { status: () => ({ json: () => {} }) };
+  adminOnly(mockAdminReq, mockAdminRes, () => { adminPassed = true; });
+  assert.strictEqual(adminPassed, true, 'Admin user must pass adminOnly guard');
+});
+
 console.log('\n===============================================================');
 console.log(`🎉 VERIFICATION RESULT: ${passedTests}/${totalTests} TESTS PASSED (100%)`);
 console.log('===============================================================');

@@ -39,6 +39,10 @@
               <span class="sidebar-icon">⚙️</span>
               <span>ตั้งค่าระบบและจัดการผู้ใช้งาน</span>
             </div>
+            <div class="sidebar-item" id="btn-sidebar-manual" onclick="openManualModal()">
+              <span class="sidebar-icon">📖</span>
+              <span>คู่มือการใช้งานระบบ</span>
+            </div>
           </nav>
         </div>
 
@@ -129,6 +133,9 @@
 
           <button type="button" class="btn btn-secondary btn-sm" id="btn-edit-profile" onclick="openProfileModal()">
             ✏️ ข้อมูลส่วนตัว
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-open-manuals" onclick="openManualModal()" title="คู่มือการใช้งานระบบ (User & Admin Manual)">
+            📖 คู่มือ
           </button>
           <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="ทางลัด (Quick Access)">
             📌 ทางลัด
@@ -2021,6 +2028,96 @@
       <div class="modal-footer" style="justify-content: space-between;">
         <span style="font-size: 12px; color: var(--text-muted);">💡 คลิกที่ป้ายชื่อแผนกเพื่อเลือกและใส่ลงในช่องสถานที่ติดตั้งอัตโนมัติ</span>
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeHospitalLayoutModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: USER & ADMIN MANUAL DOWNLOAD -->
+  <div id="modal-manual-download" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 680px; width: 95%;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 8px; font-size: 16px;">
+          <span>📖</span> ศูนย์ดาวน์โหลดคู่มือการใช้งานระบบ ClaimIT (Manual Center)
+        </h3>
+        <button class="modal-close-btn" aria-label="ปิด" onclick="closeManualModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 20px; max-height: 75vh; overflow-y: auto;">
+        
+        <!-- Staff Manual Section (All Users) -->
+        <div class="card" style="margin-bottom: 16px; border-left: 4px solid #10b981; padding: 16px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span>🟢</span> คู่มือการใช้งานสำหรับเจ้าหน้าที่ (Staff User Manual)
+              </div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+                สำหรับเจ้าหน้าที่ประจำวอร์ด/แผนก: การสแกนบาร์โค้ดผ่านกล้อง/รูปภาพ, ตรวจสอบประกัน, แจ้งชำรุด, ขอยืมเครื่องสำรองฉุกเฉิน และโทรด่วน IT Hotline
+              </div>
+            </div>
+            <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 11px; white-space: nowrap;">Staff & Admin</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="viewManualOnline('staff')">
+              🌐 เปิดอ่านออนไลน์ (HTML)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadManualFile('staff', 'doc')">
+              📄 ดาวน์โหลด Word (.doc)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadManualFile('staff', 'md')">
+              📝 ดาวน์โหลด Markdown (.md)
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Manual Section (Admin Only or Disabled for Staff) -->
+        <div id="manual-admin-section" class="card" style="margin-bottom: 16px; border-left: 4px solid #0284c7; padding: 16px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px;">
+            <div>
+              <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span>🔵</span> คู่มือผู้ดูแลระบบและฝ่ายไอที (Admin System Manual)
+              </div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+                สำหรับผู้ดูแลระบบและทีมไอที: การออกใบเคลม RMA 1-5 เครื่อง, ประเมิน Viability Score, มาตรการล้างข้อมูล PDPA, ทะเบียนผังอาคาร, ส่งออก Excel และการสำรองฐานข้อมูล
+              </div>
+            </div>
+            <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 11px; white-space: nowrap;">Admin Only</span>
+          </div>
+          <div id="manual-admin-actions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="viewManualOnline('admin')">
+              🌐 เปิดอ่านออนไลน์ (HTML)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadManualFile('admin', 'doc')">
+              📄 ดาวน์โหลด Word (.doc)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadManualFile('admin', 'md')">
+              📝 ดาวน์โหลด Markdown (.md)
+            </button>
+          </div>
+          <div id="manual-admin-restricted" style="display: none; font-size: 12px; color: #94a3b8; margin-top: 8px;">
+            🔒 สงวนสิทธิ์สำหรับผู้ดูแลระบบ (Admin) เท่านั้น
+          </div>
+        </div>
+
+        <!-- Admin On-Demand Regeneration Tool Card (Admin Only) -->
+        <div id="manual-regenerate-section" class="card" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">
+                ⚙️ อัปเดตและสร้างคู่มือใหม่ (Regenerate Manuals)
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                สร้างไฟล์เอกสารคู่มือทั้ง 2 เล่มใหม่โดยอ้างอิงข้อมูลล่าสุดของระบบ ClaimIT
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm" id="btn-regenerate-manuals" onclick="triggerRegenerateManuals()" style="background: #0284c7; color: #fff;">
+              🔄 สร้างคู่มือใหม่ทันที
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeManualModal()">ปิดหน้าต่าง</button>
       </div>
     </div>
   </div>
