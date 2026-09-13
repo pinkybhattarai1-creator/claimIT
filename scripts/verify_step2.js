@@ -2,8 +2,10 @@ const http = require('http');
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const { app } = require('../server');
 
-const PORT = 8847;
+let localServerInstance = null;
+const PORT = process.env.PORT || 8847;
 
 function makeRequest(urlPath, method = 'GET', data = null, token = null) {
   return new Promise((resolve, reject) => {
@@ -37,9 +39,29 @@ function makeRequest(urlPath, method = 'GET', data = null, token = null) {
 }
 
 async function runStep2Verification() {
-  console.log('===============================================================');
-  console.log('🛡️ Step 2: Session & Auth Hardening Verification');
-  console.log('===============================================================\n');
+  // Check if server is already running on port
+  const isRunning = await new Promise(resolve => {
+    const testReq = http.get(`http://127.0.0.1:${PORT}/health`, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    testReq.on('error', () => resolve(false));
+    testReq.setTimeout(1500, () => {
+      testReq.destroy();
+      resolve(false);
+    });
+  });
+
+  if (!isRunning) {
+    await new Promise(resolve => {
+      localServerInstance = app.listen(PORT, '127.0.0.1', () => resolve());
+      localServerInstance.on('error', () => resolve());
+    });
+  }
+
+  try {
+    console.log('===============================================================');
+    console.log('🛡️ Step 2: Session & Auth Hardening Verification');
+    console.log('===============================================================\n');
 
   // 1. Admin login & token_version presence
   console.log('1. Verifying Admin Login & token_version issuance...');
@@ -142,6 +164,11 @@ async function runStep2Verification() {
   console.log('\n===============================================================');
   console.log('🎉 STEP 2: SESSION & AUTH HARDENING FULLY VERIFIED (100% PASS)');
   console.log('===============================================================\n');
+  } finally {
+    if (localServerInstance && localServerInstance.listening) {
+      localServerInstance.close();
+    }
+  }
 }
 
 runStep2Verification().catch(err => {

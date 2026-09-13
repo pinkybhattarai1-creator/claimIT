@@ -36,8 +36,16 @@ async function runTests() {
   }
 
   try {
+    // 0. Authenticate as Admin to obtain JWT for protected endpoints
+    console.log('Test 0: POST /api/auth/login (Admin authentication)');
+    const loginRes = await makeRequest('POST', '/api/auth/login', { username: 'admin', password: 'admin123' });
+    assert.strictEqual(loginRes.status, 200, 'Expected admin login to succeed');
+    const adminToken = loginRes.body && loginRes.body.token;
+    assert.ok(adminToken, 'Expected JWT token for admin');
+    console.log('  ✓ Admin authenticated successfully');
+
     // 1. Test POST /api/feedback with valid data
-    console.log('Test 1: POST /api/feedback with valid data');
+    console.log('Test 1: POST /api/feedback with valid data (Optional Auth)');
       const testPayload = {
         category: 'bug',
         page_url: 'ระบบแจ้งซ่อมภาคสนาม (/ward)',
@@ -61,9 +69,9 @@ async function runTests() {
       assert.strictEqual(res2.status, 400, `Expected status 400, got ${res2.status}`);
       console.log('  ✓ Empty comment properly rejected with 400 Bad Request');
 
-      // 3. Test GET /api/feedback
-      console.log('Test 3: GET /api/feedback retrieval');
-      const res3 = await makeRequest('GET', '/api/feedback');
+      // 3. Test GET /api/feedback (Protected - Staff/Admin)
+      console.log('Test 3: GET /api/feedback retrieval (Protected)');
+      const res3 = await makeRequest('GET', '/api/feedback', null, adminToken);
       assert.strictEqual(res3.status, 200, `Expected status 200, got ${res3.status}`);
       assert.ok(Array.isArray(res3.body), 'Expected body to be array');
       const found = res3.body.find(f => f.id === createdId);
@@ -74,9 +82,9 @@ async function runTests() {
       assert.strictEqual(found.device_info, 'Apple iPhone (390x844)');
       console.log('  ✓ Feedback list retrieved and verified with context details');
 
-      // 4. Test PATCH /api/feedback/:id (Status update)
-      console.log('Test 4: PATCH /api/feedback/:id to reviewed');
-      const res4 = await makeRequest('PATCH', `/api/feedback/${createdId}`, { status: 'reviewed' });
+      // 4. Test PATCH /api/feedback/:id (Status update - Protected Admin)
+      console.log('Test 4: PATCH /api/feedback/:id to reviewed (Protected)');
+      const res4 = await makeRequest('PATCH', `/api/feedback/${createdId}`, { status: 'reviewed' }, adminToken);
       assert.strictEqual(res4.status, 200, `Expected status 200, got ${res4.status}`);
       assert.ok(res4.body.success);
       console.log('  ✓ Status updated to reviewed');
@@ -88,9 +96,9 @@ async function runTests() {
       assert.ok(Array.isArray(resPublic.body), 'Expected public feedback list to be an array');
       console.log(`  ✓ Public board returned ${resPublic.body.length} items without authentication`);
 
-      // 5. Test DELETE /api/feedback/:id
-      console.log('Test 5: DELETE /api/feedback/:id cleanup');
-      const res5 = await makeRequest('DELETE', `/api/feedback/${createdId}`);
+      // 5. Test DELETE /api/feedback/:id (Protected - Admin)
+      console.log('Test 5: DELETE /api/feedback/:id cleanup (Protected)');
+      const res5 = await makeRequest('DELETE', `/api/feedback/${createdId}`, null, adminToken);
       assert.strictEqual(res5.status, 200, `Expected status 200, got ${res5.status}`);
       console.log('  ✓ Feedback deleted successfully');
 

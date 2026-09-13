@@ -120,6 +120,9 @@ router.post('/vendor-update', verifyWebhookKey, async (req, res) => {
         return res.status(404).json({ error: `ไม่พบใบเคลมที่ตรงกับหมายเลข RMA: ${cleanRma}` });
       }
 
+      const updates = [];
+      const params = [];
+
       if (status) {
         const allowedStatuses = ['Pending', 'Sanitized', 'Pending Pickup', 'Out to Vendor', 'VENDOR_RESPONSE', 'Returned', 'Repaired', 'Closed', 'Cancelled', 'Scrapped', 'SUBMITTED', 'REJECTED'];
         const matched = allowedStatuses.find(s => s.toUpperCase() === String(status).trim().toUpperCase());

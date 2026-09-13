@@ -2,8 +2,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { app } = require('../server');
 
-const PORT = 8847;
+let localServerInstance = null;
+const PORT = process.env.PORT || 8847;
 
 function api(method, endpoint, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -91,6 +93,25 @@ function uploadFile(endpoint, fieldName, filename, fileBuffer, extraFields = {},
 }
 
 async function runVerification() {
+  // Check if server is already running on port
+  const isRunning = await new Promise(resolve => {
+    const testReq = http.get(`http://127.0.0.1:${PORT}/health`, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    testReq.on('error', () => resolve(false));
+    testReq.setTimeout(1500, () => {
+      testReq.destroy();
+      resolve(false);
+    });
+  });
+
+  if (!isRunning) {
+    await new Promise(resolve => {
+      localServerInstance = app.listen(PORT, '127.0.0.1', () => resolve());
+      localServerInstance.on('error', () => resolve());
+    });
+  }
+
   console.log('====================================================');
   console.log('🧪 ClaimIT Step 4 / Enterprise Remediation Verifier');
   console.log('====================================================\n');
@@ -300,6 +321,10 @@ async function runVerification() {
   } catch (err) {
     console.error('Fatal verification error:', err);
     process.exit(1);
+  } finally {
+    if (localServerInstance && localServerInstance.listening) {
+      localServerInstance.close();
+    }
   }
 }
 
