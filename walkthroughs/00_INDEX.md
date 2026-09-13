@@ -48,7 +48,8 @@ ClaimIT ออกแบบมาเพื่อกระบวนการทำ
 
 ## 🌿 โครงสร้าง Git Branches บน GitHub
 
-- **`last-week`** *(Active Production & Development Branch)*: โค้ดหลักระบบ ClaimIT ปรับปรุงโครงสร้าง Full-Stack ล่าสุด, ระบบ 1-Click Fast Login 2 บัญชีหลัก, ทะเบียนผังอาคารและสายด่วนไอที, ตรวจสอบสถานะประกันแบบเรียลไทม์, และระบบ Multi-Asset Claim
+- **`last-weekb2`** *(Active Feature & Manuals Branch)*: สาขาฟีเจอร์ล่าสุด เพิ่มคู่มือการใช้งานแบบภาพประกอบเวกเตอร์ SVG ฉบับสมบูรณ์ (Staff & Admin) ในรูปแบบ HTML, Word (.doc) และ Markdown (.md), เพิ่มโมดอลและ API ดาวน์โหลดคู่มือแบบจำแนกตามสิทธิ์ (Role-Based Manuals Center), และรักษาความสอดคล้อง SHA-256 Parity 100% ข้าม 6 หน้าเทมเพลต
+- **`last-week`** *(Base Development Branch)*: โค้ดหลักระบบ ClaimIT ปรับปรุงโครงสร้าง Full-Stack, ระบบ 1-Click Fast Login 2 บัญชีหลัก, ทะเบียนผังอาคารและสายด่วนไอที, ตรวจสอบสถานะประกันแบบเรียลไทม์, และระบบ Multi-Asset Claim
 - **`main`**: สาขาหลักสำหรับ Production Deployment
 - **`rewrite`**: สาขารวมการปรับปรุงโครงสร้าง Full-Stack
 
