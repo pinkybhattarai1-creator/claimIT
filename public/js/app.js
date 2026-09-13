@@ -248,18 +248,30 @@ async function refreshData() {
     loadAuditSummary();
     fetchAuditLogs();
 
+    // Load configurations for ALL authenticated roles (Staff and Admin)
+    if (state.user) {
+      try {
+        const configRes = await fetch('/api/configurations', { headers: getAuthHeaders() });
+        if (configRes.ok) {
+          const configs = await configRes.json();
+          state.configs = configs;
+          if (typeof window !== 'undefined' && window.state) window.state.configs = configs;
+          if (typeof updateDynamicDropdowns === 'function') updateDynamicDropdowns(configs);
+          if (typeof setupHospitalLayoutDatalist === 'function') setupHospitalLayoutDatalist(configs);
+          if (state.user.role === 'admin' && typeof populateConfigTable === 'function') {
+            populateConfigTable(configs);
+          }
+        }
+      } catch (cfgErr) {
+        console.warn('Failed to load configurations:', cfgErr);
+      }
+    }
+
     if (state.user && state.user.role === 'admin') {
       const usersRes = await fetch('/api/users', { headers: getAuthHeaders() });
       if (usersRes.ok) {
         const users = await usersRes.json();
         populateUserTable(users);
-      }
-      
-      const configRes = await fetch('/api/configurations', { headers: getAuthHeaders() });
-      if (configRes.ok) {
-        const configs = await configRes.json();
-        populateConfigTable(configs);
-        updateDynamicDropdowns(configs);
       }
     }
     
@@ -285,6 +297,22 @@ function updatePaginationUI() {
   }
 
   const maxPage = Math.ceil(state.pagination.total / state.pagination.limit) || 1;
+
+  // Render Real Numbered Pagination Slot Buttons [1], [2], [3]...
+  const slotsContainer = document.getElementById('asset-pagination-slots');
+  if (slotsContainer) {
+    let slotsHtml = '';
+    const cur = state.pagination.page;
+    const startPage = Math.max(1, cur - 2);
+    const endPage = Math.min(maxPage, startPage + 4);
+    const adjustedStart = Math.max(1, endPage - 4);
+
+    for (let p = adjustedStart; p <= endPage; p++) {
+      const isActive = p === cur;
+      slotsHtml += `<button type="button" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'} pagination-slot-btn" onclick="jumpToAssetPage(${p})" style="min-width: 28px; padding: 2px 7px; font-weight: ${isActive ? '700' : '500'}; font-size: 12px; ${isActive ? 'box-shadow: 0 0 0 2px rgba(59,130,246,0.3);' : ''}" title="ไปยังหน้าที่ ${p}">${p}</button>`;
+    }
+    slotsContainer.innerHTML = slotsHtml;
+  }
 
   // Direct Page-Jump Slot Selector
   const jumpSelect = document.getElementById('asset-page-jump-select');
@@ -645,9 +673,9 @@ function setupEventListeners() {
     if (typeof switchView === 'function') switchView('it');
     if (typeof switchItTab === 'function') switchItTab('tab-it-inventory');
 
-    // Reset category tab to All
+    // Reset category tab to All without triggering duplicate refreshData
     if (typeof selectCategoryTab === 'function') {
-      selectCategoryTab('');
+      selectCategoryTab('', true); // skipRefresh = true
     } else if (state.filters) {
       state.filters.category = '';
     }
@@ -655,9 +683,15 @@ function setupEventListeners() {
     const filterStatus = document.getElementById('filter-status');
     if (filterStatus) {
       filterStatus.value = 'expiring_60d';
+    }
+    if (state.filters) {
       state.filters.status = 'expiring_60d';
-      state.pagination.page = 1;
-      if (typeof refreshData === 'function') refreshData();
+    }
+    state.pagination.page = 1;
+
+    // Single authoritative refreshData invocation
+    if (typeof refreshData === 'function') {
+      refreshData();
     }
 
     const invTable = document.getElementById('inventory-table-title') || document.getElementById('tab-it-inventory');
@@ -666,12 +700,6 @@ function setupEventListeners() {
     }
   }
   window.goToExpiringWarrantyAssets = goToExpiringWarrantyAssets;
-
-  document.getElementById('warranty-expiring-badge')?.addEventListener('click', goToExpiringWarrantyAssets);
-  document.getElementById('warranty-expiring-text')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    goToExpiringWarrantyAssets();
-  });
 
   // Initialize Modular Sub-systems
   setupQuickSidebar();

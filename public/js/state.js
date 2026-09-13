@@ -10,6 +10,7 @@ const state = {
   selectedAsset: null,
   sanitizationChecked: false,
   pendingFuzzyAsset: null, // holds a fuzzy match until user confirms
+  configs: [], // Global configurations (Brands, Categories, Locations)
   pagination: {
     page: 1,
     limit: 15,
@@ -35,6 +36,9 @@ const state = {
     total: 0
   }
 };
+if (typeof window !== 'undefined') {
+  window.state = state;
+}
 
 // Global XSS Sanitizer for DOM injection
 function escapeHtml(str) {
@@ -228,4 +232,8 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', setupNetworkStatusMonitor);
 } else {
   setupNetworkStatusMonitor();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { state, escapeHtml };
 }

@@ -215,11 +215,14 @@ let hospitalPickerTargetInputId = null;
  * Injects datalist options into the DOM for input autocompletion
  */
 function setupHospitalLayoutDatalist(passedConfigs = null) {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
   let datalist = document.getElementById('hospital-locations-datalist');
   if (!datalist) {
     datalist = document.createElement('datalist');
     datalist.id = 'hospital-locations-datalist';
-    document.body.appendChild(datalist);
+    if (document.body && typeof document.body.appendChild === 'function') {
+      document.body.appendChild(datalist);
+    }
   }
   
   const options = [];
@@ -279,24 +282,37 @@ window.setupHospitalLayoutDatalist = setupHospitalLayoutDatalist;
 
 /**
  * Renders the full directory table into a container
+ * Keeps the search input toolbar outside the results area so typing never destroys focus or cursor!
  */
 function renderHospitalLayoutView(containerId = 'hospital-layout-content-area', searchQuery = '') {
   const container = document.getElementById(containerId);
   if (!container) return;
 
   const query = (searchQuery || '').trim().toLowerCase();
+  const searchInputId = `${containerId}-search-input`;
+  const resultsAreaId = `${containerId}-results-area`;
 
-  let html = `
-    <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <div style="font-size: 13px; color: var(--text-muted);">
-        📋 คลิกที่ป้ายชื่อแผนก/จุดบริการเพื่อนำไปใช้ในแบบฟอร์ม หรือคัดลอกลงคลิปบอร์ด
+  let resultsArea = document.getElementById(resultsAreaId);
+
+  // Initialize container structure if not already present
+  if (!resultsArea) {
+    container.innerHTML = `
+      <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="font-size: 13px; color: var(--text-muted);">
+          📋 คลิกที่ป้ายชื่อแผนก/จุดบริการเพื่อนำไปใช้ในแบบฟอร์ม หรือคัดลอกลงคลิปบอร์ด
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="text" id="${searchInputId}" class="form-control" placeholder="🔍 ค้นหาชั้น, แผนก หรือโซน..." value="${escapeHtml(searchQuery)}" oninput="filterHospitalLayout(this.value, '${containerId}')" style="font-size: 12px; padding: 4px 10px; width: 220px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearHospitalLayoutSearch('${containerId}')">ล้างค้นหา</button>
+        </div>
       </div>
-      <div style="display: flex; gap: 6px; align-items: center;">
-        <input type="text" id="hospital-layout-search-input" class="form-control" placeholder="🔍 ค้นหาชั้น, แผนก หรือโซน..." value="${escapeHtml(searchQuery)}" oninput="filterHospitalLayout(this.value, '${containerId}')" style="font-size: 12px; padding: 4px 10px; width: 220px;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="filterHospitalLayout('', '${containerId}')">ล้างค้นหา</button>
-      </div>
-    </div>
-  `;
+      <div id="${resultsAreaId}"></div>
+    `;
+    resultsArea = document.getElementById(resultsAreaId);
+  }
+
+  // Generate results HTML
+  let html = '';
 
   // 1. Building 1: Main Hospital Tower
   const b1 = HOSPITAL_LAYOUT[0];
@@ -401,8 +417,12 @@ function renderHospitalLayoutView(containerId = 'hospital-layout-content-area', 
   ccHtml += `</div></div>`;
   html += ccHtml;
 
-  // 3. Registered & Custom Locations
-  const customLocations = (window.state && Array.isArray(window.state.configs)) ? window.state.configs.filter(c => c.type === 'location') : [];
+  // 3. Registered & Custom Locations (from state.configs or window.state.configs)
+  const stateConfigs = (typeof window !== 'undefined' && window.state && Array.isArray(window.state.configs))
+    ? window.state.configs
+    : (typeof state !== 'undefined' && state && Array.isArray(state.configs) ? state.configs : []);
+
+  const customLocations = stateConfigs.filter(c => c && c.type === 'location');
   if (customLocations.length > 0) {
     let customBadges = customLocations
       .filter(cl => !query || cl.value.toLowerCase().includes(query) || (cl.details && cl.details.toLowerCase().includes(query)))
@@ -426,16 +446,28 @@ function renderHospitalLayoutView(containerId = 'hospital-layout-content-area', 
     }
   }
 
-  container.innerHTML = html;
+  resultsArea.innerHTML = html;
 }
 
 /**
- * Filter layout during search input
+ * Filter layout during search input - updates results area without re-rendering the search box!
  */
 function filterHospitalLayout(val, containerId) {
   renderHospitalLayoutView(containerId, val);
 }
-window.filterHospitalLayout = filterHospitalLayout;
+
+/**
+ * Clears search input and restores full directory view
+ */
+function clearHospitalLayoutSearch(containerId) {
+  const searchInputId = `${containerId}-search-input`;
+  const input = document.getElementById(searchInputId);
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  filterHospitalLayout('', containerId);
+}
 
 /**
  * Handles clicking a department badge
@@ -452,14 +484,17 @@ function selectDepartmentLocation(locString) {
     closeHospitalLayoutModal();
   } else {
     // Copy to clipboard if not in picker mode
-    navigator.clipboard.writeText(locString).then(() => {
-      showToast(`คัดลอกสถานที่: ${locString}`, 'info', 2000);
-    }).catch(() => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(locString).then(() => {
+        showToast(`คัดลอกสถานที่: ${locString}`, 'info', 2000);
+      }).catch(() => {
+        showToast(`สถานที่: ${locString}`, 'info', 2000);
+      });
+    } else {
       showToast(`สถานที่: ${locString}`, 'info', 2000);
-    });
+    }
   }
 }
-window.selectDepartmentLocation = selectDepartmentLocation;
 
 /**
  * Opens the Hospital Layout Modal
@@ -471,12 +506,11 @@ function openHospitalLayoutModal(targetInputId = null) {
   modal.style.display = 'flex';
   renderHospitalLayoutView('hospital-modal-layout-content', '');
   
-  const searchInput = document.getElementById('hospital-layout-search-input');
+  const searchInput = document.getElementById('hospital-modal-layout-content-search-input') || document.getElementById('hospital-layout-search-input');
   if (searchInput) {
     searchInput.focus();
   }
 }
-window.openHospitalLayoutModal = openHospitalLayoutModal;
 
 /**
  * Closes the Hospital Layout Modal
@@ -486,17 +520,41 @@ function closeHospitalLayoutModal() {
   if (modal) modal.style.display = 'none';
   hospitalPickerTargetInputId = null;
 }
-window.closeHospitalLayoutModal = closeHospitalLayoutModal;
+
+if (typeof window !== 'undefined') {
+  window.filterHospitalLayout = filterHospitalLayout;
+  window.clearHospitalLayoutSearch = clearHospitalLayoutSearch;
+  window.selectDepartmentLocation = selectDepartmentLocation;
+  window.openHospitalLayoutModal = openHospitalLayoutModal;
+  window.closeHospitalLayoutModal = closeHospitalLayoutModal;
+}
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof document.createElement === 'function') {
+  if (document.readyState === 'loading') {
+    if (typeof document.addEventListener === 'function') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setupHospitalLayoutDatalist();
+        const configLayoutArea = document.getElementById('hospital-layout-content-area');
+        if (configLayoutArea) renderHospitalLayoutView('hospital-layout-content-area');
+      });
+    }
+  } else {
     setupHospitalLayoutDatalist();
     const configLayoutArea = document.getElementById('hospital-layout-content-area');
     if (configLayoutArea) renderHospitalLayoutView('hospital-layout-content-area');
-  });
-} else {
-  setupHospitalLayoutDatalist();
-  const configLayoutArea = document.getElementById('hospital-layout-content-area');
-  if (configLayoutArea) renderHospitalLayoutView('hospital-layout-content-area');
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    HOSPITAL_LAYOUT,
+    setupHospitalLayoutDatalist,
+    renderHospitalLayoutView,
+    filterHospitalLayout,
+    clearHospitalLayoutSearch,
+    selectDepartmentLocation,
+    openHospitalLayoutModal,
+    closeHospitalLayoutModal
+  };
 }

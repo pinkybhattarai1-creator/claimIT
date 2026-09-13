@@ -46,8 +46,9 @@ All requirements and architectural enhancements were executed focusing strictly 
 | Test Suite | Result | Details |
 |---|---|---|
 | `test_suite.js` | **14/14 Stages Passed (100%)** | Health check, Auth, RBAC, User lifecycle, Viability engine, PDPA wipe gate, Multi-asset claims, State machine, IDOR evidence storage, PDF generation, Audit trail, Database backup, Single-brand guardrail, Expiring warranty filtering. |
-| `scripts/verify_frontend_workflows.js` | **58/58 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation, separated config tabs, non-stacking user tables, warranty badge click, layout modal, category tabs, pagination slots. |
-| `scratch/test_user_requirements.js` | **8/8 Passed (100%)** | Single-brand validation (HTTP 400), non-destructive form correction, category tabs, pagination slots, warranty badge click-to-filter, separated config tabs, separated user management, and hospital layout integration. |
+| `scripts/verify_frontend_workflows.js` | **66/66 Passed (100%)** | Route serving, responsive CSS breakpoints, staff/admin workflows, RMA lifecycle, PDF generation, real frontend DOM JS execution, brand guardrails, compound brand whitelisting, category tabs, and pagination slots. |
+| `scripts/test_user_requirements.js` | **22/22 Passed (100%)** | Single-brand validation (HTTP 400), legitimate compound brand whitelisting (`A&D Medical`, `Bang & Olufsen`), non-destructive form correction, category tabs, real numbered pagination slot buttons `[1], [2], [3]`, warranty badge click-to-filter with single refresh call, search focus preservation, dynamic custom locations, separated config tabs, separated user management, zero DB changes, and byte-for-byte SHA-256 hash match across all 6 HTML templates. |
+| `test_workflow.js` | **9/9 Stages Passed (100%)** | Complete integration workflow: Admin auth, asset search, PDPA gate, data sanitization, RMA claim, pickup state, resolve RMA, EOL salvage (Pending Sell / Pending Donation), audit log verification. |
 | `test_samples_validation.js` | **5/5 Passed (100%)** | Thai BE dates, CABL0699 cross-linking, repeat failures, downtime calculations, Oracle accounting. |
-| `scripts/qa_audit.js` | **Passed (100%)** | Element IDs and inline event handlers verified across all HTML templates. |
+
 

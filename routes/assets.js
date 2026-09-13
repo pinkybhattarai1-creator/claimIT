@@ -107,16 +107,31 @@ function checkBmeRegulatedDevice(fields) {
   return { isBme: false };
 }
 
+// Legitimate compound-name, acronym, or medical/industrial brands containing &, +, or compound words
+const LEGITIMATE_COMPOUND_BRANDS = [
+  'a&d', 'a&d medical', 'bang & olufsen', 'b&o', 'at&t', 'johnson & johnson', 'j&j',
+  'procter & gamble', 'p&g', 'd&h', 'b&h', 'c&a', 'texas instruments', 'hewlett packard',
+  'konica minolta', 'fuji xerox', 'schneider electric', 'roche diagnostics', 'siemens healthineers'
+];
+
 // Single-Brand Guardrail (Prevents compound/conflicting brands like 'Dell, Acer' or 'Dell / HP')
 function validateSingleBrand(brand) {
   if (!brand || typeof brand !== 'string') return { isValid: true };
   const trimmed = brand.trim();
   if (!trimmed) return { isValid: true };
 
+  const lower = trimmed.toLowerCase();
+
+  // Check if it's a known compound or acronym brand that naturally contains & or special words
+  const isWhitelisted = LEGITIMATE_COMPOUND_BRANDS.some(l => 
+    lower === l || lower.startsWith(l + ' ') || lower.startsWith(l + '-')
+  );
+
   const KNOWN_BRANDS = [
     'dell', 'acer', 'hp', 'lenovo', 'asus', 'apple', 'cisco', 'zebra',
     'tsc', 'logitech', 'epson', 'canon', 'brother', 'samsung', 'lg',
-    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba'
+    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba',
+    'benq', 'viewsonic', 'philips', 'ricoh', 'd-link', 'tp-link'
   ];
 
   // 1. Check multiple known brands present
@@ -135,8 +150,13 @@ function validateSingleBrand(brand) {
     };
   }
 
-  // 2. Check compound delimiters (,, /, &, +, and, or, กับ, และ, หรือ)
-  const delimiterRegex = /[,/&+]|\s+(?:and|or|กับ|และ|หรือ)\s+/i;
+  // If brand is whitelisted (like A&D Medical or Bang & Olufsen), do not treat internal words/symbols as separators
+  if (isWhitelisted) {
+    return { isValid: true };
+  }
+
+  // 2. Check compound delimiters: comma, slash, and/or/กับ/และ/หรือ, or spaced '&', '+', '-'
+  const delimiterRegex = /[,/]|\s+(?:and|or|กับ|และ|หรือ|&|\+|\-)\s+/i;
   if (delimiterRegex.test(trimmed)) {
     const segments = trimmed.split(delimiterRegex).map(s => s.trim()).filter(Boolean);
     if (segments.length > 1) {

@@ -357,16 +357,31 @@ function displayAssetDetails(asset) {
 }
 
 // Add Asset Live Pre-Check & Auto-Calculator
+// Legitimate compound-name, acronym, or medical/industrial brands containing &, +, or compound words
+const LEGITIMATE_COMPOUND_BRANDS_LOCAL = [
+  'a&d', 'a&d medical', 'bang & olufsen', 'b&o', 'at&t', 'johnson & johnson', 'j&j',
+  'procter & gamble', 'p&g', 'd&h', 'b&h', 'c&a', 'texas instruments', 'hewlett packard',
+  'konica minolta', 'fuji xerox', 'schneider electric', 'roche diagnostics', 'siemens healthineers'
+];
+
 // Single-Brand Guardrail Client Validator
 function validateSingleBrandLocal(brand) {
   if (!brand || typeof brand !== 'string') return { isValid: true };
   const trimmed = brand.trim();
   if (!trimmed) return { isValid: true };
 
+  const lower = trimmed.toLowerCase();
+
+  // Check if it's a known compound or acronym brand that naturally contains & or special words
+  const isWhitelisted = LEGITIMATE_COMPOUND_BRANDS_LOCAL.some(l => 
+    lower === l || lower.startsWith(l + ' ') || lower.startsWith(l + '-')
+  );
+
   const KNOWN_BRANDS = [
     'dell', 'acer', 'hp', 'lenovo', 'asus', 'apple', 'cisco', 'zebra',
     'tsc', 'logitech', 'epson', 'canon', 'brother', 'samsung', 'lg',
-    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba'
+    'sony', 'panasonic', 'huawei', 'xiaomi', 'ida', 'fujitsu', 'toshiba',
+    'benq', 'viewsonic', 'philips', 'ricoh', 'd-link', 'tp-link'
   ];
 
   const brandMatches = [];
@@ -384,7 +399,13 @@ function validateSingleBrandLocal(brand) {
     };
   }
 
-  const delimiterRegex = /[,/&+]|\s+(?:and|or|กับ|และ|หรือ)\s+/i;
+  // If brand is whitelisted (like A&D Medical or Bang & Olufsen), do not treat internal words/symbols as separators
+  if (isWhitelisted) {
+    return { isValid: true };
+  }
+
+  // 2. Check compound delimiters: comma, slash, and/or/กับ/และ/หรือ, or spaced '&', '+', '-'
+  const delimiterRegex = /[,/]|\s+(?:and|or|กับ|และ|หรือ|&|\+|\-)\s+/i;
   if (delimiterRegex.test(trimmed)) {
     const segments = trimmed.split(delimiterRegex).map(s => s.trim()).filter(Boolean);
     if (segments.length > 1) {
@@ -398,7 +419,9 @@ function validateSingleBrandLocal(brand) {
 
   return { isValid: true };
 }
-window.validateSingleBrandLocal = validateSingleBrandLocal;
+if (typeof window !== 'undefined') {
+  window.validateSingleBrandLocal = validateSingleBrandLocal;
+}
 
 function setupAddAssetSafeguards() {
   const tagInput = document.getElementById('new-asset-tag');
@@ -728,7 +751,9 @@ async function restoreAsset(assetTag) {
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
   }
 }
-window.restoreAsset = restoreAsset;
+if (typeof window !== 'undefined') {
+  window.restoreAsset = restoreAsset;
+}
 
 // ─── Point 10: Tab Switcher & Batch Asset Intake ───────────────────────────
 function switchAddAssetTab(tabName) {
@@ -751,7 +776,9 @@ function switchAddAssetTab(tabName) {
     restoreFormDraft('add-asset-form');
   }
 }
-window.switchAddAssetTab = switchAddAssetTab;
+if (typeof window !== 'undefined') {
+  window.switchAddAssetTab = switchAddAssetTab;
+}
 
 async function handleBatchAssetSubmit(e) {
   e.preventDefault();
@@ -868,7 +895,9 @@ async function handleBatchAssetSubmit(e) {
     }
   }
 }
-window.handleBatchAssetSubmit = handleBatchAssetSubmit;
+if (typeof window !== 'undefined') {
+  window.handleBatchAssetSubmit = handleBatchAssetSubmit;
+}
 
 // ─── Point 12: Shared-Terminal Isolated Draft Autosave ─────────────────────
 function getDraftKey(formId) {
@@ -942,13 +971,15 @@ function setupFormDraftAutosave(formId) {
   });
   form.addEventListener('change', () => saveFormDraft(formId));
 }
-window.saveFormDraft = saveFormDraft;
-window.restoreFormDraft = restoreFormDraft;
-window.clearFormDraft = clearFormDraft;
-window.setupFormDraftAutosave = setupFormDraftAutosave;
+if (typeof window !== 'undefined') {
+  window.saveFormDraft = saveFormDraft;
+  window.restoreFormDraft = restoreFormDraft;
+  window.clearFormDraft = clearFormDraft;
+  window.setupFormDraftAutosave = setupFormDraftAutosave;
+}
 
-window.handleSalvageAction = async function(salvageStatus) {
-  if (!state.selectedAsset) return;
+async function handleSalvageAction(salvageStatus) {
+  if (typeof state === 'undefined' || !state.selectedAsset) return;
   const tag = state.selectedAsset.asset_tag;
   const salvageLabels = {
     'Pending Sell': 'รอขายทอดตลาด',
@@ -965,7 +996,7 @@ window.handleSalvageAction = async function(salvageStatus) {
       body: JSON.stringify({
         asset_tag: tag,
         salvage_status: salvageStatus,
-        action_by_username: state.user ? state.user.username : 'admin'
+        action_by_username: (typeof state !== 'undefined' && state.user) ? state.user.username : 'admin'
       })
     });
 
@@ -981,7 +1012,10 @@ window.handleSalvageAction = async function(salvageStatus) {
     console.error('Salvage action error:', err);
     showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
-};
+}
+if (typeof window !== 'undefined') {
+  window.handleSalvageAction = handleSalvageAction;
+}
 
 // Copy Data Logic (TSV format)
 async function copyAssetDataToClipboard() {
@@ -1005,7 +1039,7 @@ async function copyAssetDataToClipboard() {
 }
 
 // Category Tabs Filter Navigation
-function selectCategoryTab(category) {
+function selectCategoryTab(category, skipRefresh = false) {
   if (typeof state === 'undefined') return;
   state.filters.category = category || '';
   state.pagination.page = 1;
@@ -1026,9 +1060,18 @@ function selectCategoryTab(category) {
     titleEl.textContent = category ? `📋 ทะเบียนครุภัณฑ์ไอที: หมวดหมู่ [${category}]` : '📋 ทะเบียนครุภัณฑ์ไอที (Hospital Asset Registry)';
   }
 
-  if (typeof refreshData === 'function') {
+  if (!skipRefresh && typeof refreshData === 'function') {
     refreshData();
   }
 }
-window.selectCategoryTab = selectCategoryTab;
+if (typeof window !== 'undefined') {
+  window.selectCategoryTab = selectCategoryTab;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    validateSingleBrandLocal,
+    selectCategoryTab
+  };
+}
 

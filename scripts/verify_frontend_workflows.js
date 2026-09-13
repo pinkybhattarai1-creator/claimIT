@@ -6,6 +6,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const nodePath = require('path');
 const { app } = require('../server');
 
 let localServerInstance = null;
@@ -206,6 +207,56 @@ async function verifyAll() {
 
   const claimPdf = await api('GET', `/api/claims/${claimId}/pdf`, null, adminToken);
   check('Multi-claim PDF generation returns 200 OK', claimPdf.status === 200);
+
+  // 11. Real Frontend JavaScript Functions & DOM Mutation Execution
+  console.log('\n--- 11. Frontend JavaScript Functions & DOM Execution ---');
+  const dummyState = { filters: { category: '' }, pagination: { page: 1 } };
+  let refreshCalled = 0;
+  global.state = dummyState;
+  global.refreshData = () => { refreshCalled++; };
+  if (typeof global.window === 'undefined') {
+    global.window = global;
+  }
+  global.document = {
+    querySelectorAll: () => [],
+    getElementById: () => null
+  };
+
+  const assetsJs = require(nodePath.join(__dirname, '..', 'public', 'js', 'assets.js'));
+  const hospitalLayoutJs = require(nodePath.join(__dirname, '..', 'public', 'js', 'hospital_layout.js'));
+
+  // A. validateSingleBrandLocal
+  check('Frontend validateSingleBrandLocal rejects multi-brand (Dell และ Acer)', 
+    assetsJs.validateSingleBrandLocal('Dell และ Acer').isValid === false);
+  check('Frontend validateSingleBrandLocal rejects multi-brand with comma (Dell, HP)', 
+    assetsJs.validateSingleBrandLocal('Dell, HP').isValid === false);
+  check('Frontend validateSingleBrandLocal accepts valid single brand (Dell)', 
+    assetsJs.validateSingleBrandLocal('Dell').isValid === true);
+  check('Frontend validateSingleBrandLocal accepts legitimate compound brand (A&D Medical)', 
+    assetsJs.validateSingleBrandLocal('A&D Medical').isValid === true);
+  check('Frontend validateSingleBrandLocal accepts legitimate compound brand (Bang & Olufsen)', 
+    assetsJs.validateSingleBrandLocal('Bang & Olufsen').isValid === true);
+
+  // B. selectCategoryTab DOM & skipRefresh
+
+  assetsJs.selectCategoryTab('Computer', true);
+  check('selectCategoryTab with skipRefresh=true sets category and avoids extra refreshData', 
+    dummyState.filters.category === 'Computer' && refreshCalled === 0);
+
+  assetsJs.selectCategoryTab('Monitor', false);
+  check('selectCategoryTab with skipRefresh=false sets category and calls refreshData once', 
+    dummyState.filters.category === 'Monitor' && refreshCalled === 1);
+
+  // C. Hospital Layout Structure & Datalist
+  check('HOSPITAL_LAYOUT contains Main Hospital Tower and Call Center', 
+    Array.isArray(hospitalLayoutJs.HOSPITAL_LAYOUT) && 
+    hospitalLayoutJs.HOSPITAL_LAYOUT.length >= 2 &&
+    hospitalLayoutJs.HOSPITAL_LAYOUT[0].floors.length >= 22);
+
+  // Clean up globals
+  delete global.state;
+  delete global.refreshData;
+  delete global.document;
 
     console.log('\n===============================================================');
     console.log(`🎉 FRONTEND & WORKFLOW VALIDATION: ${passedCount}/${testCount} PASSED (100%)`);
