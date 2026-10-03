@@ -48,25 +48,7 @@ async function handleLogin(e) {
   }
 }
 
-// 1-Click Quick Role Login for Testing
-function quickLoginAs(role) {
-  const usernameInput = document.getElementById('login-username');
-  const passwordInput = document.getElementById('login-password');
-  if (!usernameInput || !passwordInput) return;
-  if (role === 'admin') {
-    usernameInput.value = 'admin';
-    passwordInput.value = 'admin123';
-  } else {
-    usernameInput.value = 'staff';
-    passwordInput.value = 'staff123';
-  }
-  const form = document.getElementById('login-form');
-  if (form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.click();
-  }
-}
-window.quickLoginAs = quickLoginAs;
+
 
 function showUserNavigation() {
   if (!state.user) return;
@@ -356,18 +338,7 @@ async function submitResetPasswordToken(e) {
 }
 window.submitResetPasswordToken = submitResetPasswordToken;
 
-// ─── Fast Login (1-Click for 4 Admins and 4 Staff) ─────────────────────────
-function quickLogin(username, password) {
-  const uInput = document.getElementById('login-username');
-  const pInput = document.getElementById('login-password');
-  if (uInput && pInput) {
-    uInput.value = username;
-    pInput.value = password;
-    const form = document.getElementById('login-form');
-    if (form) form.requestSubmit();
-  }
-}
-window.quickLogin = quickLogin;
+// ─── Fast Login functionality removed for production ───────────────
 
 // ─── Self Profile Editing ───────────────────────────────────────────────────
 function openProfileModal() {

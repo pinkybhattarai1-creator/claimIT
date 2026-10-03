@@ -35,7 +35,8 @@
   }
 
   function initFeedbackWidget() {
-    if (document.getElementById('claimit-feedback-btn')) return;
+    // Disabled from view for final submission
+    return;
 
     // 1. Inject Floating Action Button (FAB)
     const fab = document.createElement('div');

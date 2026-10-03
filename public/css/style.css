@@ -1903,3 +1903,9 @@ tbody td strong {
   0% { transform: translateY(-50px); }
   100% { transform: translateY(50px); }
 }
+
+/* Disabled feedback widget for final submission */
+#claimit-feedback-btn,
+#claimit-feedback-modal {
+  display: none !important;
+}
