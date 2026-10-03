@@ -391,6 +391,37 @@ function seedRealisticMockData(db, callback) {
         }
       ];
 
+      // --- Auto-generate 20 more dummy assets ---
+      const locations = ['ฉุกเฉิน (Emergency Room / ER)','ห้องตรวจผู้ป่วยนอก (OPD Clinic)','หอผู้ป่วยกุมารเวชกรรม (Pediatric Ward 12)','หออภิบาลผู้ป่วยวิกฤต (Intensive Care Unit / ICU)','ห้องจ่ายยากลาง (Central Pharmacy)','เวชระเบียนและสถิติ (Medical Records)','ศูนย์ส่องกล้องระบบทางเดินอาหาร (GI Endoscopy Center)'];
+      const categories = ['Computer', 'Tablet', 'Scanner', 'Printer', 'Monitor'];
+      const brands = { 'Computer': ['HP', 'Acer', 'Lenovo', 'Dell'], 'Tablet': ['Apple'], 'Scanner': ['Zebra'], 'Printer': ['Epson', 'Canon'], 'Monitor': ['Dell', 'HP'] };
+      const models = { 'HP': ['ProOne 440', 'ProDesk 400', 'EliteBook 840'], 'Acer': ['Veriton X', 'TravelMate P2'], 'Lenovo': ['ThinkCentre M70q', 'ThinkPad E14'], 'Dell': ['OptiPlex 3090', 'Latitude 3420', 'UltraSharp 24'], 'Apple': ['iPad Air 5', 'iPad Pro 11'], 'Zebra': ['DS2208', 'LI2208'], 'Epson': ['L3250', 'LQ-310'], 'Canon': ['PIXMA G3020'] };
+      const statuses = ['Working', 'Working', 'Working', 'Working', 'Broken', 'Pending Pickup'];
+      for (let i = 1; i <= 20; i++) {
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        const bList = brands[cat];
+        const brand = bList[Math.floor(Math.random() * bList.length)];
+        const mList = models[brand];
+        const model = mList[Math.floor(Math.random() * mList.length)];
+        mockAssets.push({
+          asset_tag: 'CIT-2024-' + cat.substring(0,3).toUpperCase() + '-' + String(i).padStart(3, '0'),
+          category: cat,
+          brand: brand,
+          model: model,
+          serial_no: 'SN' + Math.floor(10000000 + Math.random() * 90000000),
+          device_name: brand + ' ' + model,
+          location: locations[Math.floor(Math.random() * locations.length)],
+          warranty_start: "date('now', '-300 days')",
+          warranty_end: "date('now', '+795 days')",
+          sanitization_required: 0,
+          status: statuses[Math.floor(Math.random() * statuses.length)],
+          purchase_price: Math.floor(5000 + Math.random() * 25000),
+          warranty_months: 36,
+          expected_lifespan_months: 60,
+          salvage_status: 'None'
+        });
+      }
+
       // Insert all mock assets in a single atomic statement using INSERT OR REPLACE
       const valuesSql = mockAssets.map(a => `(
         '${a.asset_tag}', '${a.category}', '${a.brand}', '${a.model}', '${a.serial_no}', '${a.device_name}', '${a.location}',
