@@ -1119,52 +1119,7 @@
             </div>
           </div>
 
-          <!-- CONFIG TAB 4: USER FEEDBACK & BUG REPORTS -->
-          <div id="tab-cfg-feedback" class="config-tab-pane" style="display: none;">
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <h3 class="card-title">💬 ข้อเสนอแนะและการแจ้งปัญหาจากผู้ใช้งาน (Feedback & Bugs)</h3>
-                  <div class="card-subtitle">ข้อคิดเห็น ปัญหา และข้อเสนอแนะจากหน้าจอต่าง ๆ แบบเรียลไทม์</div>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn btn-primary btn-sm" onclick="openFeedbackModal()">✍️ เพิ่มข้อคิดเห็น/ปัญหาใหม่</button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminFeedback()">🔄 รีเฟรช</button>
-                  <a href="/api/feedback/export/csv" class="btn btn-secondary btn-sm" title="ดาวน์โหลดข้อเสนอแนะทั้งหมดเป็น Excel/CSV">📊 โหลด Excel (CSV)</a>
-                  <a href="/api/feedback/export/markdown" class="btn btn-secondary btn-sm" title="ดาวน์โหลดข้อเสนอแนะทั้งหมดเป็นไฟล์สรุป Markdown">📋 โหลด FEEDBACK_LOG.md</a>
-                </div>
-              </div>
 
-              <!-- Filter Pills -->
-              <div style="display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('all')">ทั้งหมด</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('bug')">🐞 ปัญหา (Bugs)</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('suggestion')">💡 ข้อเสนอแนะ</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('ux')">❓ รูปแบบหน้าจอเข้าใจยาก / เมนูซับซ้อน</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="filterAdminFeedback('open')">⏳ รอตรวจ (Open)</button>
-              </div>
-
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 70px;">เวลา</th>
-                      <th style="width: 110px;">ประเภท</th>
-                      <th style="width: 180px;">หน้าจอ / อุปกรณ์</th>
-                      <th>ข้อความ / รายละเอียด</th>
-                      <th style="width: 140px;">ผู้แจ้ง / แผนก</th>
-                      <th style="width: 80px;">คะแนน</th>
-                      <th style="width: 110px;">สถานะ</th>
-                      <th style="width: 110px;">จัดการ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="feedback-table-body">
-                    <!-- Loaded dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         </section>
 
       </main>
